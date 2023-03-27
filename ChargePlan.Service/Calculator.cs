@@ -5,24 +5,38 @@ namespace ChargePlan.Service;
 
 public class Calculator
 {
+    /// <summary>
+    /// Calculate the end position in battery charge, and accumulated costs,
+    /// for a test set of parameters.
+    /// </summary>
+    /// <param name="storageProfile">Capabilities of the system</param>
+    /// <param name="demandProfiles">House demands. Typically the first one is the baseload, and additional ones may optionally be provided.</param>
+    /// <param name="generationProfile">Generation profile based on global and celestial parameters</param>
+    /// <param name="chargeProfile">Fixed charging from grid</param>
+    /// <param name="pricingProfile">Unit price at each point over the period</param>
+    /// <param name="currentState">Current battery energy level</param>
+    /// <param name="chargePowerLimit">A hard set power limit for the grid charge period</param>
+    /// <param name="shiftableDemands">Optional load demand which can be shifted to any point</param>
+    /// <returns></returns>
     public Decision Calculate(
         StorageProfile storageProfile,
-        DemandProfile demandProfile,
+        IEnumerable<DemandProfile> demandProfiles,
         GenerationProfile generationProfile,
         ChargeProfile chargeProfile,
         PricingProfile pricingProfile,
         CurrentState currentState,
-        float? chargePowerLimit)
+        float? chargePowerLimit = null)
     {
-        var demandSpline = CubicSpline.InterpolateAkima(demandProfile.Values.Select(f => (double)f.DateTime.AsTotalHours()), demandProfile.Values.Select(f => (double)f.Power));
-        var generationSpline = CubicSpline.InterpolateAkima(generationProfile.Values.Select(f => (double)f.DateTime.AsTotalHours()), generationProfile.Values.Select(f => (double)f.Power));
-        var chargeSpline = StepInterpolation.Interpolate(chargeProfile.Values.Select(f => (double)f.DateTime.AsTotalHours()), chargeProfile.Values.Select(f => (double)f.Power));
-        var pricingSpline = StepInterpolation.Interpolate(pricingProfile.Values.Select(f => (double)f.DateTime.AsTotalHours()), pricingProfile.Values.Select(f => (double)f.PricePerUnit));
-        
-        TimeSpan step = TimeSpan.FromMinutes(60);
+        chargePowerLimit ??= storageProfile.MaxChargeKilowatts;
 
-        DateTime startAt = demandProfile.Values.Min(f => f.DateTime);
-        DateTime endAt = demandProfile.Values.Max(f => f.DateTime - step);
+        TimeSpan step = TimeSpan.FromMinutes(60);
+        DateTime startAt = demandProfiles.SelectMany(f => f.Values).Min(f => f.DateTime);
+        DateTime endAt = demandProfiles.SelectMany(f => f.Values).Max(f => f.DateTime - step);
+
+        var demandSplines = demandProfiles.Select(demandProfile => demandProfile.AsSpline(CubicSpline.InterpolateAkima)).ToArray();
+        var generationSpline = generationProfile.AsSpline(CubicSpline.InterpolateAkima);
+        var chargeSpline = chargeProfile.AsSpline(StepInterpolation.Interpolate);
+        var pricingSpline = pricingProfile.AsSpline(StepInterpolation.Interpolate);
 
         float overcharge = 0.0f;
         float undercharge = 0.0f;
@@ -38,7 +52,7 @@ public class Calculator
             double to = (integral.DateTime + step).AsTotalHours();
 
             float unitPrice = (float)pricingSpline.Interpolate(from);
-            float demandEnergy = (float)demandSpline.Integrate(from, to);
+            float demandEnergy = (float)demandSplines.Select(f => f.Integrate(from, to)).Sum();
             float generationEnergy = (float)generationSpline.Integrate(from, to);
             float chargeEnergy = (float)
                 Math.Max(
@@ -74,7 +88,7 @@ public class Calculator
             debugResults.Add(new(integral.DateTime, integral.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, cost, undercharge, overcharge));
         }
 
-        Debug.WriteLine($"Charge rate: {chargePowerLimit ?? storageProfile.MaxChargeKilowatts} Undercharge: {undercharge} Overcharge: {overcharge} Cost: £{cost.ToString("F2")}");
+        Debug.WriteLine($"Charge rate: {chargePowerLimit} Undercharge: {undercharge} Overcharge: {overcharge} Cost: £{cost.ToString("F2")}");
 
         return new Decision(chargePowerLimit, undercharge, overcharge, Math.Round((decimal)cost, 2), debugResults);
     }
