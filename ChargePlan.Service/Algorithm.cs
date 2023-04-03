@@ -30,7 +30,7 @@ public record Algorithm(
                 .Integrate(fromDate.AsTotalHours(), toDate.AsTotalHours()))
             .ToArray();
 
-        var shiftByTimespans = Enumerable.Range(0, (int)(toDate - fromDate).TotalHours).Select(f => TimeSpan.FromHours(f));
+        var shiftByTimespans = CreateTrialTimespans(fromDate, toDate);
         var shiftableDemandsAsProfiles = orderedShiftableDemands
             .Select(shiftableDemand =>
             (
@@ -38,6 +38,8 @@ public record Algorithm(
                 Trials: shiftByTimespans
                     .Select(ts => (ShiftedBy: ts, Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
                     .Where(f => f.Demand.Values.Select(g => g.DateTime).Max() < toDate) // Don't allow to overrun main calculation period
+                    .Where(f => f.Demand.Values.Select(g => g.DateTime.TimeOfDay).Min() >= shiftableDemand.Earliest.ToTimeSpan())
+                    .Where(f => f.Demand.Values.Select(g => g.DateTime.TimeOfDay).Max() <= shiftableDemand.Latest.ToTimeSpan())
             ));
 
         Decision decision = IterateChargeRates(Enumerable.Empty<DemandProfile>());
@@ -46,7 +48,7 @@ public record Algorithm(
         foreach (var s in shiftableDemandsAsProfiles)
         {
             var optimal = s.Trials
-                .Select(t => ((t.ShiftedBy, t.Demand, Decision: IterateChargeRates(completed.Select(f=>f.DemandProfile).Concat(new[] { t.Demand })))))
+                .Select(t => ((t.ShiftedBy, t.Demand, Decision: IterateChargeRates(completed.Select(f => f.DemandProfile).Concat(new[] { t.Demand })))))
                 .ToArray()
                 .OrderBy(f => f.Decision.TotalCost)
                 .First();
@@ -58,6 +60,18 @@ public record Algorithm(
         }
 
         return decision;
+    }
+
+    private IEnumerable<TimeSpan> CreateTrialTimespans(DateTime fromDate, DateTime toDate)
+    {
+//      return Enumerable.Range(0, (int)(toDate - fromDate).TotalHours).Select(f => TimeSpan.FromHours(f));
+        TimeSpan ts = TimeSpan.Zero;
+
+        while (fromDate + ts < toDate)
+        {
+            yield return ts;
+            ts += TimeSpan.FromMinutes(30);
+        }
     }
 
     private Decision IterateChargeRates(IEnumerable<DemandProfile> shiftableDemandsAsProfiles)
