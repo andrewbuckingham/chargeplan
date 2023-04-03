@@ -17,7 +17,7 @@ public record AlgorithmBuilder(StorageProfile StorageProfile,
     public AlgorithmBuilder WithDemand(IEnumerable<DemandValue> values) => this with { DemandProfile = new() { Values = values.ToList() } };
     public AlgorithmBuilder WithCharge(IEnumerable<ChargeValue> values) => this with { ChargeProfile = new() { Values = values.ToList() } };
     public AlgorithmBuilder WithPricing(IEnumerable<PricingValue> values) => this with { PricingProfile = new() { Values = values.ToList() } };
-    public AlgorithmBuilder AddShiftableDemand(ShiftableDemand demand) => this with { ShiftableDemands = ShiftableDemands.Concat(new[] { demand }).ToArray() };
+    public AlgorithmBuilder AddShiftableDemand(string name, IEnumerable<ShiftableDemandValue> demand) => this with { ShiftableDemands = ShiftableDemands.Concat(new[] { new ShiftableDemand() { Name = name, Values = demand.ToList() } }).ToArray() };
 
     public Algorithm Build() => new Algorithm(StorageProfile, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, CurrentState, ShiftableDemands);
 }

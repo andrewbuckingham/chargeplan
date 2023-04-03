@@ -1,4 +1,6 @@
+using MathNet.Numerics.Interpolation;
+
 public interface ISplineable
 {
-    T AsSpline<T>(Func<IEnumerable<double>, IEnumerable<double>, T> splineCreator);
+    IInterpolation AsSpline<T>(Func<IEnumerable<double>, IEnumerable<double>, T> splineCreator) where T : IInterpolation;
 }

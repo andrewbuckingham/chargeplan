@@ -20,7 +20,8 @@ public class Calculator
     /// <returns></returns>
     public Decision Calculate(
         StorageProfile storageProfile,
-        IEnumerable<DemandProfile> demandProfiles,
+        DemandProfile mainDemandProfile,
+        IEnumerable<DemandProfile> shiftableLoadDemandProfiles,
         GenerationProfile generationProfile,
         ChargeProfile chargeProfile,
         PricingProfile pricingProfile,
@@ -30,10 +31,14 @@ public class Calculator
         chargePowerLimit ??= storageProfile.MaxChargeKilowatts;
 
         TimeSpan step = TimeSpan.FromMinutes(60);
-        DateTime startAt = demandProfiles.SelectMany(f => f.Values).Min(f => f.DateTime);
-        DateTime endAt = demandProfiles.SelectMany(f => f.Values).Max(f => f.DateTime - step);
+        DateTime startAt = mainDemandProfile.Values.Min(f => f.DateTime);
+        DateTime endAt = mainDemandProfile.Values.Max(f => f.DateTime - step);
 
-        var demandSplines = demandProfiles.Select(demandProfile => demandProfile.AsSpline(CubicSpline.InterpolateAkima)).ToArray();
+        var demandSplines = (new IInterpolation[] {
+            mainDemandProfile.AsSpline(CubicSpline.InterpolateAkima) })
+            .Concat(shiftableLoadDemandProfiles.Select(demandProfile => demandProfile.AsSpline(StepInterpolation.Interpolate)))
+            .ToArray();
+
         var generationSpline = generationProfile.AsSpline(CubicSpline.InterpolateAkima);
         var chargeSpline = chargeProfile.AsSpline(StepInterpolation.Interpolate);
         var pricingSpline = pricingProfile.AsSpline(StepInterpolation.Interpolate);
@@ -52,7 +57,7 @@ public class Calculator
             double to = (integral.DateTime + step).AsTotalHours();
 
             float unitPrice = (float)pricingSpline.Interpolate(from);
-            float demandEnergy = (float)demandSplines.Select(f => f.Integrate(from, to)).Sum();
+            float demandEnergy = (float)demandSplines.Select(f => Math.Max(0.0f, f.Integrate(from, to))).Sum();
             float generationEnergy = (float)generationSpline.Integrate(from, to);
             float chargeEnergy = (float)
                 Math.Max(
@@ -88,7 +93,7 @@ public class Calculator
             debugResults.Add(new(integral.DateTime, integral.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, cost, undercharge, overcharge));
         }
 
-        Debug.WriteLine($"Charge rate: {chargePowerLimit} Undercharge: {undercharge} Overcharge: {overcharge} Cost: £{cost.ToString("F2")}");
+//        Debug.WriteLine($"Charge rate: {chargePowerLimit} Undercharge: {undercharge} Overcharge: {overcharge} Cost: £{cost.ToString("F2")}");
 
         return new Decision(chargePowerLimit, undercharge, overcharge, Math.Round((decimal)cost, 2), debugResults);
     }

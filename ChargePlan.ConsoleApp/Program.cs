@@ -43,11 +43,11 @@ var demand = new DemandValue[]
 // }.ToList();
 
 
-float[] generationPerHour = new float[]
+float[] goodSpringDay = new float[]
 {
     0,0,0,0,0,0,
-    66,984,1507,1960,2213,2248,
-    2162,1915,981,472,142,27,
+    0,350,1000,1900,2300,2500,
+    2600,2500,2300,1690,1000,490,
     2,0,0,0,0 };
 
 var charge = new ChargeValue[]
@@ -72,11 +72,41 @@ var pricing = new PricingValue[]
     new (datum.AddHours(24), 0.40M)
 }.ToList();
 
+var dishwasher = new ShiftableDemandValue[]
+{
+    new (TimeSpan.Zero, 1.0f),
+    new (TimeSpan.FromHours(0.5), 0.2f),
+    new (TimeSpan.FromHours(2.0), 1.0f),
+    new (TimeSpan.FromHours(2.5), 0.0f)
+};
+
+var washingMachine = new ShiftableDemandValue[]
+{
+    new (TimeSpan.Zero, 0.5f),
+    new (TimeSpan.FromHours(2.0), 0.0f)
+};
+
+var dehumidifiers = new ShiftableDemandValue[]
+{
+    new (TimeSpan.Zero, 0.5f),
+    new (TimeSpan.FromHours(4.0), 0.0f)
+};
+
+var lunch = new ShiftableDemandValue[]
+{
+    new (TimeSpan.Zero, 2.0f),
+    new (TimeSpan.FromHours(0.75), 0.0f)
+};
+
 var algorithm = new AlgorithmBuilder(new StorageProfile(0.8f * 5.2f, 2.8f, 2.8f), new CurrentState(datum, 0.0f))
     .WithDemand(demand)
     .WithCharge(charge)
     .WithPricing(pricing)
-    .WithHourlyGeneration(datum, generationPerHour.Select(f => f / 1000.0f).ToArray())
+    .WithHourlyGeneration(datum, goodSpringDay.Select(f => f / 1000.0f).ToArray())
+    .AddShiftableDemand("dishwasher", dishwasher)
+    .AddShiftableDemand("washing machine", washingMachine)
+    .AddShiftableDemand("dehumidifiers", dehumidifiers)
+    .AddShiftableDemand("lunch", lunch)
     .Build();
 
 var decision = algorithm.DecideStrategy();

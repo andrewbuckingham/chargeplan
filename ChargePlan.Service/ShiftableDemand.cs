@@ -4,6 +4,8 @@ public class ShiftableDemand
 {
     public List<ShiftableDemandValue> Values = new();
 
+    public string Name { get; set; } = String.Empty;
+
     public DemandProfile AsDemandProfile(DateTime startingAt)
         => new DemandProfile() { Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList() };
 }

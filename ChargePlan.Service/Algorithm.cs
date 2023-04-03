@@ -18,26 +18,8 @@ public record Algorithm(
     /// </summary>
     public Decision DecideStrategy()
     {
-        var chargeRates = Enumerable
-            .Range(1, 100)
-            .Select(percent => (float)percent * StorageProfile.MaxChargeKilowatts / 100.0f);
-
         DateTime fromDate = DemandProfile.Values.Select(f => f.DateTime).Min();
         DateTime toDate = DemandProfile.Values.Select(f => f.DateTime).Max();
-
-        // Establish what's best for the main demand profile.
-        var results = chargeRates.Select(chargeLimit => new Calculator().Calculate(
-                StorageProfile,
-                new[] { DemandProfile }, // Don't add the shiftable demand yet
-                GenerationProfile,
-                ChargeProfile,
-                PricingProfile,
-                CurrentState,
-                chargeLimit
-            ))
-            .OrderBy(f => f.TotalCost);
-
-        var resultWithOptimalChargeRate = results.First();
 
         // Iterate through options for shiftable demand.
         // Fit the largest demand in first, and then iteratively the smaller ones.
@@ -50,11 +32,54 @@ public record Algorithm(
 
         var shiftByTimespans = Enumerable.Range(0, (int)(toDate - fromDate).TotalHours).Select(f => TimeSpan.FromHours(f));
         var shiftableDemandsAsProfiles = orderedShiftableDemands
-            .Select(shiftableDemand => shiftByTimespans
-                .Select(ts => shiftableDemand.AsDemandProfile(fromDate.Add(ts))) // Apply the profile at each trial hour
-                .Where(f => f.Values.Select(g => g.DateTime).Max() < toDate)); // Don't allow to overrun main calculation period
+            .Select(shiftableDemand =>
+            (
+                Name: shiftableDemand.Name,
+                Trials: shiftByTimespans
+                    .Select(ts => (ShiftedBy: ts, Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
+                    .Where(f => f.Demand.Values.Select(g => g.DateTime).Max() < toDate) // Don't allow to overrun main calculation period
+            ));
 
-        //var crossProductOfShiftableDemands = shiftableDemandsAsProfiles.;
+        Decision decision = IterateChargeRates(Enumerable.Empty<DemandProfile>());
+
+        List<(TimeSpan ShiftedBy, DemandProfile DemandProfile, Decision Decision)> completed = new();
+        foreach (var s in shiftableDemandsAsProfiles)
+        {
+            var optimal = s.Trials
+                .Select(t => ((t.ShiftedBy, t.Demand, Decision: IterateChargeRates(completed.Select(f=>f.DemandProfile).Concat(new[] { t.Demand })))))
+                .ToArray()
+                .OrderBy(f => f.Decision.TotalCost)
+                .First();
+
+            completed.Add((optimal.ShiftedBy, optimal.Demand, optimal.Decision));
+
+            decision = completed.Last().Decision;
+            Debug.WriteLine($"Charge rate: {decision.RecommendedChargeRateLimit} Undercharge: {decision.UnderchargeEnergy} Overcharge: {decision.OverchargeEnergy} Cost: £{decision.TotalCost.ToString("F2")} {s.Name}: {completed.Last().ShiftedBy}");
+        }
+
+        return decision;
+    }
+
+    private Decision IterateChargeRates(IEnumerable<DemandProfile> shiftableDemandsAsProfiles)
+    {
+        var chargeRates = Enumerable
+            .Range(1, 100)
+            .Select(percent => (float)percent * StorageProfile.MaxChargeKilowatts / 100.0f);
+
+        var results = chargeRates.Select(chargeLimit => new Calculator().Calculate(
+                StorageProfile,
+                DemandProfile,
+                shiftableDemandsAsProfiles,
+                GenerationProfile,
+                ChargeProfile,
+                PricingProfile,
+                CurrentState,
+                chargeLimit
+            ))
+            .ToArray()
+            .OrderBy(f => f.TotalCost);
+
+        var resultWithOptimalChargeRate = results.First();
 
         return resultWithOptimalChargeRate;
     }
