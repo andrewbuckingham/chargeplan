@@ -21,8 +21,11 @@ public record CurrentState(DateTime DateTime, float BatteryEnergy)
     /// <summary>
     /// Pull some neergy from the battery observing where it is empty.
     /// </summary>
-    public (CurrentState NewState, float Pulled, float Shortfall) Pull(float energy)
+    /// <param name="isGridCharge">If true, this will not take from battery and return as shortfall.</param>
+    public (CurrentState NewState, float Pulled, float Shortfall) Pull(float energy, bool isGridCharge)
     {
+        if (isGridCharge) return (this, 0.0f, energy);
+
         float newState = BatteryEnergy - energy;
         if (newState < 0)
         {

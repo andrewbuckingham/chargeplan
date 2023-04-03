@@ -81,7 +81,10 @@ public class Calculator
             integral = generation.NewState;
             var charge = integral.Add(chargeEnergy, storageProfile.CapacityKilowattHrs);
             integral = charge.NewState;
-            var demand = integral.Pull(netDemandEnergy);
+
+            // If this is a period of grid charging, then no drawdown from battery
+            // can be used for the demand.
+            var demand = integral.Pull(netDemandEnergy, isGridCharge: chargeEnergy > 0.0f);
             integral = demand.NewState;
 
             cost += (charge.Added + demand.Shortfall) * unitPrice;
