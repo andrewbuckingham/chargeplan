@@ -59,22 +59,16 @@ float[] wintersDay = new float[]
 var charge = new ChargeValue[]
 {
     new (datum, 0.0f),
-    new (datum.AddHours(1), 3.0f),
-    new (datum.AddHours(2), 3.0f),
-    new (datum.AddHours(3), 3.0f),
-    new (datum.AddHours(4), 0.0f),
-    new (datum.AddHours(6), 0.0f),
+    new (datum.AddHours(0.5), 3.0f),
+    new (datum.AddHours(4.5), 0.0f),
     new (datum.AddHours(24), 0.0f)
 }.ToList();
 
 var pricing = new PricingValue[]
 {
     new (datum, 0.40M),
-    new (datum.AddHours(1), 0.11M),
-    new (datum.AddHours(2), 0.11M),
-    new (datum.AddHours(3), 0.11M),
-    new (datum.AddHours(4), 0.11M),
-    new (datum.AddHours(6), 0.40M),
+    new (datum.AddHours(0.5), 0.11M),
+    new (datum.AddHours(4.5), 0.40M),
     new (datum.AddHours(24), 0.40M)
 }.ToList();
 
@@ -114,7 +108,7 @@ var algorithm = new AlgorithmBuilder(new StorageProfile(0.8f * 5.2f, 2.8f, 2.8f)
     .WithDemand(demand)
     .WithCharge(charge)
     .WithPricing(pricing)
-    .WithHourlyGeneration(datum, wintersDay.Select(f => f / 1000.0f).ToArray())
+    .WithHourlyGeneration(datum, goodSpringDay.Select(f => f / 2000.0f).ToArray())
     .AddShiftableDemand("dishwasher", dishwasher)
     .AddShiftableDemand("washing machine", washingMachine)
     .AddShiftableDemand("washing machine", washingMachine)
