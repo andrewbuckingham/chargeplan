@@ -5,7 +5,7 @@ using MathNet.Numerics.Interpolation;
 namespace ChargePlan.Service;
 
 public record Algorithm(
-    StorageProfile StorageProfile,
+    IPlant PlantTemplate,
     DemandProfile DemandProfile,
     GenerationProfile GenerationProfile,
     ChargeProfile ChargeProfile,
@@ -22,9 +22,10 @@ public record Algorithm(
         DateTime toDate = DemandProfile.Values.Select(f => f.DateTime).Max();
 
         // Iterate through options for shiftable demand.
-        // Fit the largest demand in first, and then iteratively the smaller ones.
+        // Fit the highest priority and largest demand in first, and then iteratively the smaller ones.
         var orderedShiftableDemands = ShiftableDemands
-            .OrderByDescending(demand => demand
+            .OrderBy(demand => demand.Priority)
+            .ThenByDescending(demand => demand
                 .AsDemandProfile(fromDate)
                 .AsSpline(StepInterpolation.Interpolate)
                 .Integrate(fromDate.AsTotalHours(), toDate.AsTotalHours()))
@@ -64,7 +65,6 @@ public record Algorithm(
 
     private IEnumerable<TimeSpan> CreateTrialTimespans(DateTime fromDate, DateTime toDate)
     {
-//      return Enumerable.Range(0, (int)(toDate - fromDate).TotalHours).Select(f => TimeSpan.FromHours(f));
         TimeSpan ts = TimeSpan.Zero;
 
         while (fromDate + ts < toDate)
@@ -78,10 +78,9 @@ public record Algorithm(
     {
         var chargeRates = Enumerable
             .Range(1, 100)
-            .Select(percent => (float)percent * StorageProfile.MaxChargeKilowatts / 100.0f);
+            .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f));
 
-        var results = chargeRates.Select(chargeLimit => new Calculator().Calculate(
-                StorageProfile,
+        var results = chargeRates.Select(chargeLimit => new Calculator(PlantTemplate).Calculate(
                 DemandProfile,
                 shiftableDemandsAsProfiles,
                 GenerationProfile,

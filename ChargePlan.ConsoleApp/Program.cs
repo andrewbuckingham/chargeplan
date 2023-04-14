@@ -72,11 +72,20 @@ var pricing = new PricingValue[]
     new (datum.AddHours(24), 0.40M)
 }.ToList();
 
-var dishwasher = new ShiftableDemandValue[]
+var dishwasherAuto = new ShiftableDemandValue[]
 {
-    new (TimeSpan.Zero, 1.0f),
-    new (TimeSpan.FromHours(0.5), 0.2f),
-    new (TimeSpan.FromHours(2.0), 1.0f),
+    new (TimeSpan.Zero, 1.63f),
+    new (TimeSpan.FromHours(0.5), 0.05f),
+    new (TimeSpan.FromHours(1.25), 2.2f),
+    new (TimeSpan.FromHours(1.5), 0.0f)
+};
+
+var dishwasherEco = new ShiftableDemandValue[]
+{
+    new (TimeSpan.Zero, 1.66f),
+    new (TimeSpan.FromHours(0.3), 2.2f),
+    new (TimeSpan.FromHours(0.4), 0.05f),
+    new (TimeSpan.FromHours(2.25), 2.1f),
     new (TimeSpan.FromHours(2.5), 0.0f)
 };
 
@@ -104,14 +113,12 @@ var tea = new ShiftableDemandValue[]
     new (TimeSpan.FromHours(0.5), 0.0f)
 };
 
-var algorithm = new AlgorithmBuilder(new StorageProfile(0.8f * 5.2f, 2.8f, 2.8f), new CurrentState(datum, 0.0f))
+var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f), new CurrentState(datum, 0.0f))
     .WithDemand(demand)
     .WithCharge(charge)
     .WithPricing(pricing)
-    .WithHourlyGeneration(datum, goodSpringDay.Select(f => f / 2000.0f).ToArray())
-    .AddShiftableDemand("dishwasher", dishwasher)
-    .AddShiftableDemand("washing machine", washingMachine)
-    .AddShiftableDemand("washing machine", washingMachine)
+    .WithHourlyGeneration(datum, goodSpringDay.Select(f => f / 1000.0f).ToArray())
+    .AddShiftableDemand("dishwasher", dishwasherAuto)
     .AddShiftableDemand("washing machine", washingMachine)
     .AddShiftableDemand("dehumidifiers", dehumidifiers)
     .AddShiftableDemand("lunch", lunch, noEarlierThan: new(11, 30), noLaterThan: new(13, 30))

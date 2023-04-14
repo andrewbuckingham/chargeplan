@@ -1,5 +1,16 @@
 namespace ChargePlan.Service;
 
+public enum ShiftableDemandPriority
+{
+    Essential = 0,
+
+    High = 200,
+
+    Medium = 400,
+
+    Low = 600,
+}
+
 public class ShiftableDemand
 {
     public List<ShiftableDemandValue> Values = new();
@@ -8,6 +19,8 @@ public class ShiftableDemand
 
     public TimeOnly Earliest { get; set; } = TimeOnly.MinValue;
     public TimeOnly Latest { get; set; } = TimeOnly.MaxValue;
+
+    public ShiftableDemandPriority Priority { get; set; } = ShiftableDemandPriority.Essential;
 
     public DemandProfile AsDemandProfile(DateTime startingAt)
         => new DemandProfile() { Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList() };
