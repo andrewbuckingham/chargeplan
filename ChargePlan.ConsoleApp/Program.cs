@@ -21,25 +21,6 @@ var demand = new DemandValue[]
     new (datum.AddHours(24), 0.3f)
 }.ToList();
 
-// var demand = new DemandValue[]
-// {
-//     new (datum, 0.3f),
-//     new (datum.AddHours(1), 0.3f),
-//     new (datum.AddHours(8), 2.5f),
-//     new (datum.AddHours(11), 2.5f),
-//     new (datum.AddHours(12), 1.5f),
-//     new (datum.AddHours(13), 1.2f),
-//     new (datum.AddHours(17), 1.2f),
-//     new (datum.AddHours(18), 0.5f),
-//     new (datum.AddHours(18.25), 0.5f),
-//     new (datum.AddHours(18.5), 2.5f),
-//     new (datum.AddHours(18.75), 0.5f),
-//     new (datum.AddHours(19), 0.5f),
-//     new (datum.AddHours(20), 0.5f),
-//     new (datum.AddHours(24), 0.3f)
-// }.ToList();
-
-
 float[] goodSpringDay = new float[]
 {
     0,0,0,0,0,0,
@@ -118,18 +99,18 @@ var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f), ne
     .WithCharge(charge)
     .WithPricing(pricing)
     .WithHourlyGeneration(datum, goodSpringDay.Select(f => f / 1000.0f).ToArray())
-    .AddShiftableDemand("dishwasher", dishwasherAuto)
-    .AddShiftableDemand("washing machine", washingMachine)
-    .AddShiftableDemand("dehumidifiers", dehumidifiers)
-    .AddShiftableDemand("lunch", lunch, noEarlierThan: new(11, 30), noLaterThan: new(13, 30))
-    .AddShiftableDemand("tea", tea, noEarlierThan: new(17, 00), noLaterThan: new(19, 00))
+    .AddShiftableDemand("dishwasher", dishwasherAuto, priority: ShiftableDemandPriority.High)
+    .AddShiftableDemand("washing machine", washingMachine, priority: ShiftableDemandPriority.Medium)
+    .AddShiftableDemand("dehumidifiers", dehumidifiers, priority: ShiftableDemandPriority.Low)
+    .AddShiftableDemand("lunch", lunch, noEarlierThan: new(11, 30), noLaterThan: new(13, 30), priority: ShiftableDemandPriority.Essential)
+    .AddShiftableDemand("tea", tea, noEarlierThan: new(17, 00), noLaterThan: new(19, 00), priority: ShiftableDemandPriority.Essential)
     .Build();
 
 var decision = algorithm.DecideStrategy();
 
 foreach (var step in decision.DebugResults)
 {
-    Debug.WriteLine($"{step.DateTime.TimeOfDay}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost}");
+    Debug.WriteLine($"{step.DateTime.TimeOfDay}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost.ToString("F2")}");
 }
 
 Console.WriteLine($"Recommended charge rate limit: {decision.RecommendedChargeRateLimit?.ToString() ?? "none"}");

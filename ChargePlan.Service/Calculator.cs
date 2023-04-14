@@ -55,9 +55,9 @@ public record Calculator(IPlant PlantTemplate)
             double from = (now).AsTotalHours();
             double to = (now + step).AsTotalHours();
 
-            float unitPrice = (float)pricingSpline.Interpolate(from);
+            float unitPrice = Math.Max(0.0f, (float)pricingSpline.Interpolate(from));
             float demandEnergy = (float)demandSplines.Select(f => Math.Max(0.0f, f.Integrate(from, to))).Sum();
-            float generationEnergy = (float)generationSpline.Integrate(from, to);
+            float generationEnergy = Math.Max(0.0f, (float)generationSpline.Integrate(from, to));
             float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
             plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step);

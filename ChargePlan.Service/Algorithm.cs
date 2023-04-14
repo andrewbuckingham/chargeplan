@@ -57,7 +57,7 @@ public record Algorithm(
             completed.Add((optimal.ShiftedBy, optimal.Demand, optimal.Decision));
 
             decision = completed.Last().Decision;
-            Debug.WriteLine($"Charge rate: {decision.RecommendedChargeRateLimit} Undercharge: {decision.UnderchargeEnergy} Overcharge: {decision.OverchargeEnergy} Cost: £{decision.TotalCost.ToString("F2")} {s.Name}: {completed.Last().ShiftedBy}");
+            Debug.WriteLine($"Charge rate: {decision.RecommendedChargeRateLimit?.ToString("F3")} Undercharge: {decision.UnderchargeEnergy.ToString("F1")} Overcharge: {decision.OverchargeEnergy.ToString("F1")} Cost: £{decision.TotalCost.ToString("F2")} {s.Name}: {completed.Last().ShiftedBy}");
         }
 
         return decision;
