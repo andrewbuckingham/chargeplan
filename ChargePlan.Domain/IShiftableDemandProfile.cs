@@ -18,4 +18,3 @@ public enum ShiftableDemandPriority
 
     Low = 600,
 }
-

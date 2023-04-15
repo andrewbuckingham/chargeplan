@@ -1,5 +1,3 @@
-using ChargePlan.Service;
-
 public interface IDemandProfile : ISplineable<DemandValue>
 {
     DateTime Starting { get; }

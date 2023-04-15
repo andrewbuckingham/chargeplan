@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using MathNet.Numerics.Interpolation;
 
-namespace ChargePlan.Service;
-
 public record Calculator(IPlant PlantTemplate)
 {
     /// <summary>
@@ -17,7 +15,7 @@ public record Calculator(IPlant PlantTemplate)
     /// <param name="chargePowerLimit">A hard set power limit for the grid charge period</param>
     /// <param name="shiftableLoadDemandProfiles">Optional load demand which can be shifted to any point</param>
     /// <returns></returns>
-    public Decision Calculate(
+    public Evaluation Calculate(
         IDemandProfile mainDemandProfile,
         IEnumerable<IDemandProfile> shiftableLoadDemandProfiles,
         IGenerationProfile generationProfile,
@@ -70,11 +68,6 @@ public record Calculator(IPlant PlantTemplate)
             debugResults.Add(new(now, plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, cost, undercharge, overcharge));
         }
 
-        return new Decision(chargePowerLimit, undercharge, overcharge, Math.Round((decimal)cost, 2), debugResults);
+        return new Evaluation(chargePowerLimit, undercharge, overcharge, Math.Round((decimal)cost, 2), debugResults);
     }
-}
-
-public static class DateTimeExtensions
-{
-    public static double AsTotalHours(this DateTime dateTime) => (double)dateTime.Ticks / (double)TimeSpan.FromHours(1.0).Ticks;
 }

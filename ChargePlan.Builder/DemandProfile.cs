@@ -1,7 +1,5 @@
 using MathNet.Numerics.Interpolation;
 
-namespace ChargePlan.Service;
-
 public class DemandProfile : IDemandProfile
 {
     public List<DemandValue> Values = new();

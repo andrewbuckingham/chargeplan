@@ -2,8 +2,6 @@ using System.Diagnostics;
 using System.Linq;
 using MathNet.Numerics.Interpolation;
 
-namespace ChargePlan.Service;
-
 public record Algorithm(
     IPlant PlantTemplate,
     IDemandProfile DemandProfile,
@@ -16,7 +14,7 @@ public record Algorithm(
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
     /// </summary>
-    public Decision DecideStrategy()
+    public Evaluation DecideStrategy()
     {
         DateTime fromDate = DemandProfile.Starting;
         DateTime toDate = DemandProfile.Until;
@@ -43,9 +41,9 @@ public record Algorithm(
                     .Where(f => f.Demand.Until.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
             ));
 
-        Decision decision = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
+        Evaluation decision = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
 
-        List<(TimeSpan ShiftedBy, IDemandProfile DemandProfile, Decision Decision)> completed = new();
+        List<(TimeSpan ShiftedBy, IDemandProfile DemandProfile, Evaluation Decision)> completed = new();
         foreach (var s in shiftableDemandsAsProfiles)
         {
             var optimal = s.Trials
@@ -57,7 +55,7 @@ public record Algorithm(
             completed.Add((optimal.ShiftedBy, optimal.Demand, optimal.Decision));
 
             decision = completed.Last().Decision;
-            Debug.WriteLine($"Charge rate: {decision.RecommendedChargeRateLimit?.ToString("F3")} Undercharge: {decision.UnderchargeEnergy.ToString("F1")} Overcharge: {decision.OverchargeEnergy.ToString("F1")} Cost: £{decision.TotalCost.ToString("F2")} {s.Name}: {completed.Last().ShiftedBy}");
+            Debug.WriteLine($"Charge rate: {decision.ChargeRateLimit?.ToString("F3")} Undercharge: {decision.UnderchargeEnergy.ToString("F1")} Overcharge: {decision.OverchargeEnergy.ToString("F1")} Cost: £{decision.TotalCost.ToString("F2")} {s.Name}: {completed.Last().ShiftedBy}");
         }
 
         return decision;
@@ -74,7 +72,7 @@ public record Algorithm(
         }
     }
 
-    private Decision IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles)
+    private Evaluation IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles)
     {
         var chargeRates = Enumerable
             .Range(1, 100)

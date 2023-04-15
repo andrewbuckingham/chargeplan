@@ -1,10 +1,8 @@
 using MathNet.Numerics.Interpolation;
 
-namespace ChargePlan.Service;
-
-public class ChargeProfile : IChargeProfile
+public record GenerationProfile : IGenerationProfile
 {
-    public List<ChargeValue> Values = new();
+    public List<GenerationValue> Values = new();
 
     public DateTime Starting => Values.Min(f => f.DateTime);
 

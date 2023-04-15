@@ -1,5 +1,3 @@
-using ChargePlan.Service;
-
 public record IntegrationStep(
     DateTime DateTime,
     float BatteryEnergy,

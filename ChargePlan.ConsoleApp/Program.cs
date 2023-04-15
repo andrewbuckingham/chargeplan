@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics;
-using ChargePlan.Service;
 
 // See https://aka.ms/new-console-template for more information
 Console.WriteLine("Hello, World!");
@@ -94,7 +93,8 @@ var tea = new ShiftableDemandValue[]
     new (TimeSpan.FromHours(0.5), 0.0f)
 };
 
-var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f), new PlantState(0.0f))
+var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
+    .WithInitialBatteryEnergy(0.3f)
     .WithDemand(demand)
     .WithCharge(charge)
     .WithPricing(pricing)
@@ -113,4 +113,4 @@ foreach (var step in decision.DebugResults)
     Debug.WriteLine($"{step.DateTime.TimeOfDay}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost.ToString("F2")}");
 }
 
-Console.WriteLine($"Recommended charge rate limit: {decision.RecommendedChargeRateLimit?.ToString() ?? "none"}");
+Console.WriteLine($"Recommended charge rate limit: {decision.ChargeRateLimit?.ToString() ?? "none"}");

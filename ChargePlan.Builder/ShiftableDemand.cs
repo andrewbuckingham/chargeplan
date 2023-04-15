@@ -1,5 +1,3 @@
-namespace ChargePlan.Service;
-
 public class ShiftableDemand : IShiftableDemandProfile
 {
     public List<ShiftableDemandValue> Values = new();

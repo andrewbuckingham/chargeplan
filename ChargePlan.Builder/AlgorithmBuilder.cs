@@ -1,5 +1,3 @@
-using ChargePlan.Service;
-
 public record AlgorithmBuilder(IPlant PlantTemplate,
         DemandProfile DemandProfile,
         GenerationProfile GenerationProfile,
@@ -8,8 +6,11 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         PlantState InitialState,
         ShiftableDemand[] ShiftableDemands)
 {
-    public AlgorithmBuilder(IPlant plantTemplate, PlantState initialState)
-        : this(plantTemplate, new(), new(), new(), new(), initialState, new ShiftableDemand[] {}) {}
+    public AlgorithmBuilder(IPlant plantTemplate)
+        : this(plantTemplate, new(), new(), new(), new(), plantTemplate.State, new ShiftableDemand[] {}) {}
+
+    public AlgorithmBuilder WithInitialBatteryEnergy(float kWh)
+        => this with { InitialState = InitialState with { BatteryEnergy = kWh } };
 
     public AlgorithmBuilder WithHourlyGeneration(DateTime datum, params float[] hourlyFigures)
         => this with { GenerationProfile = new() { Values = hourlyFigures.Select((f, i) => new GenerationValue(datum.AddHours(i), f)).ToList() } };
