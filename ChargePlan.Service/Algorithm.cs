@@ -10,7 +10,7 @@ public record Algorithm(
     GenerationProfile GenerationProfile,
     ChargeProfile ChargeProfile,
     PricingProfile PricingProfile,
-    CurrentState CurrentState,
+    PlantState InitialState,
     IEnumerable<ShiftableDemand> ShiftableDemands)
 {
     /// <summary>
@@ -86,7 +86,7 @@ public record Algorithm(
                 GenerationProfile,
                 ChargeProfile,
                 PricingProfile,
-                CurrentState,
+                InitialState,
                 chargeLimit
             ))
             .ToArray()

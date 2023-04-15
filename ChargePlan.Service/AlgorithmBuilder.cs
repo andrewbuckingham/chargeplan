@@ -5,11 +5,11 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         GenerationProfile GenerationProfile,
         ChargeProfile ChargeProfile,
         PricingProfile PricingProfile,
-        CurrentState CurrentState,
+        PlantState InitialState,
         ShiftableDemand[] ShiftableDemands)
 {
-    public AlgorithmBuilder(IPlant plantTemplate, CurrentState currentState)
-        : this(plantTemplate, new(), new(), new(), new(), currentState, new ShiftableDemand[] {}) {}
+    public AlgorithmBuilder(IPlant plantTemplate, PlantState initialState)
+        : this(plantTemplate, new(), new(), new(), new(), initialState, new ShiftableDemand[] {}) {}
 
     public AlgorithmBuilder WithHourlyGeneration(DateTime datum, params float[] hourlyFigures)
         => this with { GenerationProfile = new() { Values = hourlyFigures.Select((f, i) => new GenerationValue(datum.AddHours(i), f)).ToList() } };
@@ -26,5 +26,5 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         Values = demand.ToList()
     } }).ToArray() };
 
-    public Algorithm Build() => new Algorithm(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, CurrentState, ShiftableDemands);
+    public Algorithm Build() => new Algorithm(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, InitialState, ShiftableDemands);
 }

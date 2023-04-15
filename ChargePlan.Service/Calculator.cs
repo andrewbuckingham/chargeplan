@@ -9,14 +9,13 @@ public record Calculator(IPlant PlantTemplate)
     /// Calculate the end position in battery charge, and accumulated costs,
     /// for a test set of parameters.
     /// </summary>
-    /// <param name="storageProfile">Capabilities of the system</param>
-    /// <param name="demandProfiles">House demands. Typically the first one is the baseload, and additional ones may optionally be provided.</param>
+    /// <param name="mainDemandProfile">House demand baseload. Also defines the time bounds of the calculation. For specific loads (e.g. washing machines) use the shiftableLoadDemandProfiles instead.</param>
     /// <param name="generationProfile">Generation profile based on global and celestial parameters</param>
     /// <param name="chargeProfile">Fixed charging from grid</param>
     /// <param name="pricingProfile">Unit price at each point over the period</param>
-    /// <param name="currentState">Current battery energy level</param>
+    /// <param name="initialState">Current battery energy level</param>
     /// <param name="chargePowerLimit">A hard set power limit for the grid charge period</param>
-    /// <param name="shiftableDemands">Optional load demand which can be shifted to any point</param>
+    /// <param name="shiftableLoadDemandProfiles">Optional load demand which can be shifted to any point</param>
     /// <returns></returns>
     public Decision Calculate(
         DemandProfile mainDemandProfile,
@@ -24,10 +23,10 @@ public record Calculator(IPlant PlantTemplate)
         GenerationProfile generationProfile,
         ChargeProfile chargeProfile,
         PricingProfile pricingProfile,
-        CurrentState currentState,
+        PlantState initialState,
         float? chargePowerLimit = null)
     {
-        IPlant plant = PlantTemplate with { State = new(BatteryEnergy: currentState.BatteryEnergy) };
+        IPlant plant = PlantTemplate with { State = initialState };
 
         TimeSpan step = TimeSpan.FromMinutes(60);
         DateTime startAt = mainDemandProfile.Values.Min(f => f.DateTime);
@@ -70,8 +69,6 @@ public record Calculator(IPlant PlantTemplate)
 
             debugResults.Add(new(now, plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, cost, undercharge, overcharge));
         }
-
-//        Debug.WriteLine($"Charge rate: {chargePowerLimit} Undercharge: {undercharge} Overcharge: {overcharge} Cost: £{cost.ToString("F2")}");
 
         return new Decision(chargePowerLimit, undercharge, overcharge, Math.Round((decimal)cost, 2), debugResults);
     }

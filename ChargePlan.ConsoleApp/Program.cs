@@ -94,7 +94,7 @@ var tea = new ShiftableDemandValue[]
     new (TimeSpan.FromHours(0.5), 0.0f)
 };
 
-var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f), new CurrentState(datum, 0.0f))
+var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f), new PlantState(0.0f))
     .WithDemand(demand)
     .WithCharge(charge)
     .WithPricing(pricing)
