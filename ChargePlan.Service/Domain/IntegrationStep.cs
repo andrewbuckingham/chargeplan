@@ -9,5 +9,4 @@ public record IntegrationStep(
     float CumulativeCost,
     float CumulativeUndercharge,
     float CumulativeOvercharge
-
-) : CurrentState(DateTime, BatteryEnergy);
+);

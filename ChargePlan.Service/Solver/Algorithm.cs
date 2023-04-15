@@ -6,20 +6,20 @@ namespace ChargePlan.Service;
 
 public record Algorithm(
     IPlant PlantTemplate,
-    DemandProfile DemandProfile,
-    GenerationProfile GenerationProfile,
-    ChargeProfile ChargeProfile,
-    PricingProfile PricingProfile,
+    IDemandProfile DemandProfile,
+    IGenerationProfile GenerationProfile,
+    IChargeProfile ChargeProfile,
+    IPricingProfile PricingProfile,
     PlantState InitialState,
-    IEnumerable<ShiftableDemand> ShiftableDemands)
+    IEnumerable<IShiftableDemandProfile> ShiftableDemands)
 {
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
     /// </summary>
     public Decision DecideStrategy()
     {
-        DateTime fromDate = DemandProfile.Values.Select(f => f.DateTime).Min();
-        DateTime toDate = DemandProfile.Values.Select(f => f.DateTime).Max();
+        DateTime fromDate = DemandProfile.Starting;
+        DateTime toDate = DemandProfile.Until;
 
         // Iterate through options for shiftable demand.
         // Fit the highest priority and largest demand in first, and then iteratively the smaller ones.
@@ -38,14 +38,14 @@ public record Algorithm(
                 Name: shiftableDemand.Name,
                 Trials: shiftByTimespans
                     .Select(ts => (ShiftedBy: ts, Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
-                    .Where(f => f.Demand.Values.Select(g => g.DateTime).Max() < toDate) // Don't allow to overrun main calculation period
-                    .Where(f => f.Demand.Values.Select(g => g.DateTime.TimeOfDay).Min() >= shiftableDemand.Earliest.ToTimeSpan())
-                    .Where(f => f.Demand.Values.Select(g => g.DateTime.TimeOfDay).Max() <= shiftableDemand.Latest.ToTimeSpan())
+                    .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
+                    .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
+                    .Where(f => f.Demand.Until.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
             ));
 
-        Decision decision = IterateChargeRates(Enumerable.Empty<DemandProfile>());
+        Decision decision = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
 
-        List<(TimeSpan ShiftedBy, DemandProfile DemandProfile, Decision Decision)> completed = new();
+        List<(TimeSpan ShiftedBy, IDemandProfile DemandProfile, Decision Decision)> completed = new();
         foreach (var s in shiftableDemandsAsProfiles)
         {
             var optimal = s.Trials
@@ -74,7 +74,7 @@ public record Algorithm(
         }
     }
 
-    private Decision IterateChargeRates(IEnumerable<DemandProfile> shiftableDemandsAsProfiles)
+    private Decision IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles)
     {
         var chargeRates = Enumerable
             .Range(1, 100)

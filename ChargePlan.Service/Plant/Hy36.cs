@@ -52,18 +52,18 @@ public record Hy36(float CapacityKilowattHrs,
         PlantState newState = State;
 
         // Solar first.
-        var afterSolar = newState.Add(solarEnergy, CapacityKilowattHrs, remainingBatteryChargeThroughput);
+        var afterSolar = AddTo(newState, solarEnergy, CapacityKilowattHrs, remainingBatteryChargeThroughput);
         newState = afterSolar.NewState;
         remainingBatteryChargeThroughput -= afterSolar.Added;
 
         // Grid charge second.
-        var afterGrid = newState.Add(chargeEnergy, CapacityKilowattHrs, remainingBatteryChargeThroughput);
+        var afterGrid = AddTo(newState, chargeEnergy, CapacityKilowattHrs, remainingBatteryChargeThroughput);
         newState = afterGrid.NewState;
         remainingBatteryChargeThroughput -= afterGrid.Added;
 
         // Finally, pull energy out of battery for demand.
         // NB if this is a period of grid charging, then no drawdown from battery can be used for the demand.
-        var afterDemand = newState.Pull(demandEnergy, afterGrid.Added > 0.0f, period.Energy(MaxDischargeKilowatts));
+        var afterDemand = PullFrom(newState, demandEnergy, afterGrid.Added > 0.0f, period.Energy(MaxDischargeKilowatts));
         newState = afterDemand.NewState;
 
         return this with
@@ -71,5 +71,46 @@ public record Hy36(float CapacityKilowattHrs,
             State = newState,
             LastIntegration = new(afterGrid.Added, afterDemand.Shortfall, afterSolar.Unused + wasted)
         };
+    }
+
+    /// <summary>
+    /// Add some energy into the battery observing capacity limits.
+    /// </summary>
+    private static (PlantState NewState, float Added, float Unused) AddTo(PlantState state, float energy, float energyLimit, float energyDeltaLimit)
+    {
+        float unusedDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit); // More power than system can cope with
+        float unusedDueToEnergyLimit = Math.Max(0, (state.BatteryEnergy + energy) - energyLimit); // More energy than the battery can hold
+
+        float deltaForBattery = Math.Min(energy, energyDeltaLimit);
+
+        float newState = Math.Min(energyLimit, state.BatteryEnergy + deltaForBattery);
+
+        return (
+            state with { BatteryEnergy = newState },
+            energy - (unusedDueToEnergyLimit + unusedDueToEnergyDeltaLimit),
+            unusedDueToEnergyLimit + unusedDueToEnergyDeltaLimit
+            );
+    }
+
+    /// <summary>
+    /// Pull some energy from the battery observing where it is empty.
+    /// </summary>
+    /// <param name="isGridCharge">If true, this will not take from battery and return as shortfall.</param>
+    private static (PlantState NewState, float Pulled, float Shortfall) PullFrom(PlantState state, float energy, bool isGridCharge, float energyDeltaLimit)
+    {
+        if (isGridCharge) return (state, 0.0f, energy);
+
+        float shortfallDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit);
+        float shortfallDueToEmpty = -Math.Min(0, state.BatteryEnergy - energy);
+
+        float deltaforBattery = Math.Min(energy, energyDeltaLimit);
+
+        float newState = Math.Max(0.0f, state.BatteryEnergy - deltaforBattery);
+
+        return (
+            state with { BatteryEnergy = newState },
+            energy - (shortfallDueToEmpty + shortfallDueToEnergyDeltaLimit),
+            shortfallDueToEmpty + shortfallDueToEnergyDeltaLimit
+            );
     }
 }

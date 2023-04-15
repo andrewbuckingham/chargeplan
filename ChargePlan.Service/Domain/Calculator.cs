@@ -18,19 +18,19 @@ public record Calculator(IPlant PlantTemplate)
     /// <param name="shiftableLoadDemandProfiles">Optional load demand which can be shifted to any point</param>
     /// <returns></returns>
     public Decision Calculate(
-        DemandProfile mainDemandProfile,
-        IEnumerable<DemandProfile> shiftableLoadDemandProfiles,
-        GenerationProfile generationProfile,
-        ChargeProfile chargeProfile,
-        PricingProfile pricingProfile,
+        IDemandProfile mainDemandProfile,
+        IEnumerable<IDemandProfile> shiftableLoadDemandProfiles,
+        IGenerationProfile generationProfile,
+        IChargeProfile chargeProfile,
+        IPricingProfile pricingProfile,
         PlantState initialState,
         float? chargePowerLimit = null)
     {
         IPlant plant = PlantTemplate with { State = initialState };
 
         TimeSpan step = TimeSpan.FromMinutes(60);
-        DateTime startAt = mainDemandProfile.Values.Min(f => f.DateTime);
-        DateTime endAt = mainDemandProfile.Values.Max(f => f.DateTime - step);
+        DateTime startAt = mainDemandProfile.Starting;
+        DateTime endAt = mainDemandProfile.Until - step;
 
         var demandSplines = (new IInterpolation[] {
             mainDemandProfile.AsSpline(CubicSpline.InterpolateAkima) })
