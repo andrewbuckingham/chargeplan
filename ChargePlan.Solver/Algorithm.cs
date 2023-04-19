@@ -14,13 +14,16 @@ public record Algorithm(
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
     /// </summary>
-    public Evaluation DecideStrategy()
+    public Recommendations DecideStrategy()
     {
-        DateTime fromDate = DemandProfile.Starting;
-        DateTime toDate = DemandProfile.Until;
+        // First decision is based just on the main demand profile.
+        Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
+
 
         // Iterate through options for shiftable demand.
         // Fit the highest priority and largest demand in first, and then iteratively the smaller ones.
+        DateTime fromDate = DemandProfile.Starting;
+        DateTime toDate = DemandProfile.Until;
         var orderedShiftableDemands = ShiftableDemands
             .OrderBy(demand => demand.Priority)
             .ThenByDescending(demand => demand
@@ -30,35 +33,48 @@ public record Algorithm(
             .ToArray();
 
         var shiftByTimespans = CreateTrialTimespans(fromDate, toDate);
-        var shiftableDemandsAsProfiles = orderedShiftableDemands
+        var shiftableDemandsAsTrialProfiles = orderedShiftableDemands
             .Select(shiftableDemand =>
             (
-                Name: shiftableDemand.Name,
+                ShiftableDemand: shiftableDemand,
                 Trials: shiftByTimespans
-                    .Select(ts => (ShiftedBy: ts, Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
+                    .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
                     .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
                     .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
                     .Where(f => f.Demand.Until.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
+                    .ToArray()
             ));
 
-        Evaluation decision = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
-
-        List<(TimeSpan ShiftedBy, IDemandProfile DemandProfile, Evaluation Decision)> completed = new();
-        foreach (var s in shiftableDemandsAsProfiles)
+        var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTime StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
+        foreach (var s in shiftableDemandsAsTrialProfiles)
         {
+            // Take the previously-decided shiftable demands...
+            var completedDemands = completedShiftableDemandOptimisations.Select(f => f.DemandProfile);
+
+            // ...and append this shiftable demand to the end of that list, for each of its trials.
             var optimal = s.Trials
-                .Select(t => ((t.ShiftedBy, t.Demand, Decision: IterateChargeRates(completed.Select(f => f.DemandProfile).Concat(new[] { t.Demand })))))
+                .Select(t => ((
+                    s.ShiftableDemand,
+                    t.StartAt,
+                    t.Demand,
+                    Evaluation: IterateChargeRates(completedDemands.Concat(new[] { t.Demand })))))
                 .ToArray()
-                .OrderBy(f => f.Decision.TotalCost)
-                .First();
+                .OrderBy(f => f.Evaluation.TotalCost) // Order by the lowest total cost trial...
+                .First(); // ...and declare that as "optimal"
 
-            completed.Add((optimal.ShiftedBy, optimal.Demand, optimal.Decision));
+            // We now have the optimal version of this shiftable demand. Add it to the completed results.
+            completedShiftableDemandOptimisations.Add((optimal.ShiftableDemand, optimal.StartAt, optimal.Evaluation.TotalCost - evaluation.TotalCost, optimal.Demand));
 
-            decision = completed.Last().Decision;
-            Debug.WriteLine($"Charge rate: {decision.ChargeRateLimit?.ToString("F3")} Undercharge: {decision.UnderchargeEnergy.ToString("F1")} Overcharge: {decision.OverchargeEnergy.ToString("F1")} Cost: £{decision.TotalCost.ToString("F2")} {s.Name}: {completed.Last().ShiftedBy}");
+            // Copy this latest evaluation as being the latest.
+            evaluation = optimal.Evaluation;
+
+            Debug.WriteLine($"Charge rate: {evaluation.ChargeRateLimit?.ToString("F3")} Undercharge: {evaluation.UnderchargeEnergy.ToString("F1")} Overcharge: {evaluation.OverchargeEnergy.ToString("F1")} Cost: £{evaluation.TotalCost.ToString("F2")} {s.ShiftableDemand.Name}: {optimal.StartAt.TimeOfDay}");
         }
 
-        return decision;
+        return new Recommendations(
+            evaluation,
+            completedShiftableDemandOptimisations.Select(f => ((f.ShiftableDemand, f.StartAt, f.AddedCost)))
+        );
     }
 
     private IEnumerable<TimeSpan> CreateTrialTimespans(DateTime fromDate, DateTime toDate)
