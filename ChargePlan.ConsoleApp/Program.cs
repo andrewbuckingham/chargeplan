@@ -71,8 +71,12 @@ var dishwasherEco = new ShiftableDemandValue[]
 
 var washingMachine = new ShiftableDemandValue[]
 {
-    new (TimeSpan.Zero, 0.5f),
-    new (TimeSpan.FromHours(2.0), 0.0f)
+    new (TimeSpan.Zero, 1.95f),
+    new (TimeSpan.FromHours(0.25), 0.075f),
+    new (TimeSpan.FromHours(0.5), 0.25f),
+    new (TimeSpan.FromHours(0.6), 0.075f),
+    new (TimeSpan.FromHours(0.75), 0.19f),
+    new (TimeSpan.FromHours(0.8), 0.0f)
 };
 
 var dehumidifiers = new ShiftableDemandValue[]
@@ -106,11 +110,14 @@ var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .AddShiftableDemand("tea", tea, noEarlierThan: new(17, 00), noLaterThan: new(19, 00), priority: ShiftableDemandPriority.Essential)
     .Build();
 
-var decision = algorithm.DecideStrategy();
+var recommendations = algorithm.DecideStrategy();
+Debug.WriteLine(recommendations.Evaluation);
+foreach (var shiftableDemand in recommendations.ShiftableDemands)
+{
+    Debug.WriteLine($"{shiftableDemand.ShiftableDemand.Name}: {shiftableDemand.StartAt.TimeOfDay} (+£{shiftableDemand.AddedCost})");
+}
 
-foreach (var step in decision.DebugResults)
+foreach (var step in recommendations.Evaluation.DebugResults)
 {
     Debug.WriteLine($"{step.DateTime.TimeOfDay}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost.ToString("F2")}");
 }
-
-Console.WriteLine($"Recommended charge rate limit: {decision.ChargeRateLimit?.ToString() ?? "none"}");

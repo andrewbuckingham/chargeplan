@@ -7,17 +7,17 @@ public record Calculator(IPlant PlantTemplate)
     /// Calculate the end position in battery charge, and accumulated costs,
     /// for a test set of parameters.
     /// </summary>
-    /// <param name="mainDemandProfile">House demand baseload. Also defines the time bounds of the calculation. For specific loads (e.g. washing machines) use the shiftableLoadDemandProfiles instead.</param>
+    /// <param name="baseloadDemandProfile">House demand baseload. Also defines the time bounds of the calculation. For specific loads (e.g. washing machines) use the shiftableLoadDemandProfiles instead.</param>
     /// <param name="generationProfile">Generation profile based on global and celestial parameters</param>
     /// <param name="chargeProfile">Fixed charging from grid</param>
     /// <param name="pricingProfile">Unit price at each point over the period</param>
     /// <param name="initialState">Current battery energy level</param>
     /// <param name="chargePowerLimit">A hard set power limit for the grid charge period</param>
-    /// <param name="shiftableLoadDemandProfiles">Optional load demand which can be shifted to any point</param>
+    /// <param name="specificDemandProfiles">Specific demands e.g. individual high-loads that are transient</param>
     /// <returns></returns>
     public Evaluation Calculate(
-        IDemandProfile mainDemandProfile,
-        IEnumerable<IDemandProfile> shiftableLoadDemandProfiles,
+        IDemandProfile baseloadDemandProfile,
+        IEnumerable<IDemandProfile> specificDemandProfiles,
         IGenerationProfile generationProfile,
         IChargeProfile chargeProfile,
         IPricingProfile pricingProfile,
@@ -27,12 +27,12 @@ public record Calculator(IPlant PlantTemplate)
         IPlant plant = PlantTemplate with { State = initialState };
 
         TimeSpan step = TimeSpan.FromMinutes(60);
-        DateTime startAt = mainDemandProfile.Starting;
-        DateTime endAt = mainDemandProfile.Until - step;
+        DateTime startAt = baseloadDemandProfile.Starting;
+        DateTime endAt = baseloadDemandProfile.Until - step;
 
         var demandSplines = (new IInterpolation[] {
-            mainDemandProfile.AsSpline(CubicSpline.InterpolateAkima) })
-            .Concat(shiftableLoadDemandProfiles.Select(demandProfile => demandProfile.AsSpline(StepInterpolation.Interpolate)))
+            baseloadDemandProfile.AsSpline(CubicSpline.InterpolateAkima) })
+            .Concat(specificDemandProfiles.Select(demandProfile => demandProfile.AsSpline(StepInterpolation.Interpolate)))
             .ToArray();
 
         var generationSpline = generationProfile.AsSpline(CubicSpline.InterpolateAkima);
