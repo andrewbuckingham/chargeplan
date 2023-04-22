@@ -1,9 +1,9 @@
 public record Hy36(float CapacityKilowattHrs,
         float MaxChargeKilowatts,
         float MaxDischargeKilowatts,
-        float MaxThroughputKilowatts) : IPlant(new(0.0f, 0.0f, 0.0f), new(0.0f))
+        float MaxThroughputKilowatts) : IPlant(new(0.0f, 0.0f, 0.0f, 0.0f), new(0.0f))
 {
-    public override float ChargeRateAtScalar(float atScalarValue) => MaxChargeKilowatts * atScalarValue;
+    public override float ChargeRateAtScalar(float atScalarValue) => Math.Max(0.0f, Math.Min(1.0f, MaxChargeKilowatts * atScalarValue));
 
     public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period)
     {
@@ -69,7 +69,11 @@ public record Hy36(float CapacityKilowattHrs,
         return this with
         {
             State = newState,
-            LastIntegration = new(afterGrid.Added, afterDemand.Shortfall, afterSolar.Unused + wasted)
+            LastIntegration = new(
+                afterGrid.Added,
+                afterSolar.Unused, // Any leftover solar, which is still within the Plant throughput capacity, is Export.
+                afterDemand.Shortfall,
+                wasted)
         };
     }
 

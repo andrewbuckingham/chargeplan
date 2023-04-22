@@ -42,15 +42,20 @@ var charge = new ChargeValue[]
     new (datum.AddHours(0.5), 3.0f),
     new (datum.AddHours(4.5), 0.0f),
     new (datum.AddHours(24), 0.0f)
-}.ToList();
+};
 
 var pricing = new PricingValue[]
 {
-    new (datum, 0.40M),
-    new (datum.AddHours(0.5), 0.11M),
-    new (datum.AddHours(4.5), 0.40M),
-    new (datum.AddHours(24), 0.40M)
-}.ToList();
+    new (datum, 0.3895M),
+    new (datum.AddHours(0.5), 0.095M),
+    new (datum.AddHours(4.5), 0.3895M),
+    new (datum.AddHours(24), 0.3895M)
+};
+
+var export = new ExportValue[]
+{
+    new (datum, 0.041M)
+};
 
 var dishwasherAuto = new ShiftableDemandValue[]
 {
@@ -102,6 +107,7 @@ var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .WithDemand(demand)
     .WithCharge(charge)
     .WithPricing(pricing)
+    .WithExport(export)
     .WithHourlyGeneration(datum, goodSpringDay.Select(f => f / 1000.0f).ToArray())
     .AddShiftableDemand("dishwasher", dishwasherAuto, priority: ShiftableDemandPriority.High)
     .AddShiftableDemand("washing machine", washingMachine, priority: ShiftableDemandPriority.Medium)
@@ -119,5 +125,5 @@ foreach (var shiftableDemand in recommendations.ShiftableDemands)
 
 foreach (var step in recommendations.Evaluation.DebugResults)
 {
-    Debug.WriteLine($"{step.DateTime.TimeOfDay}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost.ToString("F2")}");
+    Debug.WriteLine($"{step.DateTime.TimeOfDay}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost.ToString("F2")} Export:{step.ExportEnergy.ToString("F3")}");
 }

@@ -16,5 +16,5 @@ public abstract record IPlant(PlantIntegration LastIntegration, PlantState State
     public abstract float ChargeRateAtScalar(float scalarValue);
 }
 
-public record PlantIntegration(float GridCharged, float Shortfall, float Wasted);
+public record PlantIntegration(float GridCharged, float GridExport, float Shortfall, float Wasted);
 public record PlantState(float BatteryEnergy);

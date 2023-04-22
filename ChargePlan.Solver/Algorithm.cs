@@ -8,6 +8,7 @@ public record Algorithm(
     IGenerationProfile GenerationProfile,
     IChargeProfile ChargeProfile,
     IPricingProfile PricingProfile,
+    IExportProfile ExportProfile,
     PlantState InitialState,
     IEnumerable<IShiftableDemandProfile> ShiftableDemands)
 {
@@ -91,8 +92,9 @@ public record Algorithm(
     private Evaluation IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles)
     {
         var chargeRates = Enumerable
-            .Range(1, 100)
-            .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f));
+            .Range(0, 101) // Go between 0 and 100%
+            .Chunk(5) // ...in steps of n%
+            .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent.First() / 100.0f));
 
         var results = chargeRates.Select(chargeLimit => new Calculator(PlantTemplate).Calculate(
                 DemandProfile,
@@ -100,6 +102,7 @@ public record Algorithm(
                 GenerationProfile,
                 ChargeProfile,
                 PricingProfile,
+                ExportProfile,
                 InitialState,
                 chargeLimit
             ))

@@ -4,6 +4,7 @@ public record IntegrationStep(
     float DemandEnergy,
     float GenerationEnergy,
     float ChargeEnergy,
+    float ExportEnergy,
     float CumulativeCost,
     float CumulativeUndercharge,
     float CumulativeOvercharge
