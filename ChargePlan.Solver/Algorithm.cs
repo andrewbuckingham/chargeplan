@@ -20,13 +20,15 @@ public record Algorithm(
         // First decision is based just on the main demand profile.
         Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
 
-
-        // Iterate through options for shiftable demand.
-        // Fit the highest priority and largest demand in first, and then iteratively the smaller ones.
         DateTime fromDate = DemandProfile.Starting;
         DateTime toDate = DemandProfile.Until;
+        if (fromDate < DateTime.Now) fromDate = DateTime.Now;
+        fromDate = fromDate.ToClosestHour();
+
+        // Iterate through options for shiftable demand.
+        // For each day, fit the highest priority and largest demand in first, and then iteratively the smaller ones.
         var orderedShiftableDemands = ShiftableDemands
-            .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MinValue)
+            .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MaxValue)
             .ThenBy(demand => demand.Priority)
             .ThenByDescending(demand => demand
                 .AsDemandProfile(fromDate)
@@ -43,10 +45,12 @@ public record Algorithm(
                     .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
                     .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
                     .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
-                    .Where(f => f.Demand.Until.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
+                    .Where(f => f.Demand.Starting.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
                     .Where(f => shiftableDemand.WithinDayRange == null || (f.Demand.Starting >= shiftableDemand.WithinDayRange?.From && f.Demand.Until <= shiftableDemand.WithinDayRange?.To))
                     .ToArray()
-            ));
+            ))
+            .Where(f => f.Trials.Any())
+            .ToArray();
 
         var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTime StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
         foreach (var s in shiftableDemandsAsTrialProfiles)

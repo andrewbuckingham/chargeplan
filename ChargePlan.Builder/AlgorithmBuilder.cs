@@ -18,13 +18,24 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     public AlgorithmBuilder WithGeneration(IEnumerable<(DateTime DateTime, float Power)> kwhFigures)
         => this with { GenerationProfile = new() { Values = kwhFigures.Select(f => new GenerationValue(f.DateTime, f.Power)).ToList() } };
 
-    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, DateTime? noSoonerThan = null, DateTime? noLaterThan = null, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
+    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
         => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
-            template.AsShiftableDemand(priority, noSoonerThan ?? DateTime.Now, noLaterThan ?? DateTime.Now.AddYears(1) )
+            template.AsShiftableDemand(priority, null)
+            }).ToArray() };
+    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, DateTime noSoonerThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
+        => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
+            template.AsShiftableDemand(priority, (noSoonerThan, noSoonerThan.Date.AddYears(1)))
+            }).ToArray() };
+    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, DateTime noSoonerThan, DateTime noLaterThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
+        => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
+            template.AsShiftableDemand(priority, (noSoonerThan, noLaterThan))
             }).ToArray() };
 
-    public AlgorithmBuilderForDay For(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, days);
+    /// <summary>
+    /// Any futher builder instructions will be for the supplied day or days. Existing ones are preserved.
+    /// </summary>
+    public AlgorithmBuilderForPeriod ForDay(DateTime day) => ForEachDay(new DateTime[] { day });
 
-    public Algorithm Build() => new Algorithm(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands);
+    public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
+        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, days);
 }

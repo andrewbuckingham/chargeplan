@@ -6,7 +6,7 @@ public record PowerAtRelativeTimes(List<(TimeSpan RelativeTime, float Power)> Va
 {
     public static PowerAtRelativeTimes Empty() => new(new(), String.Empty, null, null);
 
-    public ShiftableDemand AsShiftableDemand(ShiftableDemandPriority priority, DateTime NoSoonerThan, DateTime NoLaterThan) => new()
+    public ShiftableDemand AsShiftableDemand(ShiftableDemandPriority priority, (DateTime NoSoonerThan, DateTime NoLaterThan)? withinDayRange) => new()
     {
         Values = Values
             .Select(f => new ShiftableDemandValue(f.RelativeTime, f.Power))
@@ -15,6 +15,6 @@ public record PowerAtRelativeTimes(List<(TimeSpan RelativeTime, float Power)> Va
         Latest = Latest ?? TimeOnly.MaxValue,
         Name = Name,
         Priority = priority,
-        WithinDayRange = (NoSoonerThan, NoLaterThan)
+        WithinDayRange = withinDayRange
     };
 }

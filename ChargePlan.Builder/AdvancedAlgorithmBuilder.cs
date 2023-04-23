@@ -31,6 +31,6 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
     public AdvancedAlgorithmBuilder AddExportPricing(PriceAtAbsoluteTimes template, DateTime day) => this with { ExportProfile = ExportProfile.Add(template.AsExportProfile(day.Date)) };
     public AdvancedAlgorithmBuilder AddShiftableDemand(PowerAtRelativeTimes template, DateTime day, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
         => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
-            template.AsShiftableDemand(priority, day.Date, day.Date.AddDays(1) )
+            template.AsShiftableDemand(priority, (day.Date, day.Date.AddDays(1)))
             }).ToArray() };
 }

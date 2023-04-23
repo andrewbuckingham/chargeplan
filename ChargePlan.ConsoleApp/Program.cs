@@ -107,7 +107,7 @@ var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .WithInitialBatteryEnergy(0.3f)
     .WithGeneration(datum, goodSpringDay.Concat(goodSpringDay).Select(f => f / 1000.0f).ToArray())
     .AddShiftableDemandAnyDay(washingMachine, priority: ShiftableDemandPriority.Medium)
-    .For(DateTime.Today, DateTime.Today.AddDays(1))
+    .ForEachDay(DateTime.Today, DateTime.Today.AddDays(1))
     .AddDemand(demand)
     .AddChargeWindow(charge)
     .AddPricing(pricing)
@@ -121,7 +121,7 @@ var recommendations = algorithm.DecideStrategy();
 Debug.WriteLine(recommendations.Evaluation);
 foreach (var shiftableDemand in recommendations.ShiftableDemands)
 {
-    Debug.WriteLine($"{shiftableDemand.ShiftableDemand.Name}: {shiftableDemand.StartAt.TimeOfDay} (+£{shiftableDemand.AddedCost})");
+    Debug.WriteLine($"{shiftableDemand.ShiftableDemand.Name}: {shiftableDemand.StartAt} (+£{shiftableDemand.AddedCost})");
 }
 
 foreach (var step in recommendations.Evaluation.DebugResults)
