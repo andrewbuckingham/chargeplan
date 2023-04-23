@@ -5,20 +5,20 @@ Console.WriteLine("Hello, World!");
 
 var datum = new DateTime(2023, 03, 27);
 
-var demand = new DemandValue[]
+var demand = new PowerAtAbsoluteTimes(new List<(TimeOnly, float)>()
 {
-    new (datum, 0.3f),
-    new (datum.AddHours(1), 0.3f),
-    new (datum.AddHours(8), 0.8f),
-    new (datum.AddHours(11), 0.6f),
-    new (datum.AddHours(12), 0.7f),
-    new (datum.AddHours(13), 0.7f),
-    new (datum.AddHours(17), 0.7f),
-    new (datum.AddHours(18), 0.6f),
-    new (datum.AddHours(19), 0.8f),
-    new (datum.AddHours(20), 0.8f),
-    new (datum.AddHours(24), 0.3f)
-}.ToList();
+    (new (0,00), 0.3f),
+    (new (1,00), 0.3f),
+    (new (8,00), 0.8f),
+    (new (11,00), 0.6f),
+    (new (12,00), 0.7f),
+    (new (13,00), 0.7f),
+    (new (17,00), 0.7f),
+    (new (18,00), 0.6f),
+    (new (19,00), 0.8f),
+    (new (20,00), 0.8f),
+    (new (24,00), 0.3f)
+});
 
 float[] goodSpringDay = new float[]
 {
@@ -36,45 +36,45 @@ float[] wintersDay = new float[]
     2,0,0,0,0
 };
 
-var charge = new ChargeValue[]
+var charge = new PowerAtAbsoluteTimes(new List<(TimeOnly TimeOfDay, float Power)>()
 {
-    new (datum, 0.0f),
-    new (datum.AddHours(0.5), 3.0f),
-    new (datum.AddHours(4.5), 0.0f),
-    new (datum.AddHours(24), 0.0f)
-};
+    new (new(00,00), 0.0f),
+    new (new(00,30), 2.8f),
+    new (new(04,30), 0.0f),
+    new (new(24,00), 0.0f)
+});
 
-var pricing = new PricingValue[]
+var pricing = new PriceAtAbsoluteTimes(new List<(TimeOnly TimeOfDay, decimal PricePerUnit)>()
 {
-    new (datum, 0.3895M),
-    new (datum.AddHours(0.5), 0.095M),
-    new (datum.AddHours(4.5), 0.3895M),
-    new (datum.AddHours(24), 0.3895M)
-};
+    new (new(00,00), 0.3895M),
+    new (new(00,30), 0.095M),
+    new (new(04,30), 0.3895M),
+    new (new(24,00), 0.3895M)
+});
 
-var export = new ExportValue[]
+var export = new PriceAtAbsoluteTimes(new List<(TimeOnly TimeOfDay, decimal PricePerUnit)>()
 {
-    new (datum, 0.041M)
-};
+    new (new(00,00), 0.041M)
+});
 
-var dishwasherAuto = new ShiftableDemandValue[]
+var dishwasherAuto = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)>()
 {
     new (TimeSpan.Zero, 1.63f),
     new (TimeSpan.FromHours(0.5), 0.05f),
     new (TimeSpan.FromHours(1.25), 2.2f),
     new (TimeSpan.FromHours(1.5), 0.0f)
-};
+}, "Dishwasher Auto");
 
-var dishwasherEco = new ShiftableDemandValue[]
+var dishwasherEco = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)>()
 {
     new (TimeSpan.Zero, 1.66f),
     new (TimeSpan.FromHours(0.3), 2.2f),
     new (TimeSpan.FromHours(0.4), 0.05f),
     new (TimeSpan.FromHours(2.25), 2.1f),
     new (TimeSpan.FromHours(2.5), 0.0f)
-};
+}, "Dishwasher Eco");
 
-var washingMachine = new ShiftableDemandValue[]
+var washingMachine = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)>()
 {
     new (TimeSpan.Zero, 1.95f),
     new (TimeSpan.FromHours(0.25), 0.075f),
@@ -82,38 +82,38 @@ var washingMachine = new ShiftableDemandValue[]
     new (TimeSpan.FromHours(0.6), 0.075f),
     new (TimeSpan.FromHours(0.75), 0.19f),
     new (TimeSpan.FromHours(0.8), 0.0f)
-};
+}, "Washing Machine");
 
-var dehumidifiers = new ShiftableDemandValue[]
+var dehumidifiers = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)>()
 {
     new (TimeSpan.Zero, 0.5f),
     new (TimeSpan.FromHours(4.0), 0.0f)
-};
+}, "Dehumidifiers");
 
-var lunch = new ShiftableDemandValue[]
+var lunch = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)>()
 {
     new (TimeSpan.Zero, 2.0f),
     new (TimeSpan.FromHours(0.75), 0.0f)
-};
+}, "Lunch", new(11,30), new(13,30));
 
-var tea = new ShiftableDemandValue[]
+var tea = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)>()
 {
     new (TimeSpan.Zero, 2.0f),
     new (TimeSpan.FromHours(0.5), 0.0f)
-};
+}, "Tea", new(17, 00), new(19, 00));
 
 var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .WithInitialBatteryEnergy(0.3f)
-    .WithDemand(demand)
-    .WithCharge(charge)
-    .WithPricing(pricing)
-    .WithExport(export)
-    .WithHourlyGeneration(datum, goodSpringDay.Select(f => f / 1000.0f).ToArray())
-    .AddShiftableDemand("dishwasher", dishwasherAuto, priority: ShiftableDemandPriority.High)
-    .AddShiftableDemand("washing machine", washingMachine, priority: ShiftableDemandPriority.Medium)
-    .AddShiftableDemand("dehumidifiers", dehumidifiers, priority: ShiftableDemandPriority.Low)
-    .AddShiftableDemand("lunch", lunch, noEarlierThan: new(11, 30), noLaterThan: new(13, 30), priority: ShiftableDemandPriority.Essential)
-    .AddShiftableDemand("tea", tea, noEarlierThan: new(17, 00), noLaterThan: new(19, 00), priority: ShiftableDemandPriority.Essential)
+    .AddDemand(demand, DateTime.Today)
+    .AddChargeWindow(charge, DateTime.Today)
+    .AddPricing(pricing, DateTime.Today)
+    .AddExportPricing( export, DateTime.Today)
+    .WithGeneration(datum, goodSpringDay.Select(f => f / 1000.0f).ToArray())
+    .AddShiftableDemandForDay(tea, DateTime.Today, priority: ShiftableDemandPriority.Essential)
+    .AddShiftableDemandForDay(lunch, DateTime.Today, priority: ShiftableDemandPriority.Essential)
+    .AddShiftableDemandForDay(dishwasherAuto, DateTime.Today, priority: ShiftableDemandPriority.High)
+    .AddShiftableDemandForDay(dehumidifiers, DateTime.Today, priority: ShiftableDemandPriority.Low)
+    .AddShiftableDemandAnyDay(washingMachine, priority: ShiftableDemandPriority.Medium)
     .Build();
 
 var recommendations = algorithm.DecideStrategy();
