@@ -26,7 +26,8 @@ public record Algorithm(
         DateTime fromDate = DemandProfile.Starting;
         DateTime toDate = DemandProfile.Until;
         var orderedShiftableDemands = ShiftableDemands
-            .OrderBy(demand => demand.Priority)
+            .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MinValue)
+            .ThenBy(demand => demand.Priority)
             .ThenByDescending(demand => demand
                 .AsDemandProfile(fromDate)
                 .AsSpline(StepInterpolation.Interpolate)
@@ -43,6 +44,7 @@ public record Algorithm(
                     .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
                     .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
                     .Where(f => f.Demand.Until.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
+                    .Where(f => shiftableDemand.WithinDayRange == null || (f.Demand.Starting >= shiftableDemand.WithinDayRange?.From && f.Demand.Until <= shiftableDemand.WithinDayRange?.To))
                     .ToArray()
             ));
 

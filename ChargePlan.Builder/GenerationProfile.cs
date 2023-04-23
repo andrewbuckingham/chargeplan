@@ -1,6 +1,6 @@
 using MathNet.Numerics.Interpolation;
 
-public record GenerationProfile : IGenerationProfile
+public class GenerationProfile : IGenerationProfile
 {
     public List<GenerationValue> Values = new();
 

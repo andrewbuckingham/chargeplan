@@ -6,6 +6,7 @@ public record Calculator(IPlant PlantTemplate)
     /// <summary>
     /// Calculate the end position in battery charge, and accumulated costs,
     /// for a test set of parameters.
+    /// The starting point will be the Starting point in the baseload demand profile, or DateTime.Now, whichever is latest.
     /// </summary>
     /// <param name="baseloadDemandProfile">House demand baseload. Also defines the time bounds of the calculation. For specific loads (e.g. washing machines) use the shiftableLoadDemandProfiles instead.</param>
     /// <param name="generationProfile">Generation profile based on global and celestial parameters</param>
@@ -46,7 +47,8 @@ public record Calculator(IPlant PlantTemplate)
         float undercharge = 0.0f;
         float cost = 0.0f;
 
-        DateTime now = startAt;
+        if (startAt < DateTime.Now) startAt = DateTime.Now;
+        DateTime now = startAt.ToClosestHour();
 
         List<IntegrationStep> debugResults = new();
 

@@ -9,6 +9,8 @@ public class ShiftableDemand : IShiftableDemandProfile
 
     public ShiftableDemandPriority Priority { get; set; } = ShiftableDemandPriority.Essential;
 
+    public (DateTime From, DateTime To)? WithinDayRange { get; set; } = null;
+
     public IDemandProfile AsDemandProfile(DateTime startingAt)
         => new DemandProfile() { Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList() };
 }

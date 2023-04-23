@@ -7,7 +7,7 @@ var datum = new DateTime(2023, 03, 27);
 
 var demand = new PowerAtAbsoluteTimes(new List<(TimeOnly, float)>()
 {
-    (new (0,00), 0.3f),
+    (TimeOnly.MinValue, 0.3f),
     (new (1,00), 0.3f),
     (new (8,00), 0.8f),
     (new (11,00), 0.6f),
@@ -17,7 +17,8 @@ var demand = new PowerAtAbsoluteTimes(new List<(TimeOnly, float)>()
     (new (18,00), 0.6f),
     (new (19,00), 0.8f),
     (new (20,00), 0.8f),
-    (new (24,00), 0.3f)
+    (new (23,00), 0.3f),
+    //(TimeOnly.MaxValue, 0.3f)
 });
 
 float[] goodSpringDay = new float[]
@@ -38,23 +39,23 @@ float[] wintersDay = new float[]
 
 var charge = new PowerAtAbsoluteTimes(new List<(TimeOnly TimeOfDay, float Power)>()
 {
-    new (new(00,00), 0.0f),
+    new (TimeOnly.MinValue, 0.0f),
     new (new(00,30), 2.8f),
     new (new(04,30), 0.0f),
-    new (new(24,00), 0.0f)
+    //new (TimeOnly.MaxValue, 0.0f)
 });
 
 var pricing = new PriceAtAbsoluteTimes(new List<(TimeOnly TimeOfDay, decimal PricePerUnit)>()
 {
-    new (new(00,00), 0.3895M),
+    new (TimeOnly.MinValue, 0.3895M),
     new (new(00,30), 0.095M),
     new (new(04,30), 0.3895M),
-    new (new(24,00), 0.3895M)
+    //new (TimeOnly.MaxValue, 0.3895M)
 });
 
 var export = new PriceAtAbsoluteTimes(new List<(TimeOnly TimeOfDay, decimal PricePerUnit)>()
 {
-    new (new(00,00), 0.041M)
+    new (TimeOnly.MinValue, 0.041M)
 });
 
 var dishwasherAuto = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)>()
@@ -104,16 +105,16 @@ var tea = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)
 
 var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .WithInitialBatteryEnergy(0.3f)
-    .AddDemand(demand, DateTime.Today)
-    .AddChargeWindow(charge, DateTime.Today)
-    .AddPricing(pricing, DateTime.Today)
-    .AddExportPricing( export, DateTime.Today)
-    .WithGeneration(datum, goodSpringDay.Select(f => f / 1000.0f).ToArray())
-    .AddShiftableDemandForDay(tea, DateTime.Today, priority: ShiftableDemandPriority.Essential)
-    .AddShiftableDemandForDay(lunch, DateTime.Today, priority: ShiftableDemandPriority.Essential)
-    .AddShiftableDemandForDay(dishwasherAuto, DateTime.Today, priority: ShiftableDemandPriority.High)
-    .AddShiftableDemandForDay(dehumidifiers, DateTime.Today, priority: ShiftableDemandPriority.Low)
+    .WithGeneration(datum, goodSpringDay.Concat(goodSpringDay).Select(f => f / 1000.0f).ToArray())
     .AddShiftableDemandAnyDay(washingMachine, priority: ShiftableDemandPriority.Medium)
+    .For(DateTime.Today, DateTime.Today.AddDays(1))
+    .AddDemand(demand)
+    .AddChargeWindow(charge)
+    .AddPricing(pricing)
+    .AddExportPricing(export)
+    .AddShiftableDemand(tea, priority: ShiftableDemandPriority.Essential)
+    .AddShiftableDemand(lunch, priority: ShiftableDemandPriority.Essential)
+    .AddShiftableDemand(dishwasherAuto, priority: ShiftableDemandPriority.High)
     .Build();
 
 var recommendations = algorithm.DecideStrategy();

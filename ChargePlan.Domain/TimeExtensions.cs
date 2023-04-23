@@ -13,7 +13,5 @@ public static class TimeExtensions
     /// <summary>
     /// Align to the closest previous hour
     /// </summary>
-    public static DateTime ToClosestHour(this DateTime dateTime) => new DateTime(dateTime.Ticks / TimeSpan.FromHours(1).Ticks);
-
-    public static DateTime Tomorrow(this DateTime dateTime) => dateTime.Date.AddDays(1);
+    public static DateTime ToClosestHour(this DateTime dateTime) => DateTime.MinValue.AddHours(dateTime.Ticks / TimeSpan.FromHours(1).Ticks);
 }
