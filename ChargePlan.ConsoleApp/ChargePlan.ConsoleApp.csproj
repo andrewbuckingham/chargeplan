@@ -5,6 +5,7 @@
     <ProjectReference Include="..\ChargePlan.Solver\ChargePlan.Solver.csproj" />
     <ProjectReference Include="..\ChargePlan.Plant\ChargePlan.Plant.csproj" />
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
+    <ProjectReference Include="..\ChargePlan.Weather\ChargePlan.Weather.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

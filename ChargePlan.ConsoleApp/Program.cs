@@ -3,6 +3,15 @@
 // See https://aka.ms/new-console-template for more information
 Console.WriteLine("Hello, World!");
 
+var d = new DateTime(2023, 07, 1, 13, 0, 0);
+
+var solPos = Sol.SunPositionRads(d, 54.528728, 0);
+
+Console.WriteLine(Sol.DniToIrradiation(1000.0, (80.0).ToRads(), (0.0).ToRads(), solPos.Azimuth, solPos.Altitude));
+
+
+
+
 var datum = new DateTime(2023, 03, 27);
 
 var demand = new PowerAtAbsoluteTimes(new List<(TimeOnly, float)>()
