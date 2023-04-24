@@ -1,11 +1,13 @@
-public record WeatherBuilder(Func<IGenerationProfile> GenerationProfile, double PanelElevation, double PanelAzimuth, double Latitude, double Longitude)
+public record WeatherBuilder(Func<IGenerationProfile> FetchGenerationProfile, double PanelElevation, double PanelAzimuth, double Latitude, double Longitude)
 {
-    public WeatherBuilder(double PanelElevation, double PanelAzimuth, double Latitude, double Longitude) : this(null, PanelElevation, PanelAzimuth, Latitude, Longitude) { }
+    public WeatherBuilder(double PanelElevation, double PanelAzimuth, double Latitude, double Longitude) : this(Unset, PanelElevation, PanelAzimuth, Latitude, Longitude) { }
+
+    private static IGenerationProfile Unset() => throw new InvalidOperationException("Please add a weather source");
 
     WeatherBuilder WithDniSource(IDirectNormalIrradianceProvider dni)
         => this with
         {
-            GenerationProfile = () => new GenerationProfile()
+            FetchGenerationProfile = () => new GenerationProfile()
             {
                 Values = dni.GetForecast().Select(f =>
                 {
@@ -17,5 +19,5 @@ public record WeatherBuilder(Func<IGenerationProfile> GenerationProfile, double 
             }
         };
 
-    IGenerationProfile Build() => (GenerationProfile ?? throw new InvalidOperationException())();
+    IGenerationProfile Build() => FetchGenerationProfile();
 }
