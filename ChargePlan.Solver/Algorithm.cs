@@ -49,7 +49,7 @@ public record Algorithm(
                     .Where(f => shiftableDemand.WithinDayRange == null || (f.Demand.Starting >= shiftableDemand.WithinDayRange?.From && f.Demand.Until <= shiftableDemand.WithinDayRange?.To))
                     .ToArray()
             ))
-            .Where(f => f.Trials.Any())
+            .Where(f => f.Trials.Any()) // Exclude demands that have missed this window totally i.e. likely have already happened
             .ToArray();
 
         var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTime StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
@@ -74,8 +74,6 @@ public record Algorithm(
 
             // Copy this latest evaluation as being the latest.
             evaluation = optimal.Evaluation;
-
-            Debug.WriteLine($"Charge rate: {evaluation.ChargeRateLimit?.ToString("F3")} Undercharge: {evaluation.UnderchargeEnergy.ToString("F1")} Overcharge: {evaluation.OverchargeEnergy.ToString("F1")} Cost: £{evaluation.TotalCost.ToString("F2")} {s.ShiftableDemand.Name}: {optimal.StartAt.TimeOfDay}");
         }
 
         return new Recommendations(

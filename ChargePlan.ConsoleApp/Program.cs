@@ -126,5 +126,5 @@ foreach (var shiftableDemand in recommendations.ShiftableDemands)
 
 foreach (var step in recommendations.Evaluation.DebugResults)
 {
-    Debug.WriteLine($"{step.DateTime.TimeOfDay}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost.ToString("F2")} Export:{step.ExportEnergy.ToString("F3")}");
+    Debug.WriteLine($"{step.DateTime}: Demand:{step.DemandEnergy.ToString("F3")} Generation:{step.GenerationEnergy.ToString("F3")} Charge:{step.ChargeEnergy.ToString("F3")} Integral:{step.BatteryEnergy.ToString("F3")} £{step.CumulativeCost.ToString("F2")} Export:{step.ExportEnergy.ToString("F3")}");
 }
