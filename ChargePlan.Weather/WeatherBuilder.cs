@@ -1,15 +1,15 @@
-public record WeatherBuilder(Func<IGenerationProfile> FetchGenerationProfile, double PanelElevation, double PanelAzimuth, double Latitude, double Longitude)
+public record WeatherBuilder(Func<Task<IGenerationProfile>> FetchGenerationProfile, double PanelElevation, double PanelAzimuth, double Latitude, double Longitude)
 {
     public WeatherBuilder(double PanelElevation, double PanelAzimuth, double Latitude, double Longitude) : this(Unset, PanelElevation, PanelAzimuth, Latitude, Longitude) { }
 
-    private static IGenerationProfile Unset() => throw new InvalidOperationException("Please add a weather source");
+    private static Task<IGenerationProfile> Unset() => throw new InvalidOperationException("Please add a weather source");
 
-    WeatherBuilder WithDniSource(IDirectNormalIrradianceProvider dni)
+    public WeatherBuilder WithDniSource(IDirectNormalIrradianceProvider dni)
         => this with
         {
-            FetchGenerationProfile = () => new GenerationProfile()
+            FetchGenerationProfile = async () => new GenerationProfile()
             {
-                Values = dni.GetForecast().Select(f =>
+                Values = (await dni.GetForecastAsync()).Select(f =>
                 {
                     var sun = Sol.SunPositionRads(f.DateTime, Latitude, Longitude);
                     double irradiatedPower = Sol.DniToIrradiation(f.PowerWatts, PanelAzimuth.ToRads(), PanelElevation.ToRads(), sun.Azimuth.ToRads(), sun.Altitude.ToRads());
@@ -19,5 +19,5 @@ public record WeatherBuilder(Func<IGenerationProfile> FetchGenerationProfile, do
             }
         };
 
-    IGenerationProfile Build() => FetchGenerationProfile();
+    public Task<IGenerationProfile> BuildAsync() => FetchGenerationProfile();
 }

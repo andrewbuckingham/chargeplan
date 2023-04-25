@@ -11,7 +11,7 @@
 /// <param name="ShiftableDemands"></param>
 public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
     DemandProfile DemandProfile,
-    GenerationProfile GenerationProfile,
+    IGenerationProfile GenerationProfile,
     ChargeProfile ChargeProfile,
     PricingProfile PricingProfile,
     ExportProfile ExportProfile,

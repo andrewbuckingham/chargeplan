@@ -1,6 +1,6 @@
 public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         DemandProfile DemandProfile,
-        GenerationProfile GenerationProfile,
+        IGenerationProfile GenerationProfile,
         ChargeProfile ChargeProfile,
         PricingProfile PricingProfile,
         ExportProfile ExportProfile,

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 
 // See https://aka.ms/new-console-template for more information
 Console.WriteLine("Hello, World!");
@@ -7,7 +8,13 @@ var d = new DateTime(2023, 07, 1, 13, 0, 0);
 
 var solPos = Sol.SunPositionRads(d, 54.528728, 0);
 
-Console.WriteLine(Sol.DniToIrradiation(1000.0, (80.0).ToRads(), (0.0).ToRads(), solPos.Azimuth, solPos.Altitude));
+Console.WriteLine(Sol.DniToIrradiation(1000.0, (45.0).ToRads(), (0.0).ToRads(), solPos.Azimuth, solPos.Altitude));
+
+
+var serviceProvider = new ServiceCollection()
+    .AddLogging()
+    .AddHttpClient()
+    .BuildServiceProvider();
 
 
 
@@ -112,9 +119,14 @@ var tea = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)
     new (TimeSpan.FromHours(0.5), 0.0f)
 }, "Tea", new(17, 00), new(19, 00));
 
+var generation = await new WeatherBuilder(45.0, 0.0, 54.528728, -1.553050)
+    .WithDniSource(new DniProvider(serviceProvider.GetService<IHttpClientFactory>()))
+    .BuildAsync();
+
 var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .WithInitialBatteryEnergy(0.3f)
-    .WithGeneration(datum, goodSpringDay.Concat(goodSpringDay).Select(f => f / 1000.0f).ToArray())
+    .WithGeneration(generation)
+//    .WithGeneration(datum, goodSpringDay.Concat(goodSpringDay).Select(f => f / 1000.0f).ToArray())
     .AddShiftableDemandAnyDay(washingMachine, priority: ShiftableDemandPriority.Medium)
     .ForEachDay(DateTime.Today, DateTime.Today.AddDays(1))
     .AddDemand(demand)

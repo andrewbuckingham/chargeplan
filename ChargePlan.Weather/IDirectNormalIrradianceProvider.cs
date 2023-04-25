@@ -1,4 +1,4 @@
 public interface IDirectNormalIrradianceProvider
 {
-    public IEnumerable<(DateTime DateTime, float PowerWatts)> GetForecast();
+    public Task<IEnumerable<(DateTime DateTime, float PowerWatts)>> GetForecastAsync();
 }
