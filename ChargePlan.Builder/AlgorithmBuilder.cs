@@ -1,6 +1,6 @@
 public record AlgorithmBuilder(IPlant PlantTemplate,
         DemandProfile DemandProfile,
-        GenerationProfile GenerationProfile,
+        IGenerationProfile GenerationProfile,
         ChargeProfile ChargeProfile,
         PricingProfile PricingProfile,
         ExportProfile ExportProfile,
@@ -8,15 +8,17 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         ShiftableDemand[] ShiftableDemands)
 {
     public AlgorithmBuilder(IPlant plantTemplate)
-        : this(plantTemplate, new(), new(), new(), new(), new(), plantTemplate.State, new ShiftableDemand[] {}) {}
+        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), plantTemplate.State, new ShiftableDemand[] {}) {}
 
     public AlgorithmBuilder WithInitialBatteryEnergy(float kWh)
         => this with { InitialState = InitialState with { BatteryEnergy = kWh } };
 
     public AlgorithmBuilder WithGeneration(DateTime datum, params float[] hourlyFigures)
-        => this with { GenerationProfile = new() { Values = hourlyFigures.Select((f, i) => new GenerationValue(datum.AddHours(i), f)).ToList() } };
+        => this with { GenerationProfile = new GenerationProfile() { Values = hourlyFigures.Select((f, i) => new GenerationValue(datum.AddHours(i), f)).ToList() } };
     public AlgorithmBuilder WithGeneration(IEnumerable<(DateTime DateTime, float Power)> kwhFigures)
-        => this with { GenerationProfile = new() { Values = kwhFigures.Select(f => new GenerationValue(f.DateTime, f.Power)).ToList() } };
+        => this with { GenerationProfile = new GenerationProfile() { Values = kwhFigures.Select(f => new GenerationValue(f.DateTime, f.Power)).ToList() } };
+    public AlgorithmBuilder WithGeneration(IGenerationProfile generationProfile)
+        => this with { GenerationProfile = generationProfile };
 
     public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
         => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
