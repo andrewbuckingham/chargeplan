@@ -129,6 +129,7 @@ var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .WithGeneration(generation)
 //    .WithGeneration(datum, goodSpringDay.Concat(goodSpringDay).Select(f => f / 1000.0f).ToArray())
     .AddShiftableDemandAnyDay(washingMachine, priority: ShiftableDemandPriority.Medium)
+    .AddShiftableDemandAnyDay(dishwasherAuto, priority: ShiftableDemandPriority.High)
     .ForEachDay(DateTime.Today, DateTime.Today.AddDays(1))
     .AddDemand(wfhDemand)
     .AddChargeWindow(charge)
@@ -136,7 +137,6 @@ var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .AddExportPricing(export)
     .AddShiftableDemand(tea, priority: ShiftableDemandPriority.Essential)
     .AddShiftableDemand(lunch, priority: ShiftableDemandPriority.Essential)
-    .AddShiftableDemand(dishwasherAuto, priority: ShiftableDemandPriority.High)
     .Build();
 
 var recommendations = algorithm.DecideStrategy();

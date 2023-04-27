@@ -2,7 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ChargePlan.Domain\ChargePlan.Domain.csproj" />
-    <ProjectReference Include="..\ChargePlan.Solver\ChargePlan.Solver.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Solver\ChargePlan.Domain.Solver.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

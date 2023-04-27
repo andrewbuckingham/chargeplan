@@ -13,9 +13,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Builder", "Charg
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Domain", "ChargePlan.Domain\ChargePlan.Domain.csproj", "{39552259-1F59-422A-9562-4C03D0CB663C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Plant", "ChargePlan.Plant\ChargePlan.Plant.csproj", "{1334935C-B5A2-47AA-BD50-22FDDDDEE8A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Domain.Plant", "ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj", "{1334935C-B5A2-47AA-BD50-22FDDDDEE8A0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Solver", "ChargePlan.Solver\ChargePlan.Solver.csproj", "{9C99DB1F-50FF-44A7-94F8-B48519C47537}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Domain.Solver", "ChargePlan.Domain.Solver\ChargePlan.Domain.Solver.csproj", "{9C99DB1F-50FF-44A7-94F8-B48519C47537}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Weather", "ChargePlan.Weather\ChargePlan.Weather.csproj", "{D2BCED1C-8B12-4A37-A406-9DBCEB74CEEA}"
 EndProject
