@@ -25,6 +25,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ChargePlan.Service\ChargePlan.Service.csproj" />
+    <ProjectReference Include="..\ChargePlan.User\ChargePlan.User.csproj" />
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
   </ItemGroup>
 </Project>

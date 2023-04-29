@@ -12,6 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
+    <ProjectReference Include="..\ChargePlan.Weather\ChargePlan.Weather.csproj" />
   </ItemGroup>
 
 </Project>
