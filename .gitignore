@@ -452,3 +452,6 @@ $RECYCLE.BIN/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+__blobstorage__/924b83e5-0b6b-4786-bb3b-8c25a449a63a
+__azurite_db_blob__.json
+__azurite_db_blob_extent__.json
