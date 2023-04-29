@@ -124,8 +124,11 @@ var generation = await new WeatherBuilder(45.0, 0.0, 54.528728, -1.553050)
     .WithArrayArea(7 * 1.722f * 1.134f)
     .BuildAsync();
 
+Console.WriteLine(generation.ToString());
+
 var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .WithInitialBatteryEnergy(0.3f)
+    .WithExplicitStartDate(DateTime.Today)
     .WithGeneration(generation)
 //    .WithGeneration(datum, goodSpringDay.Concat(goodSpringDay).Select(f => f / 1000.0f).ToArray())
     .AddShiftableDemandAnyDay(washingMachine, priority: ShiftableDemandPriority.Medium)

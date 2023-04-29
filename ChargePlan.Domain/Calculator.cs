@@ -25,13 +25,17 @@ public record Calculator(IPlant PlantTemplate)
         IPricingProfile pricingProfile,
         IExportProfile exportProfile,
         PlantState initialState,
-        float? chargePowerLimit = null)
+        float? chargePowerLimit = null,
+        DateTime? explicitStartDate = null)
     {
         IPlant plant = PlantTemplate with { State = initialState };
 
         TimeSpan step = TimeSpan.FromMinutes(60);
-        DateTime startAt = baseloadDemandProfile.Starting;
+
+        DateTime startAt = (explicitStartDate ?? baseloadDemandProfile.Starting.OrAtEarliest(DateTime.Now)).ToClosestHour();
         DateTime endAt = baseloadDemandProfile.Until - step;
+
+        if (startAt < baseloadDemandProfile.Starting) throw new InvalidOperationException("Cannot start before baseload demand timescale");
 
         var demandSplines = (new IInterpolation[] {
             baseloadDemandProfile.AsSpline(CubicSpline.InterpolateAkima) })
@@ -47,7 +51,6 @@ public record Calculator(IPlant PlantTemplate)
         float undercharge = 0.0f;
         float cost = 0.0f;
 
-        if (startAt < DateTime.Now) startAt = DateTime.Now;
         DateTime now = startAt.ToClosestHour();
 
         List<IntegrationStep> debugResults = new();

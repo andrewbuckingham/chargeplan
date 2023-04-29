@@ -16,14 +16,16 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
     PricingProfile PricingProfile,
     ExportProfile ExportProfile,
     PlantState InitialState,
-    ShiftableDemand[] ShiftableDemands) : AlgorithmBuilder(PlantTemplate,
+    ShiftableDemand[] ShiftableDemands,
+    DateTime? ExplicitStartDate) : AlgorithmBuilder(PlantTemplate,
         DemandProfile,
         GenerationProfile,
         ChargeProfile,
         PricingProfile,
         ExportProfile,
         InitialState,
-        ShiftableDemands)
+        ShiftableDemands,
+        ExplicitStartDate)
 {
     public AdvancedAlgorithmBuilder AddChargeWindow(PowerAtAbsoluteTimes template, DateTime day) => this with { ChargeProfile = ChargeProfile.Add(template.AsChargeProfile(day.Date)) };
     public AdvancedAlgorithmBuilder AddDemand(PowerAtAbsoluteTimes template, DateTime day) => this with { DemandProfile = DemandProfile.Add(template.AsDemandProfile(day.Date)) };

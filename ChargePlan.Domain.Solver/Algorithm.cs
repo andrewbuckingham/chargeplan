@@ -10,7 +10,8 @@ public record Algorithm(
     IPricingProfile PricingProfile,
     IExportProfile ExportProfile,
     PlantState InitialState,
-    IEnumerable<IShiftableDemandProfile> ShiftableDemands)
+    IEnumerable<IShiftableDemandProfile> ShiftableDemands,
+    DateTime? ExplicitStartDate)
 {
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
@@ -20,10 +21,8 @@ public record Algorithm(
         // First decision is based just on the main demand profile.
         Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
 
-        DateTime fromDate = DemandProfile.Starting;
+        DateTime fromDate = (ExplicitStartDate ?? DemandProfile.Starting.OrAtEarliest(DateTime.Now)).ToClosestHour();
         DateTime toDate = DemandProfile.Until;
-        if (fromDate < DateTime.Now) fromDate = DateTime.Now;
-        fromDate = fromDate.ToClosestHour();
 
         // Iterate through options for shiftable demand.
         // For each day, fit the highest priority and largest demand in first, and then iteratively the smaller ones.
@@ -108,7 +107,8 @@ public record Algorithm(
                 PricingProfile,
                 ExportProfile,
                 InitialState,
-                chargeLimit
+                chargeLimit,
+                ExplicitStartDate
             ))
             .ToArray()
             .OrderBy(f => f.TotalCost);
