@@ -27,5 +27,7 @@
     <ProjectReference Include="..\ChargePlan.Service\ChargePlan.Service.csproj" />
     <ProjectReference Include="..\ChargePlan.User\ChargePlan.User.csproj" />
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
+    <ProjectReference Include="..\ChargePlan.Weather.OpenMeteo\ChargePlan.Weather.OpenMeteo.csproj" />
   </ItemGroup>
 </Project>
