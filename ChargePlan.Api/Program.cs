@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Azure;
 using System.Text.Json;
+using Microsoft.Extensions.Options;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
@@ -16,6 +17,7 @@ var host = new HostBuilder()
                 options.PropertyNameCaseInsensitive = true;
                 options.IncludeFields = true;
             })
+            .AddSingleton<JsonSerializerOptions>(sp => sp.GetRequiredService<IOptions<JsonSerializerOptions>>().Value)
             .AddAzureClients(configureClients =>
             {
                 configureClients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"));
