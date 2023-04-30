@@ -11,6 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ChargePlan.Domain\ChargePlan.Domain.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
     <ProjectReference Include="..\ChargePlan.Weather\ChargePlan.Weather.csproj" />
   </ItemGroup>

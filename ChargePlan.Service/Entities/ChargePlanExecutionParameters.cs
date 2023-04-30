@@ -5,12 +5,6 @@ public record ChargePlanExecutionParameters(
     List<DaySpecification> Days
 );
 
-public record ArraySpecification(
-    float ArrayArea = 0.0f,
-    float ArrayElevationDegrees = 45.0f, float ArrayAzimuthDegrees = 0.0f,
-    float LatDegrees = 54.5f, float LongDegrees = -1.55f
-);
-
 public record DaySpecification(
     List<DateTime> Dates,
     PowerAtAbsoluteTimes Demand,
