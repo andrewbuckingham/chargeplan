@@ -3,9 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Text.Json;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker => {
-        worker.ConfigureSystemTextJson();
-    })
+    .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices(services => services
         .AddHttpClient()
         .Configure<JsonSerializerOptions>(options =>
@@ -13,8 +11,9 @@ var host = new HostBuilder()
             options.AllowTrailingCommas = true;
             options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             options.PropertyNameCaseInsensitive = true;
-            options.Converters.Add(new DateOnlyConverter());
-            options.Converters.Add(new TimeOnlyConverter());        
+            options.IncludeFields = true;
+            // options.Converters.Add(new DateOnlyConverter());
+            // options.Converters.Add(new TimeOnlyConverter());        
         })
         .AddScoped<RecommendationService>()
         .AddSingleton<IDirectNormalIrradianceProvider, DniProvider>()

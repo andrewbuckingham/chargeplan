@@ -16,8 +16,8 @@ namespace ChargePlan.Api
             _service = service ?? throw new ArgumentNullException(nameof(service));
         }
 
-        [Function(nameof(PostSolverRequest))]
-        public Task<HttpResponseData> PostSolverRequest([HttpTrigger(AuthorizationLevel.Function, "post", Route = "solver/requests")] HttpRequestData req)
-            => req.CreateWithService<ChargePlanExecutionParameters, Recommendations>(_logger, nameof(PostSolverRequest), _service.CalculateRecommendations);
+        [Function(nameof(PostSolverRequestAdhoc))]
+        public Task<HttpResponseData> PostSolverRequestAdhoc([HttpTrigger(AuthorizationLevel.Function, "post", Route = "solver/requests/adhoc")] HttpRequestData req)
+            => req.CreateWithService<ChargePlanExecutionParameters, Recommendations>(_logger, nameof(PostSolverRequestAdhoc), _service.CalculateRecommendations);
     }
 }

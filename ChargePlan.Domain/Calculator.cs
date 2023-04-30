@@ -42,10 +42,10 @@ public record Calculator(IPlant PlantTemplate)
             .Concat(specificDemandProfiles.Select(demandProfile => demandProfile.AsSpline(StepInterpolation.Interpolate)))
             .ToArray();
 
-        var generationSpline = generationProfile.AsSpline(CubicSpline.InterpolateAkima);
-        var chargeSpline = chargeProfile.AsSpline(StepInterpolation.Interpolate);
+        var generationSpline = generationProfile.AsSplineOrZero(CubicSpline.InterpolateAkima);
+        var chargeSpline = chargeProfile.AsSplineOrZero(StepInterpolation.Interpolate);
         var pricingSpline = pricingProfile.AsSpline(StepInterpolation.Interpolate);
-        var exportSpline = exportProfile.AsSpline(StepInterpolation.Interpolate);
+        var exportSpline = exportProfile.AsSplineOrZero(StepInterpolation.Interpolate);
 
         float overcharge = 0.0f;
         float undercharge = 0.0f;
