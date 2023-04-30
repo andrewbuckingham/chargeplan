@@ -19,6 +19,4 @@ public record PowerAtAbsoluteTimes(List<(TimeOnly TimeOfDay, float Power)> Value
             .Select(f => new DemandValue(startAt.Date + f.TimeOfDay.ToTimeSpan(), f.Power))
             .ToList()
     };
-
-
 }
