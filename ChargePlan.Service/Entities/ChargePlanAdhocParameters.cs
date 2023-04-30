@@ -1,4 +1,4 @@
-public record ChargePlanExecutionParameters(
+public record ChargePlanAdhocParameters(
     float InitialBatteryEnergy,
     ArraySpecification ArraySpecification,
     List<ShiftableDemandAndPriority> ShiftableDemandAnyDay,

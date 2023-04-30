@@ -5,19 +5,22 @@ public class UserTemplateService
     private readonly IUserChargeRepository _charge;
     private readonly IUserPricingRepository _pricing;
     private readonly IUserExportRepository _export;
+    private readonly IUserDayTemplatesRepository _days;
 
     public UserTemplateService(
         IUserDemandRepository demand,
         IUserShiftableDemandRepository shiftable,
         IUserChargeRepository charge,
         IUserPricingRepository pricing,
-        IUserExportRepository export)
+        IUserExportRepository export,
+        IUserDayTemplatesRepository days)
     {
         _demand = demand;
         _shiftable = shiftable;
         _charge = charge;
         _pricing = pricing;
         _export = export;
+        _days = days;
     }
 
     public async Task<IEnumerable<PowerAtAbsoluteTimes>> GetDemandProfiles(Guid userId)
