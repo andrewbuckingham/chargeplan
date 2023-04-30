@@ -22,6 +22,7 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker" Version="1.13.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.0.13" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.9.0" />
+    <PackageReference Include="Microsoft.Extensions.Azure" Version="1.6.3" />
     <PackageReference Include="System.Text.Json" Version="7.0.2" />
   </ItemGroup>
   <ItemGroup>
@@ -30,5 +31,6 @@
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
     <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
     <ProjectReference Include="..\ChargePlan.Weather.OpenMeteo\ChargePlan.Weather.OpenMeteo.csproj" />
+    <ProjectReference Include="..\ChargePlan.Infrastructure.AzureBlob\ChargePlan.Infrastructure.AzureBlob.csproj" />
   </ItemGroup>
 </Project>
