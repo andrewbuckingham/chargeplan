@@ -4,6 +4,8 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
+    
         {
             "name": ".NET Core Launch (console)",
             "type": "coreclr",
@@ -26,7 +28,7 @@
             "WARNING16": "button at the bottom of this file.",
             "WARNING17": "*********************************************************************************",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/ChargePlan.ConsoleApp/bin/Debug/net6.0/ChargePlan.ConsoleApp.dll",
+            "program": "${workspaceFolder}/ChargePlan.ConsoleApp/bin/Debug/net7.0/ChargePlan.ConsoleApp.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",
@@ -36,6 +38,12 @@
             "name": ".NET Core Attach",
             "type": "coreclr",
             "request": "attach"
+        },
+        {
+            "name": "Attach to .NET Functions",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:azureFunctions.pickProcess}"
         }
     ]
 }

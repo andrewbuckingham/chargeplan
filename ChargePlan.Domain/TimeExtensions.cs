@@ -14,4 +14,9 @@ public static class TimeExtensions
     /// Align to the closest previous hour
     /// </summary>
     public static DateTime ToClosestHour(this DateTime dateTime) => DateTime.MinValue.AddHours(dateTime.Ticks / TimeSpan.FromHours(1).Ticks);
+
+    /// <summary>
+    /// If this value is earlier than the supplied, then move it forward
+    /// </summary>
+    public static DateTime OrAtEarliest(this DateTime dateTime, DateTime earliestAllowedDate) => new DateTime(Math.Max(dateTime.Ticks, earliestAllowedDate.Ticks));
 }

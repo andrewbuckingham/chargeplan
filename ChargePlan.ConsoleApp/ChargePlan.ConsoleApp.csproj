@@ -2,8 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ChargePlan.Domain\ChargePlan.Domain.csproj" />
-    <ProjectReference Include="..\ChargePlan.Solver\ChargePlan.Solver.csproj" />
-    <ProjectReference Include="..\ChargePlan.Plant\ChargePlan.Plant.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Solver\ChargePlan.Domain.Solver.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
     <ProjectReference Include="..\ChargePlan.Weather\ChargePlan.Weather.csproj" />
     <ProjectReference Include="..\ChargePlan.Weather.OpenMeteo\ChargePlan.Weather.OpenMeteo.csproj" />
@@ -11,7 +11,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
