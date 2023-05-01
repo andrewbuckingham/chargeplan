@@ -18,6 +18,6 @@ namespace ChargePlan.Api
 
         [Function(nameof(PostSolverRequestAdhoc))]
         public Task<HttpResponseData> PostSolverRequestAdhoc([HttpTrigger(AuthorizationLevel.Function, "post", Route = "solver/requests/adhoc")] HttpRequestData req)
-            => req.CreateWithService<ChargePlanExecutionParameters, Recommendations>(_logger, nameof(PostSolverRequestAdhoc), _service.CalculateRecommendations);
+            => req.CreateWithService<ChargePlanAdhocParameters, Recommendations>(_logger, nameof(PostSolverRequestAdhoc), _service.CalculateRecommendations);
     }
 }

@@ -1,14 +1,8 @@
-public record ChargePlanExecutionParameters(
+public record ChargePlanAdhocParameters(
     float InitialBatteryEnergy,
     ArraySpecification ArraySpecification,
     List<ShiftableDemandAndPriority> ShiftableDemandAnyDay,
     List<DaySpecification> Days
-);
-
-public record ArraySpecification(
-    float ArrayArea = 0.0f,
-    float ArrayElevationDegrees = 45.0f, float ArrayAzimuthDegrees = 0.0f,
-    float LatDegrees = 54.5f, float LongDegrees = -1.55f
 );
 
 public record DaySpecification(

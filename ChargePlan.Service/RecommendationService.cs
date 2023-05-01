@@ -9,28 +9,28 @@ public class RecommendationService
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
     }
 
-    public async Task<Recommendations> CalculateRecommendations(Guid userId, ChargePlanExecutionParameters executionParameters)
+    public async Task<Recommendations> CalculateRecommendations(Guid userId, ChargePlanAdhocParameters input)
     {
         var generation = await new WeatherBuilder(
-                executionParameters.ArraySpecification.ArrayElevationDegrees,
-                executionParameters.ArraySpecification.ArrayAzimuthDegrees,
-                executionParameters.ArraySpecification.LatDegrees,
-                executionParameters.ArraySpecification.LongDegrees)
-            .WithArrayArea(executionParameters.ArraySpecification.ArrayArea)
+                input.ArraySpecification.ArrayElevationDegrees,
+                input.ArraySpecification.ArrayAzimuthDegrees,
+                input.ArraySpecification.LatDegrees,
+                input.ArraySpecification.LongDegrees)
+            .WithArrayArea(input.ArraySpecification.ArrayArea)
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync();
 
         var mainBuilder = new AlgorithmBuilder(_plant)
-            .WithInitialBatteryEnergy(executionParameters.InitialBatteryEnergy)
+            .WithInitialBatteryEnergy(input.InitialBatteryEnergy)
             .WithGeneration(generation);
 
-        foreach (var shiftable in executionParameters.ShiftableDemandAnyDay)
+        foreach (var shiftable in input.ShiftableDemandAnyDay)
         {
             mainBuilder = mainBuilder.AddShiftableDemandAnyDay(shiftable.PowerAtRelativeTimes, shiftable.Priority);
         }
 
         var dayBuilder = mainBuilder.ForDay(DateTime.Today); // Doesn't matter, just a starting point.
-        foreach (var days in executionParameters.Days)
+        foreach (var days in input.Days)
         {
             dayBuilder = dayBuilder
                 .ForEachDay(days.Dates.ToArray())
