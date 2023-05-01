@@ -1,6 +1,7 @@
 public class UserRecommendationService
 {
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
+    private readonly IPlantFactory _plantFactory;
 
     private readonly IUserPlantRepository _plant;
     private readonly IUserDemandRepository _demand;
@@ -12,6 +13,7 @@ public class UserRecommendationService
 
     public UserRecommendationService(
         IDirectNormalIrradianceProvider dniWeatherProvider,
+        IPlantFactory plantFactory,
         IUserPlantRepository plant,
         IUserDemandRepository demand,
         IUserShiftableDemandRepository shiftable,
@@ -20,9 +22,10 @@ public class UserRecommendationService
         IUserExportRepository export,
         IUserDayTemplatesRepository days)
     {
-        _plant = plant ?? throw new ArgumentNullException(nameof(plant));
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
+        _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
 
+        _plant = plant;
         _demand = demand;
         _shiftable = shiftable;
         _charge = charge;
@@ -32,7 +35,7 @@ public class UserRecommendationService
     }
     public async Task<Recommendations> CalculateRecommendations(Guid userId, UserRecommendationParameters parameters)
     {
-        var plant = await _plant.GetAsync(userId) ?? new(new());
+        var plantSpec = await _plant.GetAsync(userId) ?? new(new());
         var input = await _days.GetAsync(userId) ?? throw new InvalidOperationException("Must defined day templates first");
         var allShiftable = await _shiftable.GetAsyncOrEmpty(userId);
         var allDemands = await _demand.GetAsyncOrEmpty(userId);
@@ -40,16 +43,18 @@ public class UserRecommendationService
         var allPricing = await _pricing.GetAsyncOrEmpty(userId);
         var allExport = await _export.GetAsyncOrEmpty(userId);
 
+        IPlant plant = _plantFactory.CreatePlant(plantSpec.PlantType);
+
         var generation = await new WeatherBuilder(
-                plant.ArraySpecification.ArrayElevationDegrees,
-                plant.ArraySpecification.ArrayAzimuthDegrees,
-                plant.ArraySpecification.LatDegrees,
-                plant.ArraySpecification.LongDegrees)
-            .WithArrayArea(plant.ArraySpecification.ArrayArea)
+                plantSpec.ArraySpecification.ArrayElevationDegrees,
+                plantSpec.ArraySpecification.ArrayAzimuthDegrees,
+                plantSpec.ArraySpecification.LatDegrees,
+                plantSpec.ArraySpecification.LongDegrees)
+            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea)
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync();
 
-        var mainBuilder = new AlgorithmBuilder(plant.GetPlant())
+        var mainBuilder = new AlgorithmBuilder(plant)
             .WithInitialBatteryEnergy(parameters.InitialBatteryEnergy)
             .WithGeneration(generation);
 

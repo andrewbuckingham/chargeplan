@@ -1,11 +1,11 @@
 public class AdhocRecommendationService
 {
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
-    private readonly IPlant _plant;
+    private readonly IPlantFactory _plantFactory;
 
-    public AdhocRecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlant plant)
+    public AdhocRecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlantFactory plantFactory)
     {
-        _plant = plant ?? throw new ArgumentNullException(nameof(plant));
+        _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
     }
 
@@ -20,7 +20,9 @@ public class AdhocRecommendationService
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync();
 
-        var mainBuilder = new AlgorithmBuilder(_plant)
+        IPlant plant = _plantFactory.CreatePlant(input.Plant.PlantType);
+
+        var mainBuilder = new AlgorithmBuilder(plant)
             .WithInitialBatteryEnergy(input.InitialBatteryEnergy)
             .WithGeneration(generation);
 

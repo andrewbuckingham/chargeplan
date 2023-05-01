@@ -29,7 +29,7 @@ var host = new HostBuilder()
             .AddScoped<UserProfileService>()
             .AddScoped<AdhocRecommendationService>()
             .AddSingleton<IDirectNormalIrradianceProvider, DniProvider>()
-            .AddSingleton<IPlant, Hy36>(_ => new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f));
+            .AddSingleton<IPlantFactory, PlantFactory>();
 
         services
             .AddSingleton<IUserPlantRepository, UserPlantRepository>()
