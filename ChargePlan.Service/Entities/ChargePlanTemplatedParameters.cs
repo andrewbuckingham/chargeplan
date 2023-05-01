@@ -1,6 +1,6 @@
 public record ChargePlanTemplatedParameters(
     List<DayTemplate> DayTemplates,
-    List<ShiftableDemandNameAndPriority> ShiftableDemandsAnyDay
+    List<ShiftableDemandNameAndPriorityOverDays> ShiftableDemandsAnyDay
 );
 
 public record DayTemplate(
@@ -14,5 +14,13 @@ public record DayTemplate(
 
 public record ShiftableDemandNameAndPriority(
     string Name,
-    ShiftableDemandPriority Priority
+    ShiftableDemandPriority Priority = ShiftableDemandPriority.Essential,
+    bool Disabled = false
+);
+
+public record ShiftableDemandNameAndPriorityOverDays(
+    string Name,
+    int OverNumberOfDays,
+    ShiftableDemandPriority Priority = ShiftableDemandPriority.High,
+    bool Disabled = false
 );
