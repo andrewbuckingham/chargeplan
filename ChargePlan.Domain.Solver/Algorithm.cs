@@ -79,7 +79,7 @@ public record Algorithm(
             evaluation,
             completedShiftableDemandOptimisations
                 .OrderBy(f => f.StartAt)
-                .Select(f => new ShiftableDemandRecommendation(f.ShiftableDemand, f.StartAt, f.AddedCost))
+                .Select(f => new ShiftableDemandRecommendation(f.ShiftableDemand, f.StartAt, f.AddedCost, f.ShiftableDemand.AsDemandHash()))
         );
     }
 
