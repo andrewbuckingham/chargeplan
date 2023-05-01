@@ -55,11 +55,11 @@ public class UserRecommendationService
 
         var dayBuilder = mainBuilder.ForDay(DateTime.Today); // Doesn't matter, just a starting point.
 
-        foreach (var shiftable in input.ShiftableDemandsAnyDay)
+        foreach (var shiftable in input.ShiftableDemandsAnyDay.Where(f => f.Disabled == false))
         {
             dayBuilder = dayBuilder.ForEachDay(shiftable.ApplicableDatesStartingFrom(DateTime.Today).ToArray());
 
-            var demand = allShiftable.Where(f => f.Name == shiftable.Name).SingleOrDefault() ?? throw new InvalidOperationException($"Shiftable Demand {shiftable.Name} unknown");
+            var demand = allShiftable.OnlyOne(f => f.Name, shiftable.Name);
             dayBuilder = dayBuilder.AddShiftableDemand(demand, shiftable.Priority);
         }
 
@@ -89,7 +89,7 @@ public class UserRecommendationService
                 .AddPricing(pricing)
                 .AddExportPricing(export);
 
-            foreach (var shiftableDemand in day.Template.ShiftableDemands)
+            foreach (var shiftableDemand in day.Template.ShiftableDemands.Where(f => f.Disabled == false))
             {
                 var shiftable = allShiftable.OnlyOne(f => f.Name, shiftableDemand.Name);
                 dayBuilder = dayBuilder.AddShiftableDemand(shiftable, shiftableDemand.Priority);
