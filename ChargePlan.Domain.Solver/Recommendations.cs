@@ -1,4 +1,10 @@
 public record Recommendations(
     Evaluation Evaluation,
-    IEnumerable<(IShiftableDemandProfile ShiftableDemand, DateTime StartAt, decimal AddedCost)> ShiftableDemands
+    IEnumerable<ShiftableDemandRecommendation> ShiftableDemands
+);
+
+public record ShiftableDemandRecommendation(
+    IShiftableDemandProfile ShiftableDemand,
+    DateTime StartAt,
+    decimal AddedCost
 );

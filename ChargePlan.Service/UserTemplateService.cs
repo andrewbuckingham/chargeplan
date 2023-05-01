@@ -72,4 +72,14 @@ public class UserTemplateService
     {
         return _export.UpsertAsync(userId, templates);
     }
+
+    public async Task<ChargePlanTemplatedParameters> GetDayTemplates(Guid userId)
+    {
+        return (await _days.GetAsync(userId)) ?? new ChargePlanTemplatedParameters(new(), new());
+    }
+
+    public Task<ChargePlanTemplatedParameters> PutDayTemplates(Guid userId, ChargePlanTemplatedParameters template)
+    {
+        return _days.UpsertAsync(userId, template);
+    }
 }

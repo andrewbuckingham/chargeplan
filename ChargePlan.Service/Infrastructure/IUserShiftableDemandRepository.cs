@@ -1,5 +1,3 @@
-public interface IUserShiftableDemandRepository
+public interface IUserShiftableDemandRepository : IRepository<IEnumerable<PowerAtRelativeTimes>>
 {
-    Task<IEnumerable<PowerAtRelativeTimes>?> GetAsync(Guid userId);
-    Task<IEnumerable<PowerAtRelativeTimes>> UpsertAsync(Guid userId, IEnumerable<PowerAtRelativeTimes> entities);
 }

@@ -1,30 +1,32 @@
-public class RecommendationService
+public class AdhocRecommendationService
 {
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
-    private readonly IPlant _plant;
+    private readonly IPlantFactory _plantFactory;
 
-    public RecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlant plant)
+    public AdhocRecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlantFactory plantFactory)
     {
-        _plant = plant ?? throw new ArgumentNullException(nameof(plant));
+        _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
     }
 
     public async Task<Recommendations> CalculateRecommendations(Guid userId, ChargePlanAdhocParameters input)
     {
         var generation = await new WeatherBuilder(
-                input.ArraySpecification.ArrayElevationDegrees,
-                input.ArraySpecification.ArrayAzimuthDegrees,
-                input.ArraySpecification.LatDegrees,
-                input.ArraySpecification.LongDegrees)
-            .WithArrayArea(input.ArraySpecification.ArrayArea)
+                input.Plant.ArraySpecification.ArrayElevationDegrees,
+                input.Plant.ArraySpecification.ArrayAzimuthDegrees,
+                input.Plant.ArraySpecification.LatDegrees,
+                input.Plant.ArraySpecification.LongDegrees)
+            .WithArrayArea(input.Plant.ArraySpecification.ArrayArea)
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync();
 
-        var mainBuilder = new AlgorithmBuilder(_plant)
+        IPlant plant = _plantFactory.CreatePlant(input.Plant.PlantType);
+
+        var mainBuilder = new AlgorithmBuilder(plant)
             .WithInitialBatteryEnergy(input.InitialBatteryEnergy)
             .WithGeneration(generation);
 
-        foreach (var shiftable in input.ShiftableDemandAnyDay)
+        foreach (var shiftable in input.ShiftableDemandsAnyDay)
         {
             mainBuilder = mainBuilder.AddShiftableDemandAnyDay(shiftable.PowerAtRelativeTimes, shiftable.Priority);
         }

@@ -55,5 +55,13 @@ namespace ChargePlan.Api
         [Function(nameof(PutMyExportProfiles))]
         public Task<HttpResponseData> PutMyExportProfiles([HttpTrigger(AuthorizationLevel.Function, "put", Route = "builder/templates/export/me")] HttpRequestData req)
             => req.UpdateWithService<IEnumerable<PriceAtAbsoluteTimes>>(_logger, nameof(PutMyExportProfiles), _service.PutExportProfiles);
+
+        [Function(nameof(GetMyDayTemplates))]
+        public Task<HttpResponseData> GetMyDayTemplates([HttpTrigger(AuthorizationLevel.Function, "get", Route = "builder/templates/days/me")] HttpRequestData req)
+            => req.GetFromService(_logger, nameof(GetMyDayTemplates), _service.GetDayTemplates);
+
+        [Function(nameof(PutMyDayTemplates))]
+        public Task<HttpResponseData> PutMyDayTemplates([HttpTrigger(AuthorizationLevel.Function, "put", Route = "builder/templates/days/me")] HttpRequestData req)
+            => req.UpdateWithService<ChargePlanTemplatedParameters>(_logger, nameof(PutMyDayTemplates), _service.PutDayTemplates);
     }
 }

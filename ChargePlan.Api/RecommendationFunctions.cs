@@ -8,16 +8,22 @@ namespace ChargePlan.Api
     public class RecommendationFunctions
     {
         private readonly ILogger _logger;
-        private readonly RecommendationService _service;
+        private readonly AdhocRecommendationService _adhocService;
+        private readonly UserRecommendationService _userService;
 
-        public RecommendationFunctions(ILoggerFactory loggerFactory, RecommendationService service)
+        public RecommendationFunctions(ILoggerFactory loggerFactory, AdhocRecommendationService adhocService, UserRecommendationService userService)
         {
             _logger = loggerFactory.CreateLogger<UserTemplateFunctions>();
-            _service = service ?? throw new ArgumentNullException(nameof(service));
+            _adhocService = adhocService ?? throw new ArgumentNullException(nameof(adhocService));
+            _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         }
 
         [Function(nameof(PostSolverRequestAdhoc))]
         public Task<HttpResponseData> PostSolverRequestAdhoc([HttpTrigger(AuthorizationLevel.Function, "post", Route = "solver/requests/adhoc")] HttpRequestData req)
-            => req.CreateWithService<ChargePlanAdhocParameters, Recommendations>(_logger, nameof(PostSolverRequestAdhoc), _service.CalculateRecommendations);
+            => req.CreateWithService<ChargePlanAdhocParameters, Recommendations>(_logger, nameof(PostSolverRequestAdhoc), _adhocService.CalculateRecommendations);
+
+        [Function(nameof(PostSolverRequestMe))]
+        public Task<HttpResponseData> PostSolverRequestMe([HttpTrigger(AuthorizationLevel.Function, "post", Route = "solver/requests/me")] HttpRequestData req)
+            => req.CreateWithService<UserRecommendationParameters, Recommendations>(_logger, nameof(PostSolverRequestMe), _userService.CalculateRecommendations);
     }
 }

@@ -1,5 +1,3 @@
-public interface IUserChargeRepository
+public interface IUserChargeRepository : IRepository<IEnumerable<PowerAtAbsoluteTimes>>
 {
-    Task<IEnumerable<PowerAtAbsoluteTimes>?> GetAsync(Guid userId);
-    Task<IEnumerable<PowerAtAbsoluteTimes>> UpsertAsync(Guid userId, IEnumerable<PowerAtAbsoluteTimes> entities);
 }
