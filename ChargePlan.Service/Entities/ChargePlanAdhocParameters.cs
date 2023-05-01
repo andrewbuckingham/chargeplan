@@ -1,7 +1,7 @@
 public record ChargePlanAdhocParameters(
     float InitialBatteryEnergy,
-    ArraySpecification ArraySpecification,
-    List<ShiftableDemandAndPriority> ShiftableDemandAnyDay,
+    UserPlantParameters Plant,
+    List<ShiftableDemandAndPriority> ShiftableDemandsAnyDay,
     List<DaySpecification> Days
 );
 

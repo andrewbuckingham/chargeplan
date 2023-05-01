@@ -12,11 +12,11 @@ public class RecommendationService
     public async Task<Recommendations> CalculateRecommendations(Guid userId, ChargePlanAdhocParameters input)
     {
         var generation = await new WeatherBuilder(
-                input.ArraySpecification.ArrayElevationDegrees,
-                input.ArraySpecification.ArrayAzimuthDegrees,
-                input.ArraySpecification.LatDegrees,
-                input.ArraySpecification.LongDegrees)
-            .WithArrayArea(input.ArraySpecification.ArrayArea)
+                input.Plant.ArraySpecification.ArrayElevationDegrees,
+                input.Plant.ArraySpecification.ArrayAzimuthDegrees,
+                input.Plant.ArraySpecification.LatDegrees,
+                input.Plant.ArraySpecification.LongDegrees)
+            .WithArrayArea(input.Plant.ArraySpecification.ArrayArea)
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync();
 
@@ -24,7 +24,7 @@ public class RecommendationService
             .WithInitialBatteryEnergy(input.InitialBatteryEnergy)
             .WithGeneration(generation);
 
-        foreach (var shiftable in input.ShiftableDemandAnyDay)
+        foreach (var shiftable in input.ShiftableDemandsAnyDay)
         {
             mainBuilder = mainBuilder.AddShiftableDemandAnyDay(shiftable.PowerAtRelativeTimes, shiftable.Priority);
         }
