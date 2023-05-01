@@ -1,5 +1,3 @@
-public interface IUserDayTemplatesRepository
+public interface IUserDayTemplatesRepository : IRepository<ChargePlanTemplatedParameters>
 {
-    Task<ChargePlanTemplatedParameters?> GetAsync(Guid userId);
-    Task<ChargePlanTemplatedParameters> UpsertAsync(Guid userId, ChargePlanTemplatedParameters entity);
 }

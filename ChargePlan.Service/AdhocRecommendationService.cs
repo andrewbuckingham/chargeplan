@@ -1,9 +1,9 @@
-public class RecommendationService
+public class AdhocRecommendationService
 {
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
     private readonly IPlant _plant;
 
-    public RecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlant plant)
+    public AdhocRecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlant plant)
     {
         _plant = plant ?? throw new ArgumentNullException(nameof(plant));
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));

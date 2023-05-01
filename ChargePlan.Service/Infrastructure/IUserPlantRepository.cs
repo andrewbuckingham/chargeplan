@@ -1,5 +1,3 @@
-public interface IUserPlantRepository
+public interface IUserPlantRepository : IRepository<UserPlantParameters>
 {
-    Task<UserPlantParameters?> GetAsync(Guid userId);
-    Task<UserPlantParameters> UpsertAsync(Guid userId, UserPlantParameters entity);
 }

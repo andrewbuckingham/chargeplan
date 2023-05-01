@@ -1,5 +1,3 @@
-public interface IUserPricingRepository
+public interface IUserPricingRepository : IRepository<IEnumerable<PriceAtAbsoluteTimes>>
 {
-    Task<IEnumerable<PriceAtAbsoluteTimes>?> GetAsync(Guid userId);
-    Task<IEnumerable<PriceAtAbsoluteTimes>> UpsertAsync(Guid userId, IEnumerable<PriceAtAbsoluteTimes> entities);
 }

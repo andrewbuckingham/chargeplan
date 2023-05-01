@@ -23,4 +23,8 @@ public record ShiftableDemandNameAndPriorityOverDays(
     int OverNumberOfDays,
     ShiftableDemandPriority Priority = ShiftableDemandPriority.High,
     bool Disabled = false
-);
+)
+{
+    public IEnumerable<DateTime> ApplicableDatesStartingFrom(DateTime datum)
+        => Enumerable.Range(0, OverNumberOfDays).Select(f => datum.Date.AddDays(f));
+}
