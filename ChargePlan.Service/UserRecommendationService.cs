@@ -1,5 +1,7 @@
 public class UserRecommendationService
 {
+    private readonly UserPermissionsFacade _user;
+
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
     private readonly IPlantFactory _plantFactory;
 
@@ -13,6 +15,7 @@ public class UserRecommendationService
     private readonly IUserDemandCompletedRepository _completedDemands;
 
     public UserRecommendationService(
+        UserPermissionsFacade user,
         IDirectNormalIrradianceProvider dniWeatherProvider,
         IPlantFactory plantFactory,
         IUserPlantRepository plant,
@@ -24,6 +27,8 @@ public class UserRecommendationService
         IUserDayTemplatesRepository days,
         IUserDemandCompletedRepository completedDemands)
     {
+        _user = user;
+
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
         _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
 
@@ -37,16 +42,16 @@ public class UserRecommendationService
 
         _completedDemands = completedDemands;
     }
-    public async Task<Recommendations> CalculateRecommendations(Guid userId, UserRecommendationParameters parameters)
+    public async Task<Recommendations> CalculateRecommendations(UserRecommendationParameters parameters)
     {
-        var plantSpec = await _plant.GetAsync(userId) ?? new(new());
-        var input = await _days.GetAsync(userId) ?? throw new InvalidOperationException("Must defined day templates first");
-        var allShiftable = await _shiftable.GetAsyncOrEmpty(userId);
-        var allDemands = await _demand.GetAsyncOrEmpty(userId);
-        var allCharge = await _charge.GetAsyncOrEmpty(userId);
-        var allPricing = await _pricing.GetAsyncOrEmpty(userId);
-        var allExport = await _export.GetAsyncOrEmpty(userId);
-        var completedDemands = await _completedDemands.GetAsyncOrEmpty(userId);
+        var plantSpec = await _plant.GetAsync(_user.Id) ?? new(new());
+        var input = await _days.GetAsync(_user.Id) ?? throw new InvalidOperationException("Must defined day templates first");
+        var allShiftable = await _shiftable.GetAsyncOrEmpty(_user.Id);
+        var allDemands = await _demand.GetAsyncOrEmpty(_user.Id);
+        var allCharge = await _charge.GetAsyncOrEmpty(_user.Id);
+        var allPricing = await _pricing.GetAsyncOrEmpty(_user.Id);
+        var allExport = await _export.GetAsyncOrEmpty(_user.Id);
+        var completedDemands = await _completedDemands.GetAsyncOrEmpty(_user.Id);
 
         IPlant plant = _plantFactory.CreatePlant(plantSpec.PlantType);
 

@@ -1,5 +1,7 @@
 public class UserTemplateService
 {
+    private readonly UserPermissionsFacade _user;
+
     private readonly IUserDemandRepository _demand;
     private readonly IUserShiftableDemandRepository _shiftable;
     private readonly IUserChargeRepository _charge;
@@ -8,6 +10,7 @@ public class UserTemplateService
     private readonly IUserDayTemplatesRepository _days;
 
     public UserTemplateService(
+        UserPermissionsFacade user,
         IUserDemandRepository demand,
         IUserShiftableDemandRepository shiftable,
         IUserChargeRepository charge,
@@ -15,6 +18,7 @@ public class UserTemplateService
         IUserExportRepository export,
         IUserDayTemplatesRepository days)
     {
+        _user = user;
         _demand = demand;
         _shiftable = shiftable;
         _charge = charge;
@@ -23,63 +27,63 @@ public class UserTemplateService
         _days = days;
     }
 
-    public async Task<IEnumerable<PowerAtAbsoluteTimes>> GetDemandProfiles(Guid userId)
+    public async Task<IEnumerable<PowerAtAbsoluteTimes>> GetDemandProfiles()
     {
-        return (await _demand.GetAsync(userId)) ?? Enumerable.Empty<PowerAtAbsoluteTimes>();
+        return (await _demand.GetAsync(_user.Id)) ?? Enumerable.Empty<PowerAtAbsoluteTimes>();
     }
 
-    public Task<IEnumerable<PowerAtAbsoluteTimes>> PutDemandProfiles(Guid userId, IEnumerable<PowerAtAbsoluteTimes> templates)
+    public Task<IEnumerable<PowerAtAbsoluteTimes>> PutDemandProfiles(IEnumerable<PowerAtAbsoluteTimes> templates)
     {
-        return _demand.UpsertAsync(userId, templates);
+        return _demand.UpsertAsync(_user.Id, templates);
     }
 
-    public async Task<IEnumerable<PowerAtRelativeTimes>> GetShiftableDemands(Guid userId)
+    public async Task<IEnumerable<PowerAtRelativeTimes>> GetShiftableDemands()
     {
-        return (await _shiftable.GetAsync(userId)) ?? Enumerable.Empty<PowerAtRelativeTimes>();
+        return (await _shiftable.GetAsync(_user.Id)) ?? Enumerable.Empty<PowerAtRelativeTimes>();
     }
 
-    public Task<IEnumerable<PowerAtRelativeTimes>> PutShiftableDemands(Guid userId, IEnumerable<PowerAtRelativeTimes> templates)
+    public Task<IEnumerable<PowerAtRelativeTimes>> PutShiftableDemands(IEnumerable<PowerAtRelativeTimes> templates)
     {
-        return _shiftable.UpsertAsync(userId, templates);
+        return _shiftable.UpsertAsync(_user.Id, templates);
     }
 
-    public async Task<IEnumerable<PowerAtAbsoluteTimes>> GetChargeProfiles(Guid userId)
+    public async Task<IEnumerable<PowerAtAbsoluteTimes>> GetChargeProfiles()
     {
-        return (await _charge.GetAsync(userId)) ?? Enumerable.Empty<PowerAtAbsoluteTimes>();
+        return (await _charge.GetAsync(_user.Id)) ?? Enumerable.Empty<PowerAtAbsoluteTimes>();
     }
 
-    public Task<IEnumerable<PowerAtAbsoluteTimes>> PutChargeProfiles(Guid userId, IEnumerable<PowerAtAbsoluteTimes> templates)
+    public Task<IEnumerable<PowerAtAbsoluteTimes>> PutChargeProfiles(IEnumerable<PowerAtAbsoluteTimes> templates)
     {
-        return _charge.UpsertAsync(userId, templates);
+        return _charge.UpsertAsync(_user.Id, templates);
     }
 
-    public async Task<IEnumerable<PriceAtAbsoluteTimes>> GetPricingProfiles(Guid userId)
+    public async Task<IEnumerable<PriceAtAbsoluteTimes>> GetPricingProfiles()
     {
-        return (await _pricing.GetAsync(userId)) ?? Enumerable.Empty<PriceAtAbsoluteTimes>();
+        return (await _pricing.GetAsync(_user.Id)) ?? Enumerable.Empty<PriceAtAbsoluteTimes>();
     }
 
-    public Task<IEnumerable<PriceAtAbsoluteTimes>> PutPricingProfiles(Guid userId, IEnumerable<PriceAtAbsoluteTimes> templates)
+    public Task<IEnumerable<PriceAtAbsoluteTimes>> PutPricingProfiles(IEnumerable<PriceAtAbsoluteTimes> templates)
     {
-        return _pricing.UpsertAsync(userId, templates);
+        return _pricing.UpsertAsync(_user.Id, templates);
     }
 
-    public async Task<IEnumerable<PriceAtAbsoluteTimes>> GetExportProfiles(Guid userId)
+    public async Task<IEnumerable<PriceAtAbsoluteTimes>> GetExportProfiles()
     {
-        return (await _export.GetAsync(userId)) ?? Enumerable.Empty<PriceAtAbsoluteTimes>();
+        return (await _export.GetAsync(_user.Id)) ?? Enumerable.Empty<PriceAtAbsoluteTimes>();
     }
 
-    public Task<IEnumerable<PriceAtAbsoluteTimes>> PutExportProfiles(Guid userId, IEnumerable<PriceAtAbsoluteTimes> templates)
+    public Task<IEnumerable<PriceAtAbsoluteTimes>> PutExportProfiles(IEnumerable<PriceAtAbsoluteTimes> templates)
     {
-        return _export.UpsertAsync(userId, templates);
+        return _export.UpsertAsync(_user.Id, templates);
     }
 
-    public async Task<ChargePlanTemplatedParameters> GetDayTemplates(Guid userId)
+    public async Task<ChargePlanTemplatedParameters> GetDayTemplates()
     {
-        return (await _days.GetAsync(userId)) ?? new ChargePlanTemplatedParameters(new(), new());
+        return (await _days.GetAsync(_user.Id)) ?? new ChargePlanTemplatedParameters(new(), new());
     }
 
-    public Task<ChargePlanTemplatedParameters> PutDayTemplates(Guid userId, ChargePlanTemplatedParameters template)
+    public Task<ChargePlanTemplatedParameters> PutDayTemplates(ChargePlanTemplatedParameters template)
     {
-        return _days.UpsertAsync(userId, template);
+        return _days.UpsertAsync(_user.Id, template);
     }
 }

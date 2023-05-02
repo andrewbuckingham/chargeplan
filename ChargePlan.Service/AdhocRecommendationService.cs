@@ -9,7 +9,7 @@ public class AdhocRecommendationService
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
     }
 
-    public async Task<Recommendations> CalculateRecommendations(Guid userId, ChargePlanAdhocParameters input)
+    public async Task<Recommendations> CalculateRecommendations(ChargePlanAdhocParameters input)
     {
         var generation = await new WeatherBuilder(
                 input.Plant.ArraySpecification.ArrayElevationDegrees,
