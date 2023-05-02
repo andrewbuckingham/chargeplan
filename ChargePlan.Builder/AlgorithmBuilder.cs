@@ -6,10 +6,11 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         ExportProfile ExportProfile,
         PlantState InitialState,
         ShiftableDemand[] ShiftableDemands,
+        DemandCompleted[] CompletedDemands,
         DateTime? ExplicitStartDate)
 {
     public AlgorithmBuilder(IPlant plantTemplate)
-        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), plantTemplate.State, new ShiftableDemand[] {}, null) {}
+        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), plantTemplate.State, new ShiftableDemand[] {}, new DemandCompleted[] {}, null) {}
 
     /// <summary>
     /// Set how much energy is in the battery storage at the start of the period.
@@ -62,6 +63,12 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
             }).ToArray() };
 
     /// <summary>
+    /// If demands have already been completed, then exclude them from the calculations.
+    /// </summary>
+    public AlgorithmBuilder ExcludingCompletedDemands(IEnumerable<DemandCompleted> completedDemands)
+        => this with { CompletedDemands = CompletedDemands.Concat(completedDemands).ToArray() };
+
+    /// <summary>
     /// Any further builder instructions will be for the supplied day. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForDay(DateTime day) => ForEachDay(new DateTime[] { day });
@@ -70,5 +77,5 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, ExplicitStartDate, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
 }

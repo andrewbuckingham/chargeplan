@@ -6,6 +6,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         ExportProfile ExportProfile,
         PlantState InitialState,
         ShiftableDemand[] ShiftableDemands,
+        DemandCompleted[] CompletedDemands,
         DateTime? ExplicitStartDate,
         params DateTime[] Days)
 {
@@ -50,7 +51,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, ExplicitStartDate, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
 
     private AlgorithmBuilderForPeriod AddForEachDay(Func<AlgorithmBuilderForPeriod, DateTime, AlgorithmBuilderForPeriod> action)
     {
@@ -62,5 +63,15 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         return builder;
     }
 
-    public Algorithm Build() => new Algorithm(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, ExplicitStartDate);
+    public Algorithm Build() => new Algorithm(
+        PlantTemplate,
+        DemandProfile,
+        GenerationProfile,
+        ChargeProfile,
+        PricingProfile,
+        ExportProfile,
+        InitialState,
+        ShiftableDemands,
+        CompletedDemands.Select(f => f.DemandHash).ToHashSet(),
+        ExplicitStartDate);
 }

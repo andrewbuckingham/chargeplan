@@ -38,7 +38,8 @@ var host = new HostBuilder()
             .AddSingleton<IUserExportRepository, UserExportRepository>()
             .AddSingleton<IUserPricingRepository, UserPricingRepository>()
             .AddSingleton<IUserShiftableDemandRepository, UserShiftableDemandRepository>()
-            .AddSingleton<IUserDayTemplatesRepository, UserDayTemplatesRepository>();
+            .AddSingleton<IUserDayTemplatesRepository, UserDayTemplatesRepository>()
+            .AddSingleton<IUserDemandCompletedRepository, UserDemandCompletedRepository>();
     })
     .Build();
 
