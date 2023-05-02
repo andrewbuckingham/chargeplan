@@ -1,17 +1,19 @@
 public class UserProfileService
 {
+    private readonly UserPermissionsFacade _user;
     private readonly IUserPlantRepository _plant;
     private readonly IUserDemandCompletedRepository _completed;
 
-    public UserProfileService(IUserPlantRepository plant, IUserDemandCompletedRepository completed)
+    public UserProfileService(UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed)
     {
+        _user = user;
         _plant = plant;
         _completed = completed;
     }
 
     public async Task<UserPlantParameters> GetPlantParameters(Guid userId)
     {
-        return (await _plant.GetAsync(userId)) ?? new(new());
+        return (await _plant.GetAsync(_user.Id)) ?? new(new());
     }
 
     public Task<UserPlantParameters> PutPlantParameters(Guid userId, UserPlantParameters plant)
