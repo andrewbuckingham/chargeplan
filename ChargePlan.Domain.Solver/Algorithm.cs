@@ -11,6 +11,7 @@ public record Algorithm(
     IExportProfile ExportProfile,
     PlantState InitialState,
     IEnumerable<IShiftableDemandProfile> ShiftableDemands,
+    HashSet<string> CompletedDemands,
     DateTime? ExplicitStartDate)
 {
     /// <summary>
@@ -26,7 +27,9 @@ public record Algorithm(
 
         // Iterate through options for shiftable demand.
         // For each day, fit the highest priority and largest demand in first, and then iteratively the smaller ones.
+        // Skip any which have already been completed recently.
         var orderedShiftableDemands = ShiftableDemands
+            .Where(demand => CompletedDemands.Contains(demand.AsDemandHash()) == false)
             .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MaxValue)
             .ThenBy(demand => demand.Priority)
             .ThenByDescending(demand => demand
@@ -79,7 +82,7 @@ public record Algorithm(
             evaluation,
             completedShiftableDemandOptimisations
                 .OrderBy(f => f.StartAt)
-                .Select(f => new ShiftableDemandRecommendation(f.ShiftableDemand, f.StartAt, f.AddedCost))
+                .Select(f => new ShiftableDemandRecommendation(f.ShiftableDemand, f.StartAt, f.AddedCost, f.ShiftableDemand.AsDemandHash()))
         );
     }
 

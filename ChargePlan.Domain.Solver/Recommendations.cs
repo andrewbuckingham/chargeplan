@@ -6,5 +6,6 @@ public record Recommendations(
 public record ShiftableDemandRecommendation(
     IShiftableDemandProfile ShiftableDemand,
     DateTime StartAt,
-    decimal AddedCost
+    decimal AddedCost,
+    string DemandHash
 );

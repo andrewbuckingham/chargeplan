@@ -23,5 +23,9 @@ namespace ChargePlan.Api
         [Function(nameof(PutMyPlant))]
         public Task<HttpResponseData> PutMyPlant([HttpTrigger(AuthorizationLevel.Function, "put", Route = "user/me/plant")] HttpRequestData req)
             => req.UpdateWithService<UserPlantParameters>(_logger, nameof(PutMyPlant), _service.PutPlantParameters);
+
+        [Function(nameof(PostCompletedDemandAsHash))]
+        public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Function, "post", Route = "user/me/demands/completed")] HttpRequestData req)
+            => req.CreateWithService<DemandCompleted, IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandAsHash), _service.PostCompletedDemandAsHash);
     }
 }

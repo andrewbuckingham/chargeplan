@@ -10,6 +10,7 @@ public class UserRecommendationService
     private readonly IUserPricingRepository _pricing;
     private readonly IUserExportRepository _export;
     private readonly IUserDayTemplatesRepository _days;
+    private readonly IUserDemandCompletedRepository _completedDemands;
 
     public UserRecommendationService(
         IDirectNormalIrradianceProvider dniWeatherProvider,
@@ -20,7 +21,8 @@ public class UserRecommendationService
         IUserChargeRepository charge,
         IUserPricingRepository pricing,
         IUserExportRepository export,
-        IUserDayTemplatesRepository days)
+        IUserDayTemplatesRepository days,
+        IUserDemandCompletedRepository completedDemands)
     {
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
         _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
@@ -32,6 +34,8 @@ public class UserRecommendationService
         _pricing = pricing;
         _export = export;
         _days = days;
+
+        _completedDemands = completedDemands;
     }
     public async Task<Recommendations> CalculateRecommendations(Guid userId, UserRecommendationParameters parameters)
     {
@@ -42,6 +46,7 @@ public class UserRecommendationService
         var allCharge = await _charge.GetAsyncOrEmpty(userId);
         var allPricing = await _pricing.GetAsyncOrEmpty(userId);
         var allExport = await _export.GetAsyncOrEmpty(userId);
+        var completedDemands = await _completedDemands.GetAsyncOrEmpty(userId);
 
         IPlant plant = _plantFactory.CreatePlant(plantSpec.PlantType);
 
@@ -56,7 +61,8 @@ public class UserRecommendationService
 
         var mainBuilder = new AlgorithmBuilder(plant)
             .WithInitialBatteryEnergy(parameters.InitialBatteryEnergy)
-            .WithGeneration(generation);
+            .WithGeneration(generation)
+            .ExcludingCompletedDemands(completedDemands);
 
         var dayBuilder = mainBuilder.ForDay(DateTime.Today); // Doesn't matter, just a starting point.
 

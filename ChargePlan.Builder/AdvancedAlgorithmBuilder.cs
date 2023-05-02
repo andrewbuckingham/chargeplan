@@ -17,6 +17,7 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
     ExportProfile ExportProfile,
     PlantState InitialState,
     ShiftableDemand[] ShiftableDemands,
+    DemandCompleted[] CompletedDemands,
     DateTime? ExplicitStartDate) : AlgorithmBuilder(PlantTemplate,
         DemandProfile,
         GenerationProfile,
@@ -25,6 +26,7 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
         ExportProfile,
         InitialState,
         ShiftableDemands,
+        CompletedDemands,
         ExplicitStartDate)
 {
     public AdvancedAlgorithmBuilder AddChargeWindow(PowerAtAbsoluteTimes template, DateTime day) => this with { ChargeProfile = ChargeProfile.Add(template.AsChargeProfile(day.Date)) };
