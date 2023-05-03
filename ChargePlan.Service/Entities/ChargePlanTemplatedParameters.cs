@@ -15,6 +15,7 @@ public record DayTemplate(
 public record ShiftableDemandNameAndPriority(
     string Name,
     ShiftableDemandPriority Priority = ShiftableDemandPriority.Essential,
+    TimeSpan? DontRepeatWithin = null,
     bool Disabled = false
 );
 
@@ -22,6 +23,7 @@ public record ShiftableDemandNameAndPriorityOverDays(
     string Name,
     int OverNumberOfDays,
     ShiftableDemandPriority Priority = ShiftableDemandPriority.High,
+    TimeSpan? DontRepeatWithin = null,
     bool Disabled = false
 )
 {

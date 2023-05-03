@@ -35,7 +35,7 @@ public record Calculator(IPlant PlantTemplate)
         DateTime startAt = (explicitStartDate ?? baseloadDemandProfile.Starting.OrAtEarliest(DateTime.Now)).ToClosestHour();
         DateTime endAt = baseloadDemandProfile.Until - step;
 
-        if (startAt < baseloadDemandProfile.Starting) throw new InvalidOperationException("Cannot start before baseload demand timescale");
+        if (startAt < baseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
 
         var demandSplines = (new IInterpolation[] {
             baseloadDemandProfile.AsSpline(CubicSpline.InterpolateAkima) })

@@ -3,6 +3,7 @@ public class ShiftableDemand : IShiftableDemandProfile
     public List<ShiftableDemandValue> Values = new();
 
     public string Name { get; set; } = String.Empty;
+    public string Type { get; set; } = String.Empty;
 
     public TimeOnly Earliest { get; set; } = TimeOnly.MinValue;
     public TimeOnly Latest { get; set; } = TimeOnly.MaxValue;
@@ -10,6 +11,7 @@ public class ShiftableDemand : IShiftableDemandProfile
     public ShiftableDemandPriority Priority { get; set; } = ShiftableDemandPriority.Essential;
 
     public (DateTime From, DateTime To)? WithinDayRange { get; set; } = null;
+    public TimeSpan? DontRepeatWithin { get; set; } = null;
 
     public IDemandProfile AsDemandProfile(DateTime startingAt)
         => new DemandProfile() { Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList() };

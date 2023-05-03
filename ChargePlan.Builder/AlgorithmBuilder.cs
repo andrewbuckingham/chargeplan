@@ -39,28 +39,28 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     /// <summary>
     /// Add a demand which needs to be run at some point on any day, and the algorithm will determine the optimum day and time to run it.
     /// </summary>
-    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
-        => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
-            template.AsShiftableDemand(priority, null)
-            }).ToArray() };
+    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential, TimeSpan? dontRepeatWithin = null)
+        => this with { ShiftableDemands = ShiftableDemands
+            .Append(template.AsShiftableDemand(priority, null, dontRepeatWithin))
+            .ToArray() };
 
     /// <summary>
     /// Add a demand which needs to be run at some point on any day, and the algorithm will determine the optimum day and time to run it.
     /// Allows to specify the earliest permissable time of day.
     /// </summary>
-    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, DateTime noSoonerThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
-        => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
-            template.AsShiftableDemand(priority, (noSoonerThan, noSoonerThan.Date.AddYears(1)))
-            }).ToArray() };
+    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, DateTime noSoonerThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential, TimeSpan? dontRepeatWithin = null)
+        => this with { ShiftableDemands = ShiftableDemands
+            .Append(template.AsShiftableDemand(priority, (noSoonerThan, noSoonerThan.Date.AddYears(1)), dontRepeatWithin))
+            .ToArray() };
 
     /// <summary>
     /// Add a demand which needs to be run at some point on any day, and the algorithm will determine the optimum day and time to run it.
     /// Allows to specify the earliest and latest permissable times of day.
     /// </summary>
-    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, DateTime noSoonerThan, DateTime noLaterThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
-        => this with { ShiftableDemands = ShiftableDemands.Concat(new[] {
-            template.AsShiftableDemand(priority, (noSoonerThan, noLaterThan))
-            }).ToArray() };
+    public AlgorithmBuilder AddShiftableDemandAnyDay(PowerAtRelativeTimes template, DateTime noSoonerThan, DateTime noLaterThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential, TimeSpan? dontRepeatWithin = null)
+        => this with { ShiftableDemands = ShiftableDemands
+            .Append(template.AsShiftableDemand(priority, (noSoonerThan, noLaterThan), dontRepeatWithin))
+            .ToArray() };
 
     /// <summary>
     /// If demands have already been completed, then exclude them from the calculations.

@@ -1,6 +1,7 @@
 public interface IShiftableDemandProfile
 {
     string Name { get; }
+    string Type { get; }
     TimeOnly Earliest { get; }
     TimeOnly Latest { get; }
     
@@ -9,6 +10,14 @@ public interface IShiftableDemandProfile
     /// The Earliest and Latest times are still observed in combination with this.
     /// </summary>
     (DateTime From, DateTime To)? WithinDayRange { get; }
+
+    TimeSpan? DontRepeatWithin { get; }
+
+    /// <summary>
+    /// True if this demand shouldn't be repeated yet.
+    /// </summary>
+    bool IsTooSoonToRepeat(IShiftableDemandProfile other, DateTime otherDateTime, DateTime thisDateTime)
+        => DontRepeatWithin != null && !String.IsNullOrWhiteSpace(Type) && other.Type == Type && (otherDateTime + DontRepeatWithin) > thisDateTime;
 
     ShiftableDemandPriority Priority { get; }
 

@@ -2,7 +2,7 @@ public record WeatherBuilder(Func<float, Task<IGenerationProfile>> FetchGenerati
 {
     public WeatherBuilder(double PanelElevation, double PanelAzimuth, double Latitude, double Longitude) : this(Unset, PanelElevation, PanelAzimuth, Latitude, Longitude, 1.0f) { }
 
-    private static Task<IGenerationProfile> Unset(float _) => throw new InvalidOperationException("Please add a weather source");
+    private static Task<IGenerationProfile> Unset(float _) => throw new InvalidStateException("Please add a weather source");
 
     public WeatherBuilder WithDniSource(IDirectNormalIrradianceProvider dni)
         => this with

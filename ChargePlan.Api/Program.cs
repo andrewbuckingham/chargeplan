@@ -5,7 +5,11 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
+    .ConfigureFunctionsWorkerDefaults(worker =>
+    {
+        worker.UseMiddleware<ExceptionMiddleware>();
+        worker.UseMiddleware<AuthMiddleware>();
+    })
     .ConfigureServices(services =>
     {
         services
@@ -23,6 +27,13 @@ var host = new HostBuilder()
                 configureClients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"));
             });
 
+        // Auth
+        services
+            .AddScoped<UserIdAccessor>()
+            .AddScoped<IUserIdAccessor>(sp => sp.GetRequiredService<UserIdAccessor>())
+            .AddScoped<UserPermissionsFacade>();
+
+        // Service layer
         services
             .AddScoped<UserRecommendationService>()
             .AddScoped<UserTemplateService>()
@@ -31,7 +42,9 @@ var host = new HostBuilder()
             .AddSingleton<IDirectNormalIrradianceProvider, DniProvider>()
             .AddSingleton<IPlantFactory, PlantFactory>();
 
+        // Repos
         services
+            .AddSingleton<IUserAuthorisationRepository, UserAuthorisationRepository>()
             .AddSingleton<IUserPlantRepository, UserPlantRepository>()
             .AddSingleton<IUserChargeRepository, UserChargeRepository>()
             .AddSingleton<IUserDemandRepository, UserDemandRepository>()
