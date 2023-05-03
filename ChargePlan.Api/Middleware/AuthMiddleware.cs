@@ -10,7 +10,7 @@ public class AuthMiddleware : IFunctionsWorkerMiddleware
         var requestData = await context.GetHttpRequestDataAsync();
 
         IEnumerable<string>? apiKeyValues;
-        if (requestData?.Headers.TryGetValues("api-key", out apiKeyValues) == true)
+        if (requestData?.Headers.TryGetValues("Api-Key", out apiKeyValues) == true)
         {
             string? apiKey = apiKeyValues?.SingleOrDefault();
             if (apiKey != null && Guid.TryParse(apiKey, out _) == true)
