@@ -45,7 +45,7 @@ public class UserRecommendationService
     public async Task<Recommendations> CalculateRecommendations(UserRecommendationParameters parameters)
     {
         var plantSpec = await _plant.GetAsync(_user.Id) ?? new(new());
-        var input = await _days.GetAsync(_user.Id) ?? throw new InvalidOperationException("Must defined day templates first");
+        var input = await _days.GetAsync(_user.Id) ?? throw new InvalidStateException("Must defined day templates first");
         var allShiftable = await _shiftable.GetAsyncOrEmpty(_user.Id);
         var allDemands = await _demand.GetAsyncOrEmpty(_user.Id);
         var allCharge = await _charge.GetAsyncOrEmpty(_user.Id);

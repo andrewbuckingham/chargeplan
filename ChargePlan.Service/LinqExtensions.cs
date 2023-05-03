@@ -6,8 +6,8 @@ public static class LinqExtensions
 
         int count = items.Count(predicate);
 
-        if (count > 1) throw new InvalidOperationException($"There are too many {typeof(T).Name} called {name}");
-        if (count == 0) throw new InvalidOperationException($"There is no {typeof(T).Name} called {name}");
+        if (count > 1) throw new InvalidStateException($"There are too many {typeof(T).Name} called {name}");
+        if (count == 0) throw new InvalidStateException($"There is no {typeof(T).Name} called {name}");
 
         return items.Single(predicate);
     }

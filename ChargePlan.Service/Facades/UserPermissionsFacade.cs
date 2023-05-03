@@ -13,7 +13,7 @@ public class UserPermissionsFacade
     {
         get
         {
-            if (_userId.UserId == Guid.Empty) throw new InvalidOperationException("Empty UserId");
+            if (_userId.UserId == Guid.Empty) throw new InvalidStateException("Empty UserId");
             return _userId.UserId;
         }
     }

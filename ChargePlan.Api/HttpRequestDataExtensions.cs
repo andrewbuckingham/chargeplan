@@ -10,7 +10,7 @@ public static class HttpRequestDataExtensions
 
         try
         {
-            T result = await service() ?? throw new InvalidOperationException("Service returned null");
+            T result = await service() ?? throw new InvalidStateException("Service returned null");
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(result);
 
@@ -31,8 +31,8 @@ public static class HttpRequestDataExtensions
 
         try
         {
-            T received = await req.ReadFromJsonAsync<T>() ?? throw new InvalidOperationException("Client sent null");
-            T result = await service(received) ?? throw new InvalidOperationException("Service returned null");
+            T received = await req.ReadFromJsonAsync<T>() ?? throw new InvalidStateException("You must send some data");
+            T result = await service(received) ?? throw new InvalidStateException("Service returned null");
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(result);
 
