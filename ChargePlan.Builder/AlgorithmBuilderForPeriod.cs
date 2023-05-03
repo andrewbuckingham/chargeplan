@@ -19,28 +19,12 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     /// Add a demand which needs to be run at some point on this day/s, and the algorithm will determine the optimum day and time to run it.
     /// Allows to specify the earliest and latest permissable times of day.
     /// </summary>
-    public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, ShiftableDemandPriority priority/* = ShiftableDemandPriority.Essential*/, TimeSpan? dontRepeatWithin/* = null*/)
-        => AddForEachDay((builder, day) => builder with { ShiftableDemands = builder.ShiftableDemands.Concat(new[] {
-            template.AsShiftableDemand(priority, (day.Date, day.Date.AddDays(1)), dontRepeatWithin)
-            }).ToArray() });
-
-    /// <summary>
-    /// Add a demand which needs to be run at some point on this day/s, and the algorithm will determine the optimum day and time to run it.
-    /// Allows to specify the earliest permissable time of day.
-    /// </summary>
-    // public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, TimeOnly noSoonerThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
-    //     => AddForEachDay((builder, day) => builder with { ShiftableDemands = builder.ShiftableDemands.Concat(new[] {
-    //         template.AsShiftableDemand(priority, (day.Date.Add(noSoonerThan.ToTimeSpan()), day.Date.AddDays(1)))
-    //         }).ToArray() });
-
-    /// <summary>
-    /// Add a demand which needs to be run at some point on this day/s, and the algorithm will determine the optimum day and time to run it.
-    /// Allows to specify the earliest and latest permissable times of day.
-    /// </summary>
-    // public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, TimeOnly noSoonerThan, TimeOnly noLaterThan, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
-    //     => AddForEachDay((builder, day) => builder with { ShiftableDemands = builder.ShiftableDemands.Concat(new[] {
-    //         template.AsShiftableDemand(priority, (day.Date.Add(noSoonerThan.ToTimeSpan()), day.Date.Add(noLaterThan.ToTimeSpan())))
-    //         }).ToArray() });
+    public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential, TimeSpan? dontRepeatWithin = null)
+        => AddForEachDay((builder, day)
+        => builder with { ShiftableDemands = builder.ShiftableDemands
+            .Append(template.AsShiftableDemand(priority, (day.Date, day.Date.AddDays(1)), dontRepeatWithin))
+            .ToArray() }
+            );
 
     /// <summary>
     /// Any further builder instructions will be for the supplied day or days. Existing ones are preserved.

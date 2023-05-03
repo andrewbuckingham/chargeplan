@@ -11,13 +11,13 @@ public interface IShiftableDemandProfile
     /// </summary>
     (DateTime From, DateTime To)? WithinDayRange { get; }
 
-    TimeSpan DontRepeatWithin { get; }
+    TimeSpan? DontRepeatWithin { get; }
 
     /// <summary>
     /// True if this demand shouldn't be repeated yet.
     /// </summary>
     bool IsTooSoonToRepeat(IShiftableDemandProfile other, DateTime otherDateTime, DateTime thisDateTime)
-        => !String.IsNullOrWhiteSpace(Type) && other.Type == Type && (otherDateTime + DontRepeatWithin) > thisDateTime;
+        => DontRepeatWithin != null && !String.IsNullOrWhiteSpace(Type) && other.Type == Type && (otherDateTime + DontRepeatWithin) > thisDateTime;
 
     ShiftableDemandPriority Priority { get; }
 

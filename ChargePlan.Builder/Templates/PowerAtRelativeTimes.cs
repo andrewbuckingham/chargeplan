@@ -17,6 +17,6 @@ public record PowerAtRelativeTimes(List<(TimeSpan RelativeTime, float Power)> Va
         Type = Type ?? String.Empty,
         Priority = priority,
         WithinDayRange = withinDayRange,
-        DontRepeatWithin = dontRepeatWithin ?? TimeSpan.FromDays(28)
+        DontRepeatWithin = dontRepeatWithin
     };
 }

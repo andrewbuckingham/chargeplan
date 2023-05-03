@@ -8,11 +8,10 @@ public class ShiftableDemand : IShiftableDemandProfile
     public TimeOnly Earliest { get; set; } = TimeOnly.MinValue;
     public TimeOnly Latest { get; set; } = TimeOnly.MaxValue;
 
-    public TimeSpan DontRepeatWithin { get; set; } = TimeSpan.FromDays(28);
-
     public ShiftableDemandPriority Priority { get; set; } = ShiftableDemandPriority.Essential;
 
     public (DateTime From, DateTime To)? WithinDayRange { get; set; } = null;
+    public TimeSpan? DontRepeatWithin { get; set; } = null;
 
     public IDemandProfile AsDemandProfile(DateTime startingAt)
         => new DemandProfile() { Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList() };
