@@ -37,15 +37,15 @@ public class ExceptionMiddleware : IFunctionsWorkerMiddleware
         }
         else
         {
-            var statusCode = ex switch
+            var (statusCode, logLevel) = ex switch
             {
-                NotPermittedException => HttpStatusCode.Forbidden,
-                InvalidStateException => HttpStatusCode.UnprocessableEntity,
-                JsonException => HttpStatusCode.BadRequest,
-                _ => HttpStatusCode.InternalServerError
+                NotPermittedException => (HttpStatusCode.Forbidden, LogLevel.Warning),
+                InvalidStateException => (HttpStatusCode.UnprocessableEntity, LogLevel.Warning),
+                JsonException => (HttpStatusCode.BadRequest, LogLevel.Warning),
+                _ => (HttpStatusCode.InternalServerError, LogLevel.Error)
             };
 
-            _logger.LogError(ex, ex.ToString());
+            _logger.Log(logLevel, ex, ex.ToString());
 
             if (response != null)
             {
