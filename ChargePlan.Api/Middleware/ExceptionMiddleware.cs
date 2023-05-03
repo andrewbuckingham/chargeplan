@@ -23,13 +23,9 @@ public class ExceptionMiddleware : IFunctionsWorkerMiddleware
         }
         catch (Exception ex)
         {
-            HttpResponseData? response = context.GetHttpResponseData() ?? (await context.GetHttpRequestDataAsync())?.CreateResponse();
+            var response = (await context.GetHttpRequestDataAsync())?.CreateResponse();
             HandleError(response, ex);
-
-            if (response != null)
-            {
-                context.InvokeResult(response);
-            }
+            context.GetInvocationResult().Value = response;
         }
     }
 
