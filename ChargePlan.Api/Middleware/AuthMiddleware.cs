@@ -7,10 +7,7 @@ public class AuthMiddleware : IFunctionsWorkerMiddleware
 {
     public async Task Invoke(FunctionContext context, FunctionExecutionDelegate next)
     {
-        (Type featureType, object featureInstance) = context.Features.SingleOrDefault(x => x.Key.Name == "IFunctionBindingsFeature");
-
-        var inputData = featureType.GetProperties().SingleOrDefault(p => p.Name == "InputData")?.GetValue(featureInstance) as IReadOnlyDictionary<string, object>;
-        var requestData = inputData?.Values.SingleOrDefault(obj => obj is HttpRequestData) as HttpRequestData;
+        var requestData = await context.GetHttpRequestDataAsync();
 
         IEnumerable<string>? apiKeyValues;
         if (requestData?.Headers.TryGetValues("api-key", out apiKeyValues) == true)

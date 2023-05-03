@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker =>
     {
+        worker.UseMiddleware<ExceptionMiddleware>();
         worker.UseMiddleware<AuthMiddleware>();
     })
     .ConfigureServices(services =>

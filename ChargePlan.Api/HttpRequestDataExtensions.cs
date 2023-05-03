@@ -18,9 +18,10 @@ public static class HttpRequestDataExtensions
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed calling service");
+            logger.LogError(ex, $"Failed calling service {name}");
             var response = req.CreateResponse(HttpStatusCode.InternalServerError);
-            return response;
+            //return response;
+            throw;
         }
     }
 
@@ -38,10 +39,11 @@ public static class HttpRequestDataExtensions
             return response;
         }
         catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed calling service");
+        {            
+            logger.LogError(ex, $"Failed calling service {name}");
             var response = req.CreateResponse(HttpStatusCode.InternalServerError);
-            return response;
+            //return response;
+            throw;
         }
     }
 
@@ -51,8 +53,8 @@ public static class HttpRequestDataExtensions
 
         try
         {
-            TParam received = await req.ReadFromJsonAsync<TParam>() ?? throw new InvalidOperationException("Client sent null");
-            TResult result = await service(received) ?? throw new InvalidOperationException("Service returned null");
+            TParam received = await req.ReadFromJsonAsync<TParam>() ?? throw new InvalidStateException("You must send some data");
+            TResult result = await service(received) ?? throw new InvalidStateException("Service returned null");
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(result);
 
@@ -60,9 +62,10 @@ public static class HttpRequestDataExtensions
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed calling service");
+            logger.LogError(ex, $"Failed calling service {name}");
             var response = req.CreateResponse(HttpStatusCode.InternalServerError);
-            return response;
+            //return response;
+            throw;
         }
     }
 }
