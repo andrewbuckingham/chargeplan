@@ -43,7 +43,7 @@ public class AdhocRecommendationService
 
             foreach (var shiftableDemand in days.ShiftableDemands)
             {
-                dayBuilder = dayBuilder.AddShiftableDemand(shiftableDemand.PowerAtRelativeTimes, shiftableDemand.Priority);
+                dayBuilder = dayBuilder.AddShiftableDemand(shiftableDemand.PowerAtRelativeTimes, shiftableDemand.Priority, null);
             }
         }
 

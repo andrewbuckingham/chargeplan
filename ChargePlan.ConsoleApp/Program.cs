@@ -138,8 +138,8 @@ var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
     .AddChargeWindow(charge)
     .AddPricing(pricing)
     .AddExportPricing(export)
-    .AddShiftableDemand(tea, priority: ShiftableDemandPriority.Essential)
-    .AddShiftableDemand(lunch, priority: ShiftableDemandPriority.Essential)
+    .AddShiftableDemand(tea, priority: ShiftableDemandPriority.Essential, null)
+    .AddShiftableDemand(lunch, priority: ShiftableDemandPriority.Essential, null)
     .Build();
 
 var recommendations = algorithm.DecideStrategy();

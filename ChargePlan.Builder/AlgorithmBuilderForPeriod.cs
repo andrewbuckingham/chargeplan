@@ -19,9 +19,9 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     /// Add a demand which needs to be run at some point on this day/s, and the algorithm will determine the optimum day and time to run it.
     /// Allows to specify the earliest and latest permissable times of day.
     /// </summary>
-    public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential)
+    public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, ShiftableDemandPriority priority/* = ShiftableDemandPriority.Essential*/, TimeSpan? dontRepeatWithin/* = null*/)
         => AddForEachDay((builder, day) => builder with { ShiftableDemands = builder.ShiftableDemands.Concat(new[] {
-            template.AsShiftableDemand(priority, (day.Date, day.Date.AddDays(1)))
+            template.AsShiftableDemand(priority, (day.Date, day.Date.AddDays(1)), dontRepeatWithin)
             }).ToArray() });
 
     /// <summary>

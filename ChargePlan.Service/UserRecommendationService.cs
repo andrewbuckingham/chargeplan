@@ -76,7 +76,7 @@ public class UserRecommendationService
             dayBuilder = dayBuilder.ForEachDay(shiftable.ApplicableDatesStartingFrom(DateTime.Today).ToArray());
 
             var demand = allShiftable.OnlyOne(f => f.Name, shiftable.Name);
-            dayBuilder = dayBuilder.AddShiftableDemand(demand, shiftable.Priority);
+            dayBuilder = dayBuilder.AddShiftableDemand(demand, shiftable.Priority, shiftable.DontRepeatWithin);
         }
 
         var days = input.DayTemplates
@@ -108,7 +108,7 @@ public class UserRecommendationService
             foreach (var shiftableDemand in day.Template.ShiftableDemands.Where(f => f.Disabled == false))
             {
                 var shiftable = allShiftable.OnlyOne(f => f.Name, shiftableDemand.Name);
-                dayBuilder = dayBuilder.AddShiftableDemand(shiftable, shiftableDemand.Priority);
+                dayBuilder = dayBuilder.AddShiftableDemand(shiftable, shiftableDemand.Priority, shiftableDemand.DontRepeatWithin);
             }
         }
 
