@@ -28,7 +28,7 @@ public class AdhocRecommendationService
 
         foreach (var shiftable in input.ShiftableDemandsAnyDay)
         {
-            mainBuilder = mainBuilder.AddShiftableDemandAnyDay(shiftable.PowerAtRelativeTimes, shiftable.Priority);
+            mainBuilder = mainBuilder.AddShiftableDemandAnyDay(shiftable.PowerAtRelativeTimes, priority: shiftable.Priority);
         }
 
         var dayBuilder = mainBuilder.ForDay(DateTime.Today); // Doesn't matter, just a starting point.
