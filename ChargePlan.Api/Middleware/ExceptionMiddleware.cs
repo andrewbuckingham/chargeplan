@@ -42,6 +42,7 @@ public class ExceptionMiddleware : IFunctionsWorkerMiddleware
         {
             var (statusCode, logLevel) = ex switch
             {
+                NotAuthenticatedException => (HttpStatusCode.Unauthorized, LogLevel.Error),
                 NotPermittedException => (HttpStatusCode.Forbidden, LogLevel.Warning),
                 InvalidStateException => (HttpStatusCode.UnprocessableEntity, LogLevel.Warning),
                 JsonException => (HttpStatusCode.BadRequest, LogLevel.Warning),

@@ -20,14 +20,14 @@ public class UserProfileFunctions
     }
 
     [Function(nameof(GetMyPlant))]
-    public Task<HttpResponseData> GetMyPlant([HttpTrigger(AuthorizationLevel.Function, "get", Route = "user/me/plant")] HttpRequestData req)
+    public Task<HttpResponseData> GetMyPlant([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/plant")] HttpRequestData req)
         => req.GetFromService(_logger, nameof(GetMyPlant), _service.GetPlantParameters);
 
     [Function(nameof(PutMyPlant))]
-    public Task<HttpResponseData> PutMyPlant([HttpTrigger(AuthorizationLevel.Function, "put", Route = "user/me/plant")] HttpRequestData req)
+    public Task<HttpResponseData> PutMyPlant([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/me/plant")] HttpRequestData req)
         => req.UpdateWithService<UserPlantParameters>(_logger, nameof(PutMyPlant), _service.PutPlantParameters);
 
     [Function(nameof(PostCompletedDemandAsHash))]
-    public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Function, "post", Route = "user/me/demands/completed")] HttpRequestData req)
+    public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
         => req.CreateWithService<DemandCompleted, IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandAsHash), _service.PostCompletedDemandAsHash);
 }
