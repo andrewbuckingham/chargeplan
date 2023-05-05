@@ -30,7 +30,7 @@ public record Calculator(IPlant PlantTemplate)
     {
         IPlant plant = PlantTemplate with { State = initialState };
 
-        TimeSpan step = TimeSpan.FromMinutes(60);
+        TimeSpan step = TimeSpan.FromMinutes(15);
 
         DateTime startAt = (explicitStartDate ?? baseloadDemandProfile.Starting.OrAtEarliest(DateTime.Now)).ToClosestHour();
         DateTime endAt = baseloadDemandProfile.Until - step;

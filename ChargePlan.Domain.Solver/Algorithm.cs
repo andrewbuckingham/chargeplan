@@ -98,7 +98,7 @@ public record Algorithm(
         while (fromDate + ts < toDate)
         {
             yield return ts;
-            ts += TimeSpan.FromMinutes(30);
+            ts += TimeSpan.FromMinutes(15);
         }
     }
 
