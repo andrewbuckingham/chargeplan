@@ -1,5 +1,7 @@
 using MathNet.Numerics.Interpolation;
 
+namespace ChargePlan.Domain;
+
 public interface ISplineable<TValue>
 {
     IInterpolation AsSpline(Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> splineCreator);

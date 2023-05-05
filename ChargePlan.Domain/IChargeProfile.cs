@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain;
+
 public interface IChargeProfile : ISplineable<ChargeValue>
 {
 }

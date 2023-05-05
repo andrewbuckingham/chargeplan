@@ -1,3 +1,7 @@
+using ChargePlan.Domain;
+
+namespace ChargePlan.Service.Entities;
+
 public record ChargePlanTemplatedParameters(
     List<DayTemplate> DayTemplates,
     List<ShiftableDemandNameAndPriorityOverDays> ShiftableDemandsAnyDay

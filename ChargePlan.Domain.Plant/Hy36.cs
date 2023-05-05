@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain.Plant;
+
 public record Hy36(float CapacityKilowattHrs,
         float MaxChargeKilowatts,
         float MaxDischargeKilowatts,

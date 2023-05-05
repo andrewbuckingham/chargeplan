@@ -1,3 +1,7 @@
+using ChargePlan.Domain.Exceptions;
+
+namespace ChargePlan.Domain.Plant;
+
 public class PlantFactory : IPlantFactory
 {
     public IPlant CreatePlant(string plantType) => plantType switch

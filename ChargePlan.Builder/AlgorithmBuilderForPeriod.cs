@@ -1,3 +1,9 @@
+using ChargePlan.Builder.Templates;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Solver;
+
+namespace ChargePlan.Builder;
+
 public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         DemandProfile DemandProfile,
         IGenerationProfile GenerationProfile,

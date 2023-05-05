@@ -1,6 +1,9 @@
 using System.Net;
+using ChargePlan.Domain.Exceptions;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
+
+namespace ChargePlan.Api;
 
 public static class HttpRequestDataExtensions
 {

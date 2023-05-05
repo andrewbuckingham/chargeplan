@@ -1,4 +1,10 @@
 ﻿using System.Diagnostics;
+using ChargePlan.Builder;
+using ChargePlan.Builder.Templates;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Plant;
+using ChargePlan.Weather;
+using ChargePlan.Weather.OpenMeteo;
 using Microsoft.Extensions.DependencyInjection;
 
 // See https://aka.ms/new-console-template for more information

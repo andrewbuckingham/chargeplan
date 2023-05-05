@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Linq;
 using MathNet.Numerics.Interpolation;
 
+namespace ChargePlan.Domain.Solver;
+
 public record Algorithm(
     IPlant PlantTemplate,
     IDemandProfile DemandProfile,
@@ -98,7 +100,7 @@ public record Algorithm(
         while (fromDate + ts < toDate)
         {
             yield return ts;
-            ts += TimeSpan.FromMinutes(30);
+            ts += TimeSpan.FromMinutes(15);
         }
     }
 

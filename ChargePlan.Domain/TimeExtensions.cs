@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain;
+
 public static class TimeExtensions
 {
     /// <summary>

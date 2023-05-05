@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain;
+
 public abstract record IPlant(PlantIntegration LastIntegration, PlantState State)
 {
     /// <summary>

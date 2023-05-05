@@ -1,4 +1,6 @@
-    public interface IRepository<T>
+namespace ChargePlan.Infrastructure.AzureBlob;
+
+public interface IRepository<T>
     {
         Task<T> GetAsync(string id);
         Task<T> UploadAsync(string id, T entity);

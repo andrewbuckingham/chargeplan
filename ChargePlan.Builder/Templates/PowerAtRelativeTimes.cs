@@ -1,3 +1,7 @@
+using ChargePlan.Domain;
+
+namespace ChargePlan.Builder.Templates;
+
 /// <summary>
 /// A data structure that has a list of powers at times relative to each other.
 /// Useful for e.g. a shiftable demand load such as a washing machine, where there's no absolute time of day.

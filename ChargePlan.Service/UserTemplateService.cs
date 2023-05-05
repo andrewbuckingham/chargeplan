@@ -1,3 +1,10 @@
+using ChargePlan.Builder.Templates;
+using ChargePlan.Service.Entities;
+using ChargePlan.Service.Facades;
+using ChargePlan.Service.Infrastructure;
+
+namespace ChargePlan.Service;
+
 public class UserTemplateService
 {
     private readonly UserPermissionsFacade _user;

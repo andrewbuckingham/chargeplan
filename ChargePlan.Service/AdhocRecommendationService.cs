@@ -1,3 +1,11 @@
+using ChargePlan.Builder;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Solver;
+using ChargePlan.Service.Entities;
+using ChargePlan.Weather;
+
+namespace ChargePlan.Service;
+
 public class AdhocRecommendationService
 {
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
@@ -28,7 +36,7 @@ public class AdhocRecommendationService
 
         foreach (var shiftable in input.ShiftableDemandsAnyDay)
         {
-            mainBuilder = mainBuilder.AddShiftableDemandAnyDay(shiftable.PowerAtRelativeTimes, shiftable.Priority);
+            mainBuilder = mainBuilder.AddShiftableDemandAnyDay(shiftable.PowerAtRelativeTimes, priority: shiftable.Priority);
         }
 
         var dayBuilder = mainBuilder.ForDay(DateTime.Today); // Doesn't matter, just a starting point.

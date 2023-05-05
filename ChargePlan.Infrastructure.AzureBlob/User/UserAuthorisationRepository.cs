@@ -1,5 +1,9 @@
 using System.Text.Json;
 using Azure.Storage.Blobs;
+using ChargePlan.Service.Entities;
+using ChargePlan.Service.Infrastructure;
+
+namespace ChargePlan.Infrastructure.AzureBlob.User;
 
 public class UserAuthorisationRepository : ContainerBlobRepository<UserAuthorisation>, IUserAuthorisationRepository
 {

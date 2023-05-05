@@ -1,5 +1,7 @@
 using System.Text.Json;
 
+namespace ChargePlan.Weather.OpenMeteo;
+
 public class DniProvider : IDirectNormalIrradianceProvider
 {
     private IHttpClientFactory _clientFactory;

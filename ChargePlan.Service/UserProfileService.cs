@@ -1,3 +1,10 @@
+using ChargePlan.Domain.Solver;
+using ChargePlan.Service.Entities;
+using ChargePlan.Service.Facades;
+using ChargePlan.Service.Infrastructure;
+
+namespace ChargePlan.Service;
+
 public class UserProfileService
 {
     private readonly UserPermissionsFacade _user;

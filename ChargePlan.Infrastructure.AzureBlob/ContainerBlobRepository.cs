@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Azure.Storage.Blobs;
 
+namespace ChargePlan.Infrastructure.AzureBlob;
+
 public abstract class ContainerBlobRepository<T> : BlobRepository<T>//, IRepository<T>
 {
     protected ContainerBlobRepository(BlobServiceClient blobServiceClient, JsonSerializerOptions jsonOptions) : base(blobServiceClient, jsonOptions)

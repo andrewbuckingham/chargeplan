@@ -1,3 +1,5 @@
+namespace ChargePlan.Service.Entities;
+
 public record UserPlantParameters(
     ArraySpecification ArraySpecification,
     string PlantType = "Hy36"

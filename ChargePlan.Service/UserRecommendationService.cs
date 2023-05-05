@@ -1,3 +1,14 @@
+using ChargePlan.Builder;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Exceptions;
+using ChargePlan.Domain.Solver;
+using ChargePlan.Service.Entities;
+using ChargePlan.Service.Facades;
+using ChargePlan.Service.Infrastructure;
+using ChargePlan.Weather;
+
+namespace ChargePlan.Service;
+
 public class UserRecommendationService
 {
     private readonly UserPermissionsFacade _user;
@@ -69,14 +80,14 @@ public class UserRecommendationService
             .WithGeneration(generation)
             .ExcludingCompletedDemands(completedDemands);
 
-        var dayBuilder = mainBuilder.ForDay(DateTime.Today); // Doesn't matter, just a starting point.
-
         foreach (var shiftable in input.ShiftableDemandsAnyDay.Where(f => f.Disabled == false))
         {
-            dayBuilder = dayBuilder.ForEachDay(shiftable.ApplicableDatesStartingFrom(DateTime.Today).ToArray());
-
             var demand = allShiftable.OnlyOne(f => f.Name, shiftable.Name);
-            dayBuilder = dayBuilder.AddShiftableDemand(demand, shiftable.Priority, shiftable.DontRepeatWithin);
+            mainBuilder = mainBuilder.AddShiftableDemandAnyDay(demand,
+                noSoonerThan: DateTime.Today.AddYears(-1),
+                noLaterThan: DateTime.Today.AddDays(shiftable.OverNumberOfDays),
+                shiftable.Priority,
+                shiftable.DontRepeatWithin);
         }
 
         var days = input.DayTemplates
@@ -91,6 +102,7 @@ public class UserRecommendationService
             .OrderBy(f => f.Date)
             .Take(parameters.DaysToRecommendOver);
 
+        var dayBuilder = mainBuilder.ForDay(DateTime.Today); // Doesn't matter, just a starting point.
         foreach (var day in days)
         {
             var demand = allDemands.OnlyOne(f => f.Name, day.Template.DemandName);

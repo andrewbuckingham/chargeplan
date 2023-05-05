@@ -3,6 +3,16 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Azure;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using ChargePlan.Api.Middleware;
+using ChargePlan.Api.Auth;
+using ChargePlan.Weather;
+using ChargePlan.Service.Facades;
+using ChargePlan.Service.Infrastructure;
+using ChargePlan.Service;
+using ChargePlan.Domain;
+using ChargePlan.Weather.OpenMeteo;
+using ChargePlan.Domain.Plant;
+using ChargePlan.Infrastructure.AzureBlob.User;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults(worker =>
