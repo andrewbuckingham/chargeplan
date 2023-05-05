@@ -1,4 +1,5 @@
-// Root myDeserializedClass = JsonConvert.DeserializeObject<Root>(myJsonResponse);
+namespace ChargePlan.Weather.OpenMeteo;
+
 public class CurrentWeather
 {
     public double temperature { get; set; }

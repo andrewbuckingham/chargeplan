@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain;
+
 public interface IDemandProfile : ISplineable<DemandValue>
 {
     DateTime Starting { get; }

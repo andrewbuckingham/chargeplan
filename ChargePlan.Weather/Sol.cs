@@ -1,3 +1,5 @@
+namespace ChargePlan.Weather;
+
 public static class Sol
 {
     /// <summary>

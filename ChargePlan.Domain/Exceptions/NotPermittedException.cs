@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain.Exceptions;
+
 public class NotPermittedException : Exception
 {
     public NotPermittedException() : base("You don't have permissions to do this") { }

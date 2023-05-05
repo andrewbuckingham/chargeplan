@@ -1,3 +1,7 @@
+using ChargePlan.Domain.Exceptions;
+
+namespace ChargePlan.Service;
+
 public static class LinqExtensions
 {
     public static T OnlyOne<T>(this IEnumerable<T> items, Func<T,string?> id, string name)

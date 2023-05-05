@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
 
+namespace ChargePlan.Domain.Solver;
+
 public static class ShiftableDemandProfileExtensions
 {
     public static string AsDemandHash(this IShiftableDemandProfile profile)

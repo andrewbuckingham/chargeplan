@@ -1,3 +1,8 @@
+using ChargePlan.Domain;
+using ChargePlan.Domain.Exceptions;
+
+namespace ChargePlan.Weather;
+
 public record WeatherBuilder(Func<float, Task<IGenerationProfile>> FetchGenerationProfile, double PanelElevation, double PanelAzimuth, double Latitude, double Longitude, float IrradianceToPowerScalar)
 {
     public WeatherBuilder(double PanelElevation, double PanelAzimuth, double Latitude, double Longitude) : this(Unset, PanelElevation, PanelAzimuth, Latitude, Longitude, 1.0f) { }

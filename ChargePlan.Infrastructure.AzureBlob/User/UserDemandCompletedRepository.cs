@@ -1,5 +1,9 @@
 using System.Text.Json;
 using Azure.Storage.Blobs;
+using ChargePlan.Domain.Solver;
+using ChargePlan.Service.Infrastructure;
+
+namespace ChargePlan.Infrastructure.AzureBlob.User;
 
 public class UserDemandCompletedRepository : ContainerBlobRepository<IEnumerable<DemandCompleted>>, IUserDemandCompletedRepository
 {

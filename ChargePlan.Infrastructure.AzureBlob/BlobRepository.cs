@@ -1,6 +1,8 @@
 using System.Text.Json;
 using Azure.Storage.Blobs;
 
+namespace ChargePlan.Infrastructure.AzureBlob;
+
 public class BlobRepository<T>
 {
     private readonly BlobServiceClient _blobServiceClient;

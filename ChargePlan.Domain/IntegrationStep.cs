@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain;
+
 public record IntegrationStep(
     DateTime DateTime,
     float BatteryEnergy,

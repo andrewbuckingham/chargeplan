@@ -1,3 +1,7 @@
+using ChargePlan.Domain;
+
+namespace ChargePlan.Builder.Templates;
+
 /// <summary>
 /// A data structure that has a list of power values at times of the day.
 /// Useful for e.g. baseload demand, or charge profile.

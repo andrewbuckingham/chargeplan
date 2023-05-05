@@ -1,4 +1,7 @@
+using ChargePlan.Domain;
 using MathNet.Numerics.Interpolation;
+
+namespace ChargePlan.Builder;
 
 public class ExportProfile : IExportProfile
 {

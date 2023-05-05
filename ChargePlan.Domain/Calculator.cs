@@ -1,5 +1,8 @@
 using System.Diagnostics;
+using ChargePlan.Domain.Exceptions;
 using MathNet.Numerics.Interpolation;
+
+namespace ChargePlan.Domain;
 
 public record Calculator(IPlant PlantTemplate)
 {

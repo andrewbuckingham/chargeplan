@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Weather.OpenMete
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Api", "ChargePlan.Api\ChargePlan.Api.csproj", "{E78C2C6C-4792-447E-8AD3-4869F238DB73}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Infrastructure.AzureBlob", "ChargePlan.Infrastructure.AzureBlob\ChargePlan.Infrastructure.AzureBlob.csproj", "{536C5DB0-8442-45FA-BF92-440F7FB5B924}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,5 +74,9 @@ Global
 		{E78C2C6C-4792-447E-8AD3-4869F238DB73}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E78C2C6C-4792-447E-8AD3-4869F238DB73}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E78C2C6C-4792-447E-8AD3-4869F238DB73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{536C5DB0-8442-45FA-BF92-440F7FB5B924}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{536C5DB0-8442-45FA-BF92-440F7FB5B924}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{536C5DB0-8442-45FA-BF92-440F7FB5B924}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{536C5DB0-8442-45FA-BF92-440F7FB5B924}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

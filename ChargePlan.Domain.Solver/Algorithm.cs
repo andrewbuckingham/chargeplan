@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.Linq;
 using MathNet.Numerics.Interpolation;
 
+namespace ChargePlan.Domain.Solver;
+
 public record Algorithm(
     IPlant PlantTemplate,
     IDemandProfile DemandProfile,

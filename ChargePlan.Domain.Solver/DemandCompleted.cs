@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain.Solver;
+
 public record DemandCompleted(
     string DemandHash, // Allows the algorithm to determine that a specific demand has been run.
     DateTime DateTime, // Helps with pruning old values away.

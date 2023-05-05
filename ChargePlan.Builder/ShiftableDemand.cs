@@ -1,3 +1,7 @@
+using ChargePlan.Domain;
+
+namespace ChargePlan.Builder;
+
 public class ShiftableDemand : IShiftableDemandProfile
 {
     public List<ShiftableDemandValue> Values = new();

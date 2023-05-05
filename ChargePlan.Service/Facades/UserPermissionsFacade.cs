@@ -1,3 +1,8 @@
+using ChargePlan.Domain.Exceptions;
+using ChargePlan.Service.Infrastructure;
+
+namespace ChargePlan.Service.Facades;
+
 public class UserPermissionsFacade
 {
     private readonly IUserAuthorisationRepository _userAuthRepo;

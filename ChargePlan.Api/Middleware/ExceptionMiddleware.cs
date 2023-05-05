@@ -1,10 +1,13 @@
 using System.Net;
 using System.Text.Json;
+using ChargePlan.Domain.Exceptions;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Azure.Functions.Worker.Middleware;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
+namespace ChargePlan.Api.Middleware;
 
 public class ExceptionMiddleware : IFunctionsWorkerMiddleware
 {

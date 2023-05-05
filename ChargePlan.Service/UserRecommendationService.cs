@@ -1,3 +1,14 @@
+using ChargePlan.Builder;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Exceptions;
+using ChargePlan.Domain.Solver;
+using ChargePlan.Service.Entities;
+using ChargePlan.Service.Facades;
+using ChargePlan.Service.Infrastructure;
+using ChargePlan.Weather;
+
+namespace ChargePlan.Service;
+
 public class UserRecommendationService
 {
     private readonly UserPermissionsFacade _user;

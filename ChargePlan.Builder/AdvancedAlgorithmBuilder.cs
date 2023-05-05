@@ -1,3 +1,9 @@
+using ChargePlan.Builder.Templates;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Solver;
+
+namespace ChargePlan.Builder;
+
 /// <summary>
 /// An algorithm builder that can build any number of days.
 /// </summary>

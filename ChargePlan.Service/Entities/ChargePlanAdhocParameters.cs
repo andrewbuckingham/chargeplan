@@ -1,3 +1,8 @@
+using ChargePlan.Builder.Templates;
+using ChargePlan.Domain;
+
+namespace ChargePlan.Service.Entities;
+
 public record ChargePlanAdhocParameters(
     float InitialBatteryEnergy,
     UserPlantParameters Plant,

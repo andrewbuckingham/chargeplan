@@ -1,3 +1,7 @@
+using ChargePlan.Domain;
+
+namespace ChargePlan.Builder.Templates;
+
 /// <summary>
 /// A monetary value at an absolute time of the day.
 /// Useful for the Unit Price and the Export Price.

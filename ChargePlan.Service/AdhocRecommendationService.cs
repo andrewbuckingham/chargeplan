@@ -1,3 +1,11 @@
+using ChargePlan.Builder;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Solver;
+using ChargePlan.Service.Entities;
+using ChargePlan.Weather;
+
+namespace ChargePlan.Service;
+
 public class AdhocRecommendationService
 {
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;

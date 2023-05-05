@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain;
+
 /// <summary>
 /// The outcome from a Calculator having iterated the energy in/out and battery position.
 /// </summary>

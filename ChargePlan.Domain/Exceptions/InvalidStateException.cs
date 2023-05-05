@@ -1,3 +1,5 @@
+namespace ChargePlan.Domain.Exceptions;
+
 public class InvalidStateException : Exception
 {
     public InvalidStateException() { }
