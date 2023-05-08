@@ -1,0 +1,13 @@
+
+version: '3.4'
+
+services:
+  chargeplanapi:
+    image: chargeplanapi
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ~/.vsdbg:/remote_debugger:rw
+    ports:
+      - 8080:80
