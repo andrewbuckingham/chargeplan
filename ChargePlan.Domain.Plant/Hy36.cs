@@ -4,8 +4,13 @@ public record Hy36(
     float CapacityKilowattHrs,
     float MaxChargeKilowatts,
     float MaxDischargeKilowatts,
-    float MaxThroughputKilowatts) : IPlant(new(0.0f, 0.0f, 0.0f, 0.0f), new(0.0f))
+    float MaxThroughputKilowatts,
+    int DepthOfDischargePercent,
+    int ReservePercent) : IPlant(new(0.0f, 0.0f, 0.0f, 0.0f), new(0.0f))
 {
+    private float UpperBoundsKilowattHrs => (float)DepthOfDischargePercent * CapacityKilowattHrs / 100.0f;
+    private float LowerBoundsKilowattHrs => (float)ReservePercent * CapacityKilowattHrs / 100.0f;
+
     public override float ChargeRateAtScalar(float atScalarValue) => Math.Max(0.0f, Math.Min(1.0f, MaxChargeKilowatts * atScalarValue));
 
     public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period)
@@ -55,18 +60,18 @@ public record Hy36(
         PlantState newState = State;
 
         // Solar first.
-        var afterSolar = AddTo(newState, solarEnergy, CapacityKilowattHrs, remainingBatteryChargeThroughput);
+        var afterSolar = AddTo(newState, solarEnergy, UpperBoundsKilowattHrs, remainingBatteryChargeThroughput);
         newState = afterSolar.NewState;
         remainingBatteryChargeThroughput -= afterSolar.Added;
 
         // Grid charge second.
-        var afterGrid = AddTo(newState, chargeEnergy, CapacityKilowattHrs, remainingBatteryChargeThroughput);
+        var afterGrid = AddTo(newState, chargeEnergy, UpperBoundsKilowattHrs, remainingBatteryChargeThroughput);
         newState = afterGrid.NewState;
         remainingBatteryChargeThroughput -= afterGrid.Added;
 
         // Finally, pull energy out of battery for demand.
         // NB if this is a period of grid charging, then no drawdown from battery can be used for the demand.
-        var afterDemand = PullFrom(newState, demandEnergy, afterGrid.Added > 0.0f, period.Energy(MaxDischargeKilowatts));
+        var afterDemand = PullFrom(newState, demandEnergy, LowerBoundsKilowattHrs, afterGrid.Added > 0.0f, period.Energy(MaxDischargeKilowatts));
         newState = afterDemand.NewState;
 
         return this with
@@ -103,16 +108,16 @@ public record Hy36(
     /// Pull some energy from the battery observing where it is empty.
     /// </summary>
     /// <param name="isGridCharge">If true, this will not take from battery and return as shortfall.</param>
-    private static (PlantState NewState, float Pulled, float Shortfall) PullFrom(PlantState state, float energy, bool isGridCharge, float energyDeltaLimit)
+    private static (PlantState NewState, float Pulled, float Shortfall) PullFrom(PlantState state, float energy, float energyLowerLimit, bool isGridCharge, float energyDeltaLimit)
     {
         if (isGridCharge) return (state, 0.0f, energy);
 
         float shortfallDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit);
-        float shortfallDueToEmpty = -Math.Min(0, state.BatteryEnergy - energy);
+        float shortfallDueToEmpty = -Math.Min(0, (state.BatteryEnergy - energyLowerLimit) - energy);
 
         float deltaforBattery = Math.Min(energy, energyDeltaLimit);
 
-        float newState = Math.Max(0.0f, state.BatteryEnergy - deltaforBattery);
+        float newState = Math.Max(energyLowerLimit, state.BatteryEnergy - deltaforBattery);
 
         return (
             state with { BatteryEnergy = newState },

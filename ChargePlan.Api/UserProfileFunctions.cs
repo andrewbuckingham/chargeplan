@@ -1,4 +1,6 @@
 using System.Net;
+using System.Text.Json;
+using Azure.Storage.Queues;
 using ChargePlan.Domain.Solver;
 using ChargePlan.Service;
 using ChargePlan.Service.Entities;
@@ -11,11 +13,13 @@ namespace ChargePlan.Api;
 public class UserProfileFunctions
 {
     private readonly ILogger _logger;
+    private readonly QueueServiceClient _queues;
     private readonly UserProfileService _service;
 
-    public UserProfileFunctions(ILoggerFactory loggerFactory, UserProfileService service)
+    public UserProfileFunctions(ILoggerFactory loggerFactory, QueueServiceClient queues, UserProfileService service)
     {
         _logger = loggerFactory.CreateLogger<UserTemplateFunctions>();
+        _queues = queues ?? throw new ArgumentNullException(nameof(queues));
         _service = service ?? throw new ArgumentNullException(nameof(service));
     }
 
@@ -30,4 +34,37 @@ public class UserProfileFunctions
     [Function(nameof(PostCompletedDemandAsHash))]
     public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
         => req.CreateWithService<DemandCompleted, IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandAsHash), _service.PostCompletedDemandAsHash);
+
+    // [Function(nameof(PostCompletedDemandAsHash))]
+    // public async Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
+    // {
+    //     var queue = _queues.GetQueueClient("completeddemands");
+    //     await queue.CreateIfNotExistsAsync();
+    //     await queue.SendMessageAsync(await req.ReadAsStringAsync());
+
+    //     return req.CreateResponse(HttpStatusCode.Accepted);
+    // }
+
+    [Function(nameof(ProcessCompletedDemandAsHash))]
+    public async Task ProcessCompletedDemandAsHash([QueueTrigger("completeddemands")] string myQueueItem)
+    {
+        _logger.LogInformation(nameof(ProcessCompletedDemandAsHash));
+
+        try
+        {
+            var demand = JsonSerializer.Deserialize<DemandCompleted>(myQueueItem);
+
+            if (demand == null)
+                return;
+
+            await _service.PostCompletedDemandAsHash(demand);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed calling service {nameof(ProcessCompletedDemandAsHash)}");
+            
+            //return response;
+            throw;
+        }
+    }
 }

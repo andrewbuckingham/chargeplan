@@ -9,7 +9,7 @@ namespace ChargePlan.Service.UnitTests;
 
 public class UnitTest1
 {
-    private static IPlant Plant() => new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f);
+    private static IPlant Plant() => new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 80, 5);
 
     public void SmallDemand_WithEnoughBattery_IsSatisfied()
     {

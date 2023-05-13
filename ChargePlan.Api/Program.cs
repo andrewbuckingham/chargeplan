@@ -35,6 +35,10 @@ var host = new HostBuilder()
             .AddAzureClients(configureClients =>
             {
                 configureClients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"));
+
+                configureClients
+                    .AddQueueServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
+                    .ConfigureOptions(c => c.MessageEncoding = Azure.Storage.Queues.QueueMessageEncoding.Base64);
             });
 
         // Auth

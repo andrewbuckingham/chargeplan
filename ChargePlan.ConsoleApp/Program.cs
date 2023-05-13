@@ -132,7 +132,7 @@ var generation = await new WeatherBuilder(45.0, 0.0, 54.528728, -1.553050)
 
 Console.WriteLine(generation.ToString());
 
-var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
+var algorithm = new AlgorithmBuilder(new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 80, 5))
     .WithInitialBatteryEnergy(0.3f)
     .WithExplicitStartDate(DateTime.Today)
     .WithGeneration(generation)

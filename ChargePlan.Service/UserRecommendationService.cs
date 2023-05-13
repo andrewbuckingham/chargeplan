@@ -78,7 +78,7 @@ public class UserRecommendationService
         var mainBuilder = new AlgorithmBuilder(plant)
             .WithInitialBatteryEnergy(parameters.InitialBatteryEnergy)
             .WithGeneration(generation)
-            .ExcludingCompletedDemands(completedDemands);
+            .ExcludingCompletedDemands(completedDemands.Entity);
 
         foreach (var shiftable in input.ShiftableDemandsAnyDay.Where(f => f.Disabled == false))
         {

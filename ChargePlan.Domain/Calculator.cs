@@ -74,7 +74,7 @@ public record Calculator(IPlant PlantTemplate)
             cost += (plant.LastIntegration.GridCharged + plant.LastIntegration.Shortfall) * unitPrice;
             cost -= (plant.LastIntegration.GridExport) * exportPrice;
             undercharge += plant.LastIntegration.Shortfall;
-            overcharge += plant.LastIntegration.Wasted;
+            overcharge += plant.LastIntegration.Wasted + plant.LastIntegration.GridExport;
 
             now += step;
 

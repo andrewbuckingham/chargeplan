@@ -1,18 +1,24 @@
+using System.Text.Json;
+using ChargePlan.Domain.Exceptions;
 using ChargePlan.Domain.Solver;
 using ChargePlan.Service.Entities;
 using ChargePlan.Service.Facades;
 using ChargePlan.Service.Infrastructure;
+using Microsoft.Extensions.Logging;
+using Polly;
 
 namespace ChargePlan.Service;
 
 public class UserProfileService
 {
+    private readonly ILogger _logger;
     private readonly UserPermissionsFacade _user;
     private readonly IUserPlantRepository _plant;
     private readonly IUserDemandCompletedRepository _completed;
 
-    public UserProfileService(UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed)
+    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed)
     {
+        _logger = logger;
         _user = user;
         _plant = plant;
         _completed = completed;
@@ -34,17 +40,40 @@ public class UserProfileService
     /// </summary>
     public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandAsHash(DemandCompleted demandCompleted)
     {
-        var completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
+        var policy = Policy
+            .Handle<ConcurrencyException>()
+            .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f));
 
-        if (completedDemands.Any(f => f.DemandHash == demandCompleted.DemandHash) == false)
+        var result = policy.ExecuteAsync(async () =>
         {
-            completedDemands = completedDemands
-                .Where(f => f.DateTime.AddMonths(1) < DateTime.Now) // Prune old ones
-                .Append(demandCompleted);
+            EtaggedEntity<DemandCompleted[]> completedDemands;
 
-            completedDemands = await _completed.UpsertAsync(_user.Id, completedDemands);
-        }
+            try
+            {
+                completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
+            }
+            catch (JsonException)
+            {
+                _logger.LogWarning("Demand completions JSON is invalid. Replacing with empty structure.");
+                completedDemands = new(new DemandCompleted[] { }, String.Empty);
+            }
 
-        return completedDemands;
+            if (completedDemands.Entity.Any(f => f.DemandHash == demandCompleted.DemandHash) == false)
+            {
+                completedDemands = completedDemands with
+                {
+                    Entity = completedDemands.Entity
+                        .Where(f => f.DateTime > DateTime.Now.AddMonths(-1)) // Prune old ones
+                        .Append(demandCompleted)
+                        .ToArray()
+                };
+
+                completedDemands = await _completed.UpsertAsync(_user.Id, completedDemands);
+            }
+
+            return completedDemands.Entity;
+        });
+
+        return await result;
     }
 }

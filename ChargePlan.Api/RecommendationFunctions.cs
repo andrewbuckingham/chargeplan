@@ -25,6 +25,8 @@ public class RecommendationFunctions
     public Task<HttpResponseData> PostSolverRequestAdhoc([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "solver/requests/adhoc")] HttpRequestData req)
         => req.CreateWithService<ChargePlanAdhocParameters, Recommendations>(_logger, nameof(PostSolverRequestAdhoc), _adhocService.CalculateRecommendations);
 
+
+
     [Function(nameof(PostSolverRequestMe))]
     public Task<HttpResponseData> PostSolverRequestMe([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "solver/requests/me")] HttpRequestData req)
         => req.CreateWithService<UserRecommendationParameters, Recommendations>(_logger, nameof(PostSolverRequestMe), _userService.CalculateRecommendations);

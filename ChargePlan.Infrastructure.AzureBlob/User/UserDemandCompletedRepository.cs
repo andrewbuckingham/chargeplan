@@ -5,7 +5,7 @@ using ChargePlan.Service.Infrastructure;
 
 namespace ChargePlan.Infrastructure.AzureBlob.User;
 
-public class UserDemandCompletedRepository : ContainerBlobRepository<IEnumerable<DemandCompleted>>, IUserDemandCompletedRepository
+public class UserDemandCompletedRepository : ContainerEtaggedBlobRepository<DemandCompleted[]>, IUserDemandCompletedRepository
 {
     public UserDemandCompletedRepository(BlobServiceClient blobServiceClient, JsonSerializerOptions jsonOptions) : base(blobServiceClient, jsonOptions)
     {
