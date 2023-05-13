@@ -27,6 +27,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ChargePlan.Service\ChargePlan.Service.csproj" />
+    <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
   </ItemGroup>
 
 </Project>

@@ -7,6 +7,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
     private IHttpClientFactory _clientFactory;
 
     private const string _uri = "https://api.open-meteo.com/v1/forecast?latitude=54.528728&longitude=-1.553050&current_weather=true&hourly=direct_normal_irradiance&forecast_days=3";
+    private const float _fudgeFactor = 1.2f;
 
     public DniProvider(IHttpClientFactory clientFactory)
     {
@@ -24,7 +25,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
 
         var values = entity.hourly.time
             .Zip(entity.hourly.direct_normal_irradiance)
-            .Select(pair => (DateTime: DateTime.Parse(pair.First), PowerWatts: (float)pair.Second))
+            .Select(pair => (DateTime: DateTime.Parse(pair.First), PowerWatts: (float)pair.Second * _fudgeFactor))
             .ToArray();
 
         return values;

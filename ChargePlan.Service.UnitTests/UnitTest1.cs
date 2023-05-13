@@ -1,10 +1,50 @@
 using System.Diagnostics;
+using ChargePlan.Builder;
+using ChargePlan.Builder.Templates;
+using ChargePlan.Domain;
+using ChargePlan.Domain.Plant;
 using MathNet.Numerics.Interpolation;
 
 namespace ChargePlan.Service.UnitTests;
 
 public class UnitTest1
 {
+    private static IPlant Plant() => new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f);
+
+    public void SmallDemand_WithEnoughBattery_IsSatisfied()
+    {
+        var demand = new PowerAtAbsoluteTimes(
+            Name: "SmallDemand_WithEnoughBattery_IsSatisfied",
+            Values: new()
+            {
+                new (TimeOnly.MinValue, 1.0f),
+                new (new(04,00), 1.0f),
+                new (new(12,00), 1.0f),
+                new (TimeOnly.MaxValue, 1.0f)
+            }
+        );
+
+        var pricing = new PriceAtAbsoluteTimes(
+            Name: "SmallDemand_WithEnoughBattery_IsSatisfied",
+            Values: new()
+            {
+                new (TimeOnly.MinValue, 1.0M),
+            }
+        );
+
+        var algorithm = new AlgorithmBuilder(Plant())
+            .WithInitialBatteryEnergy(4.0f)
+            .WithExplicitStartDate(DateTime.Today.AddDays(1))
+            .ForDay(DateTime.Today.AddDays(1))
+            .AddPricing(pricing)
+            .AddDemand(demand)
+            .Build();
+
+        var result = algorithm.DecideStrategy();
+
+        Assert.Equal(0.0M, result.Evaluation.TotalCost);
+    }
+
     // [Theory]
     // [InlineData(
     //     new float[] { 0.3f, 1.0f, 0.3f },
