@@ -1,9 +1,10 @@
 namespace ChargePlan.Domain.Plant;
 
-public record Hy36(float CapacityKilowattHrs,
-        float MaxChargeKilowatts,
-        float MaxDischargeKilowatts,
-        float MaxThroughputKilowatts) : IPlant(new(0.0f, 0.0f, 0.0f, 0.0f), new(0.0f))
+public record Hy36(
+    float CapacityKilowattHrs,
+    float MaxChargeKilowatts,
+    float MaxDischargeKilowatts,
+    float MaxThroughputKilowatts) : IPlant(new(0.0f, 0.0f, 0.0f, 0.0f), new(0.0f))
 {
     public override float ChargeRateAtScalar(float atScalarValue) => Math.Max(0.0f, Math.Min(1.0f, MaxChargeKilowatts * atScalarValue));
 
