@@ -71,4 +71,26 @@ public static class HttpRequestDataExtensions
             throw;
         }
     }
+
+    public static async Task<HttpResponseData> CreateWithService<TResult>(this HttpRequestData req, ILogger logger, string name, Func<string, Task<TResult>> service)
+    {
+        logger.LogInformation(name);
+
+        try
+        {
+            string received = await req.ReadAsStringAsync() ?? throw new InvalidStateException("You must send some data");
+            TResult result = await service(received) ?? throw new InvalidStateException("Service returned null");
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(result);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed calling service {name}");
+            var response = req.CreateResponse(HttpStatusCode.InternalServerError);
+            //return response;
+            throw;
+        }
+    }
 }

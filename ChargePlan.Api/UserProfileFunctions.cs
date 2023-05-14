@@ -32,8 +32,12 @@ public class UserProfileFunctions
         => req.UpdateWithService<UserPlantParameters>(_logger, nameof(PutMyPlant), _service.PutPlantParameters);
 
     [Function(nameof(PostCompletedDemandAsHash))]
-    public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
+    public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/hashes")] HttpRequestData req)
         => req.CreateWithService<DemandCompleted, IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandAsHash), _service.PostCompletedDemandAsHash);
+
+    [Function(nameof(PostCompletedDemandMatchFirstType))]
+    public Task<HttpResponseData> PostCompletedDemandMatchFirstType([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/today/types")] HttpRequestData req)
+        => req.CreateWithService<IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandMatchFirstType), _service.PostCompletedDemandMatchFirstType);
 
     // [Function(nameof(PostCompletedDemandAsHash))]
     // public async Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
@@ -45,26 +49,26 @@ public class UserProfileFunctions
     //     return req.CreateResponse(HttpStatusCode.Accepted);
     // }
 
-    [Function(nameof(ProcessCompletedDemandAsHash))]
-    public async Task ProcessCompletedDemandAsHash([QueueTrigger("completeddemands")] string myQueueItem)
-    {
-        _logger.LogInformation(nameof(ProcessCompletedDemandAsHash));
+    // [Function(nameof(ProcessCompletedDemandAsHash))]
+    // public async Task ProcessCompletedDemandAsHash([QueueTrigger("completeddemands")] string myQueueItem)
+    // {
+    //     _logger.LogInformation(nameof(ProcessCompletedDemandAsHash));
 
-        try
-        {
-            var demand = JsonSerializer.Deserialize<DemandCompleted>(myQueueItem);
+    //     try
+    //     {
+    //         var demand = JsonSerializer.Deserialize<DemandCompleted>(myQueueItem);
 
-            if (demand == null)
-                return;
+    //         if (demand == null)
+    //             return;
 
-            await _service.PostCompletedDemandAsHash(demand);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, $"Failed calling service {nameof(ProcessCompletedDemandAsHash)}");
+    //         await _service.PostCompletedDemandAsHash(demand);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         _logger.LogError(ex, $"Failed calling service {nameof(ProcessCompletedDemandAsHash)}");
             
-            //return response;
-            throw;
-        }
-    }
+    //         //return response;
+    //         throw;
+    //     }
+    // }
 }

@@ -15,13 +15,15 @@ public class UserProfileService
     private readonly UserPermissionsFacade _user;
     private readonly IUserPlantRepository _plant;
     private readonly IUserDemandCompletedRepository _completed;
+    private readonly IUserShiftableDemandRepository _shiftable;
 
-    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed)
+    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed, IUserShiftableDemandRepository shiftable)
     {
         _logger = logger;
         _user = user;
         _plant = plant;
         _completed = completed;
+        _shiftable = shiftable;
     }
 
     public async Task<UserPlantParameters> GetPlantParameters()
@@ -32,6 +34,31 @@ public class UserProfileService
     public Task<UserPlantParameters> PutPlantParameters(UserPlantParameters plant)
     {
         return _plant.UpsertAsync(_user.Id, plant);
+    }
+
+    public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandMatchFirstType(string shiftableDemandType)
+    {
+        // This is a temporary solution. Should really have an index of hashes from the last run.
+        // Instead, synthesise all the hashes based on likely datetime ranges (today + {n..4} days)
+        // Also calls the proper PostCompleted call many times. A bit hacky.
+        var matchingDemands = (await _shiftable.GetAsyncOrEmpty(_user.Id))
+            .Where(f => f.Type == shiftableDemandType)
+            .CrossJoin(Enumerable.Range(1, 4)) // Where 4 is the max number of days most demands are likely to span...
+            .Select(f => f.Item1.AsShiftableDemand(
+                Domain.ShiftableDemandPriority.Low,
+                (DateTime.Today, DateTime.Today.AddDays(f.Item2)),
+                null));
+        
+        foreach (var demand in matchingDemands)
+        {
+            await PostCompletedDemandAsHash(new DemandCompleted(
+                demand.AsDemandHash(),
+                DateTime.Now,
+                demand.Name
+            ));
+        }
+
+        return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity.Where(f => f.DateTime.Date == DateTime.Today);
     }
 
     /// <summary>
