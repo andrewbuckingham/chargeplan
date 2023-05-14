@@ -39,12 +39,10 @@ public class UserProfileService
     /// Demand completions are identified by their unique hash of their name and datetime.
     /// </summary>
     public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandAsHash(DemandCompleted demandCompleted)
-    {
-        var policy = Policy
+        => await Policy
             .Handle<ConcurrencyException>()
-            .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f));
-
-        var result = policy.ExecuteAsync(async () =>
+            .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+            .ExecuteAsync(async () =>
         {
             EtaggedEntity<DemandCompleted[]> completedDemands;
 
@@ -73,7 +71,4 @@ public class UserProfileService
 
             return completedDemands.Entity;
         });
-
-        return await result;
-    }
 }
