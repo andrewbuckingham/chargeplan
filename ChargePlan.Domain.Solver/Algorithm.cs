@@ -64,7 +64,7 @@ public record Algorithm(
 
             // ...and append this shiftable demand to the end of that list, for each of its trials.
             // Ignore trials which are too soon.
-            var optimal = s.Trials
+            var trialResults = s.Trials
                 .Where(f => !completedShiftableDemandOptimisations.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt, f.StartAt)))
                 .Select(t => ((
                     s.ShiftableDemand,
@@ -72,8 +72,10 @@ public record Algorithm(
                     t.Demand,
                     Evaluation: IterateChargeRates(completedDemands.Concat(new[] { t.Demand })))))
                 .ToArray()
-                .OrderBy(f => f.Evaluation.TotalCost) // Order by the lowest total cost trial...
-                .FirstOrDefault(); // ...and declare that as "optimal"
+                .OrderBy(f => s.ShiftableDemand.EffectiveCost(f.Evaluation.TotalCost - evaluation.TotalCost)) // Order by the lowest total cost trial (applying threshold)...
+                .ThenBy(f => f.StartAt);
+            
+            var optimal = trialResults.FirstOrDefault(); // ...and declare that as "optimal"
 
             if (optimal != default)
             {
