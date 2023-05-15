@@ -6,12 +6,14 @@ using ChargePlan.Service.Entities;
 using ChargePlan.Service.Facades;
 using ChargePlan.Service.Infrastructure;
 using ChargePlan.Weather;
+using Microsoft.Extensions.Logging;
 
 namespace ChargePlan.Service;
 
 public class UserRecommendationService
 {
     private readonly UserPermissionsFacade _user;
+    private readonly ILogger _logger;
 
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
     private readonly IPlantFactory _plantFactory;
@@ -24,9 +26,11 @@ public class UserRecommendationService
     private readonly IUserExportRepository _export;
     private readonly IUserDayTemplatesRepository _days;
     private readonly IUserDemandCompletedRepository _completedDemands;
+    private readonly IUserRecommendationsRepository _recommendations;
 
     public UserRecommendationService(
         UserPermissionsFacade user,
+        ILogger<UserRecommendationService> logger,
         IDirectNormalIrradianceProvider dniWeatherProvider,
         IPlantFactory plantFactory,
         IUserPlantRepository plant,
@@ -36,9 +40,11 @@ public class UserRecommendationService
         IUserPricingRepository pricing,
         IUserExportRepository export,
         IUserDayTemplatesRepository days,
-        IUserDemandCompletedRepository completedDemands)
+        IUserDemandCompletedRepository completedDemands,
+        IUserRecommendationsRepository recommendations)
     {
         _user = user;
+        _logger = logger;
 
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
         _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
@@ -52,7 +58,9 @@ public class UserRecommendationService
         _days = days;
 
         _completedDemands = completedDemands;
+        _recommendations = recommendations;
     }
+
     public async Task<Recommendations> CalculateRecommendations(UserRecommendationParameters parameters)
     {
         var plantSpec = await _plant.GetAsync(_user.Id) ?? new(new());
@@ -126,6 +134,19 @@ public class UserRecommendationService
 
         var algorithm = dayBuilder.Build();
         var recommendations = algorithm.DecideStrategy();
+
+        try
+        {
+            await _recommendations.UpsertAsync(_user.Id, recommendations);
+        }
+        catch (InfrastructureException iex)
+        {
+            _logger.LogError($"Couldn't write latest recommendation for {_user.Id}", iex);
+        }
+
         return recommendations;
     }
+
+    public Task<Recommendations?> GetLastRecommendation()
+        => _recommendations.GetAsync(_user.Id);
 }

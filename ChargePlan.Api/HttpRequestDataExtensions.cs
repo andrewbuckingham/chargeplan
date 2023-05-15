@@ -13,7 +13,10 @@ public static class HttpRequestDataExtensions
 
         try
         {
-            T result = await service() ?? throw new InvalidStateException("Service returned null");
+            T? result = await service(); //?? throw new InvalidStateException("Service returned null");
+
+            if (result == null) return req.CreateResponse(HttpStatusCode.NotFound);
+            
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(result);
 

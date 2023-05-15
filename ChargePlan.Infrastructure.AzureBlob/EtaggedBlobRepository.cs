@@ -25,20 +25,21 @@ public class EtaggedBlobRepository<T>
         await container.CreateIfNotExistsAsync();
         var blob = container.GetBlobClient(blobName);
 
-        if (await blob.ExistsAsync() == false) return null;
+        try
+        {
+            if (await blob.ExistsAsync() == false) return null;
 
-        var etag = (await blob.GetPropertiesAsync())?.Value.ETag.ToString() ?? String.Empty;
+            var etag = (await blob.GetPropertiesAsync())?.Value.ETag.ToString() ?? String.Empty;
+            var entity = await JsonSerializer.DeserializeAsync<T>(await blob.OpenReadAsync(), _jsonOptions);
 
-        // using (var sr = new StreamReader(await blob.OpenReadAsync()))
-        // {
-        //     string wibble = sr.ReadToEnd();
-        // }
+            if (entity == null) return null;
 
-        var entity = await JsonSerializer.DeserializeAsync<T>(await blob.OpenReadAsync(), _jsonOptions);
-
-        if (entity == null) return null;
-
-        return new(entity, etag);
+            return new(entity, etag);
+        }
+        catch (Azure.RequestFailedException rfe)
+        {
+            throw new InfrastructureException($"{rfe.ErrorCode} accessing {containerName} {blobName}", rfe);
+        }
     }
 
     public async Task<EtaggedEntity<T>> UpsertAsync(string containerName, string blobName, EtaggedEntity<T> entity)
@@ -61,9 +62,16 @@ public class EtaggedBlobRepository<T>
             var newEtag = (await blob.GetPropertiesAsync())?.Value.ETag.ToString() ?? String.Empty;
             return entity with { ETag = newEtag };
         }
-        catch (RequestFailedException e) when (e.Status == (int)HttpStatusCode.PreconditionFailed)
+        catch (Azure.RequestFailedException rfe)
         {
-            throw new ConcurrencyException();
+            if (rfe.Status == (int)HttpStatusCode.PreconditionFailed)
+            {
+                throw new ConcurrencyException();
+            }
+            else
+            {
+                throw new InfrastructureException($"{rfe.ErrorCode} updating {containerName} {blobName}", rfe);
+            }
         }
     }
 
@@ -72,6 +80,14 @@ public class EtaggedBlobRepository<T>
         var container = _blobServiceClient.GetBlobContainerClient(containerName);
         await container.CreateIfNotExistsAsync();
         var blob = container.GetBlobClient(blobName);
-        await blob.DeleteAsync();
+
+        try
+        {
+            await blob.DeleteAsync();
+        }
+        catch (Azure.RequestFailedException rfe)
+        {
+            throw new InfrastructureException($"{rfe.ErrorCode} deleting {containerName} {blobName}", rfe);
+        }
     }
 }

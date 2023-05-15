@@ -153,7 +153,7 @@ var recommendations = algorithm.DecideStrategy();
 Debug.WriteLine(recommendations.Evaluation);
 foreach (var shiftableDemand in recommendations.ShiftableDemands)
 {
-    Debug.WriteLine($"{shiftableDemand.ShiftableDemand.Name}: {shiftableDemand.StartAt} (+£{shiftableDemand.AddedCost})");
+    Debug.WriteLine($"{shiftableDemand.Name}: {shiftableDemand.StartAt} (+£{shiftableDemand.AddedCost})");
 }
 
 foreach (var step in recommendations.Evaluation.DebugResults)

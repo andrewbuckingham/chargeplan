@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Azure.Storage.Blobs;
+using ChargePlan.Domain.Exceptions;
 
 namespace ChargePlan.Infrastructure.AzureBlob;
 
@@ -20,10 +21,17 @@ public class BlobRepository<T>
         await container.CreateIfNotExistsAsync();
         var blob = container.GetBlobClient(blobName);
 
-        if (await blob.ExistsAsync() == false) return default(T);
+        try
+        {
+            if (await blob.ExistsAsync() == false) return default(T);
 
-        var entity = await JsonSerializer.DeserializeAsync<T>(await blob.OpenReadAsync(), _jsonOptions);
-        return entity;
+            var entity = await JsonSerializer.DeserializeAsync<T>(await blob.OpenReadAsync(), _jsonOptions);
+            return entity;
+        }
+        catch (Azure.RequestFailedException rfe)
+        {
+            throw new InfrastructureException($"{rfe.ErrorCode} accessing {containerName} {blobName}", rfe);
+        }
     }
 
     public async Task<T> UpsertAsync(string containerName, string blobName, T entity)
@@ -31,11 +39,19 @@ public class BlobRepository<T>
         var container = _blobServiceClient.GetBlobContainerClient(containerName);
         await container.CreateIfNotExistsAsync();
         var blob = container.GetBlobClient(blobName);
-        using (var stream = await blob.OpenWriteAsync(true))
+
+        try
         {
-            await JsonSerializer.SerializeAsync(stream, entity, _jsonOptions);
+            using (var stream = await blob.OpenWriteAsync(true))
+            {
+                await JsonSerializer.SerializeAsync(stream, entity, _jsonOptions);
+                return entity;
+            }
         }
-        return entity;
+        catch (Azure.RequestFailedException rfe)
+        {
+            throw new InfrastructureException($"{rfe.ErrorCode} updating {containerName} {blobName}", rfe);
+        }
     }
 
     public async Task DeleteAsync(string containerName, string blobName)
@@ -43,6 +59,14 @@ public class BlobRepository<T>
         var container = _blobServiceClient.GetBlobContainerClient(containerName);
         await container.CreateIfNotExistsAsync();
         var blob = container.GetBlobClient(blobName);
-        await blob.DeleteAsync();
+
+        try
+        {
+            await blob.DeleteAsync();
+        }
+        catch (Azure.RequestFailedException rfe)
+        {
+            throw new InfrastructureException($"{rfe.ErrorCode} deleting {containerName} {blobName}", rfe);
+        }
     }
 }
