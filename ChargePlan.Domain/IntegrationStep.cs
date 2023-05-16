@@ -9,5 +9,8 @@ public record IntegrationStep(
     float ExportEnergy,
     float CumulativeCost,
     float CumulativeUndercharge,
-    float CumulativeOvercharge
+    float CumulativeOvercharge,
+    IntegrationStepDemandEnergy[] DemandEnergies
 );
+
+public record IntegrationStepDemandEnergy(string Name, string Type, float Energy);

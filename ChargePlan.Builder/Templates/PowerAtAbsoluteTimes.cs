@@ -19,6 +19,8 @@ public record PowerAtAbsoluteTimes(List<(TimeOnly TimeOfDay, float Power)> Value
 
     public DemandProfile AsDemandProfile(DateTime startAt) => new()
     {
+        Name = "Baseload",
+        Type = "Baseload",
         Values = Values
             .Select(f => new DemandValue(startAt.Date + f.TimeOfDay.ToTimeSpan(), f.Power))
             .ToList()

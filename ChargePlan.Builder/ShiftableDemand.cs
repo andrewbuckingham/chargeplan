@@ -20,7 +20,12 @@ public class ShiftableDemand : IShiftableDemandProfile
     public decimal? StartWheneverCheaperThan { get; set; } = 0.01M;
 
     public IDemandProfile AsDemandProfile(DateTime startingAt)
-        => new DemandProfile() { Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList() };
+        => new DemandProfile()
+        {
+            Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList(),
+            Name = Name,
+            Type = Type
+        };
 }
 
 public record ShiftableDemandValue(TimeSpan RelativeTime, float Power)

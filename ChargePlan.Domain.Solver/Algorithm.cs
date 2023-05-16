@@ -70,7 +70,7 @@ public record Algorithm(
                     s.ShiftableDemand,
                     t.StartAt,
                     t.Demand,
-                    Evaluation: IterateChargeRates(completedDemands.Concat(new[] { t.Demand })))))
+                    Evaluation: IterateChargeRates(completedDemands.Append(t.Demand)))))
                 .ToArray()
                 .OrderBy(f => s.ShiftableDemand.EffectiveCost(f.Evaluation.TotalCost - evaluation.TotalCost)) // Order by the lowest total cost trial (applying threshold)...
                 .ThenBy(f => f.StartAt);

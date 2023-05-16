@@ -40,9 +40,9 @@ public record Calculator(IPlant PlantTemplate)
 
         if (startAt < baseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
 
-        var demandSplines = (new IInterpolation[] {
-            baseloadDemandProfile.AsSpline(CubicSpline.InterpolateAkima) })
-            .Concat(specificDemandProfiles.Select(demandProfile => demandProfile.AsSpline(StepInterpolation.Interpolate)))
+        var demandSplines = Enumerable.Empty<(IInterpolation Interpolation, IDemandProfile Profile)>()
+            .Append((Interpolation: baseloadDemandProfile.AsSpline(CubicSpline.InterpolateAkima), Profile: baseloadDemandProfile))
+            .Concat(specificDemandProfiles.Select(demandProfile => (Interpolation: demandProfile.AsSpline(StepInterpolation.Interpolate), Profile: demandProfile)))
             .ToArray();
 
         var generationSpline = generationProfile.AsSplineOrZero(CubicSpline.InterpolateAkima);
@@ -63,9 +63,11 @@ public record Calculator(IPlant PlantTemplate)
             double from = (now).AsTotalHours();
             double to = (now + step).AsTotalHours();
 
+            var demandEnergies = demandSplines.Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2)).ToArray();
+
             float unitPrice = Math.Max(0.0f, (float)pricingSpline.Interpolate(from));
             float exportPrice = Math.Max(0.0f, (float)exportSpline.Interpolate(from));
-            float demandEnergy = (float)demandSplines.Select(f => Math.Max(0.0f, f.Integrate(from, to))).Sum();
+            float demandEnergy = (float)demandEnergies.Select(f => f.Energy).Sum();
             float generationEnergy = Math.Max(0.0f, (float)generationSpline.Integrate(from, to));
             float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
@@ -78,7 +80,11 @@ public record Calculator(IPlant PlantTemplate)
 
             now += step;
 
-            debugResults.Add(new(now, plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, plant.LastIntegration.GridExport, cost, undercharge, overcharge));
+            debugResults.Add(new(
+                now,
+                plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, plant.LastIntegration.GridExport, cost, undercharge, overcharge,
+                demandEnergies.Select(f => new IntegrationStepDemandEnergy(f.Profile.Name, f.Profile.Type, (float)f.Energy)).ToArray()
+            ));
         }
 
         return new Evaluation(chargePowerLimit, undercharge, overcharge, Math.Round((decimal)cost, 2), debugResults);
