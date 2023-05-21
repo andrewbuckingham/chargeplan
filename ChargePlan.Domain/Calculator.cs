@@ -87,14 +87,23 @@ public record Calculator(IPlant PlantTemplate)
             ));
         }
 
-        return new Evaluation(chargePowerLimit, Math.Round((decimal)cost, 2), debugResults, CalculateOverchargePeriods(debugResults));
+        var overchargeAndUnderchargePeriods = CalculateOverchargePeriods(debugResults);
+
+        return new Evaluation(
+            chargePowerLimit,
+            Math.Round((decimal)cost, 2),
+            debugResults,
+            overchargeAndUnderchargePeriods.Item1,
+            overchargeAndUnderchargePeriods.Item2);
     }
 
-    private List<OverchargePeriod> CalculateOverchargePeriods(IEnumerable<IntegrationStep> integrationSteps)
+    private (List<OverchargePeriod>, List<UnderchargePeriod>) CalculateOverchargePeriods(IEnumerable<IntegrationStep> integrationSteps)
     {
         List<OverchargePeriod> overchargePeriods = new();
+        List<UnderchargePeriod> underchargePeriods = new();
 
-        var accumulator = (Overcharge: 0.0f, Since: (DateTime?)null);
+        var overchargeAccumulator = (Overcharge: 0.0f, Since: (DateTime?)null);
+        var underchargeAccumulator = (Undercharge: 0.0f, Since: (DateTime?)null);
 
         var sourceData = integrationSteps
             .Zip(integrationSteps.Skip(1).Append(null))
@@ -107,29 +116,48 @@ public record Calculator(IPlant PlantTemplate)
 
         foreach (var pair in sourceData)
         {
+            // 1. Overcharge logic.
             if (pair.HasUnderchargeOccurred == true || pair.HasOverchargeOccurred == false || pair.Second == null)
             {
                 // Undercharge occurred, or no longer in overcharge, or at end of list.
                 // Draw a line under any overcharge period accumulated so far.
 
-                if (accumulator.Since != null)
+                if (overchargeAccumulator.Since != null)
                 {
                     overchargePeriods.Add(new OverchargePeriod(
-                        accumulator.Since ?? throw new InvalidOperationException(),
+                        overchargeAccumulator.Since ?? throw new InvalidOperationException(),
                         pair.First.DateTime,
-                        accumulator.Overcharge));
+                        overchargeAccumulator.Overcharge));
 
-                    accumulator = (0.0f, null);
+                    overchargeAccumulator = (0.0f, null);
                 }                
             }
             else if (pair.HasOverchargeOccurred)
             {
                 // If there's any net overcharge in this period, then count it towards the OverchargePeriod.
 
-                accumulator = (accumulator.Overcharge + (pair.Second.CumulativeOvercharge - pair.First.CumulativeOvercharge), accumulator.Since ?? pair.First.DateTime);
+                overchargeAccumulator = (overchargeAccumulator.Overcharge + (pair.Second.CumulativeOvercharge - pair.First.CumulativeOvercharge), overchargeAccumulator.Since ?? pair.First.DateTime);
+            }
+
+            // 2. Undercharge logic.
+            if (pair.HasOverchargeOccurred == true || pair.HasUnderchargeOccurred == false || pair.Second == null)
+            {
+                if (underchargeAccumulator.Since != null)
+                {
+                    underchargePeriods.Add(new UnderchargePeriod(
+                        underchargeAccumulator.Since ?? throw new InvalidOperationException(),
+                        pair.First.DateTime,
+                        underchargeAccumulator.Undercharge));
+
+                    underchargeAccumulator = (0.0f, null);
+                }                
+            }
+            else if (pair.HasUnderchargeOccurred)
+            {
+                underchargeAccumulator = (underchargeAccumulator.Undercharge + (pair.Second.CumulativeUndercharge - pair.First.CumulativeUndercharge), underchargeAccumulator.Since ?? pair.First.DateTime);
             }
         }
 
-        return overchargePeriods;
+        return (overchargePeriods, underchargePeriods);
     }
 }
