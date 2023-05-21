@@ -11,14 +11,14 @@ public record PriceAtAbsoluteTimes(List<(TimeOnly TimeOfDay, decimal PricePerUni
     public PricingProfile AsPricingProfile(DateTime startAt) => new()
     {
         Values = Values
-            .Select(f => new PricingValue(startAt.Date + f.TimeOfDay.ToTimeSpan(), f.PricePerUnit))
+            .Select(f => new PricingValue(startAt.Date.ToLocalTime() + f.TimeOfDay.ToTimeSpan(), f.PricePerUnit))
             .ToList()
     };
 
     public ExportProfile AsExportProfile(DateTime startAt) => new()
     {
         Values = Values
-            .Select(f => new ExportValue(startAt.Date + f.TimeOfDay.ToTimeSpan(), f.PricePerUnit))
+            .Select(f => new ExportValue(startAt.Date.ToLocalTime() + f.TimeOfDay.ToTimeSpan(), f.PricePerUnit))
             .ToList()
     };
 }

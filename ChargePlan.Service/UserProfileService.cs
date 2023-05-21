@@ -53,7 +53,7 @@ public class UserProfileService
         {
             await PostCompletedDemandAsHash(new DemandCompleted(
                 demand.AsDemandHash(),
-                DateTime.Now,
+                DateTime.Now.ToLocalTime(),
                 demand.Name
             ));
         }
@@ -88,7 +88,7 @@ public class UserProfileService
                 completedDemands = completedDemands with
                 {
                     Entity = completedDemands.Entity
-                        .Where(f => f.DateTime > DateTime.Now.AddMonths(-1)) // Prune old ones
+                        .Where(f => f.DateTime > DateTime.Now.AddMonths(-1).ToLocalTime()) // Prune old ones
                         .Append(demandCompleted)
                         .ToArray()
                 };

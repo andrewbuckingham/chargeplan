@@ -24,7 +24,7 @@ public record Algorithm(
         // First decision is based just on the main demand profile.
         Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
 
-        DateTime fromDate = (ExplicitStartDate ?? DemandProfile.Starting.OrAtEarliest(DateTime.Now)).ToClosestHour();
+        DateTime fromDate = (ExplicitStartDate ?? DemandProfile.Starting.OrAtEarliest(DateTime.Now.ToLocalTime())).ToClosestHour();
         DateTime toDate = DemandProfile.Until;
 
         // Iterate through options for shiftable demand.
@@ -72,7 +72,15 @@ public record Algorithm(
                     t.Demand,
                     Evaluation: IterateChargeRates(completedDemands.Append(t.Demand)))))
                 .ToArray()
-                .OrderBy(f => s.ShiftableDemand.EffectiveCost(f.Evaluation.TotalCost - evaluation.TotalCost)) // Order by the lowest total cost trial (applying threshold)...
+                .Select(f => ((
+                    f.ShiftableDemand,
+                    f.StartAt,
+                    f.Demand,
+                    f.Evaluation,
+                    ActualAddedCost: f.Evaluation.TotalCost - evaluation.TotalCost,
+                    EffectiveAddedCost: f.ShiftableDemand.EffectiveCost(f.Evaluation.TotalCost - evaluation.TotalCost)
+                )))
+                .OrderBy(f => f.EffectiveAddedCost) // Order by the lowest total cost trial (applying threshold)...
                 .ThenBy(f => f.StartAt);
             
             var optimal = trialResults.FirstOrDefault(); // ...and declare that as "optimal"

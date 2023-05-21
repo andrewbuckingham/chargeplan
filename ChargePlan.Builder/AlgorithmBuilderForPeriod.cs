@@ -28,7 +28,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential, TimeSpan? dontRepeatWithin = null)
         => AddForEachDay((builder, day)
         => builder with { ShiftableDemands = builder.ShiftableDemands
-            .Append(template.AsShiftableDemand(priority, (day.Date, day.Date.AddDays(1)), dontRepeatWithin))
+            .Append(template.AsShiftableDemand(priority, (day.Date.ToLocalTime(), day.Date.AddDays(1).ToLocalTime()), dontRepeatWithin))
             .ToArray() }
             );
 

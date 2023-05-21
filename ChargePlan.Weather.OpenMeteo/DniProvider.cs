@@ -25,7 +25,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
 
         var values = entity.hourly.time
             .Zip(entity.hourly.direct_normal_irradiance)
-            .Select(pair => (DateTime: DateTime.Parse(pair.First), PowerWatts: (float)pair.Second * _fudgeFactor))
+            .Select(pair => (DateTime: DateTime.Parse(pair.First).ToLocalTime(), PowerWatts: (float)pair.Second * _fudgeFactor))
             .ToArray();
 
         return values;

@@ -35,7 +35,7 @@ public record Calculator(IPlant PlantTemplate)
 
         TimeSpan step = TimeSpan.FromMinutes(15);
 
-        DateTime startAt = (explicitStartDate ?? baseloadDemandProfile.Starting.OrAtEarliest(DateTime.Now)).ToClosestHour();
+        DateTime startAt = (explicitStartDate ?? baseloadDemandProfile.Starting.OrAtEarliest(DateTime.Now.ToLocalTime())).ToClosestHour();
         DateTime endAt = baseloadDemandProfile.Until - step;
 
         if (startAt < baseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
@@ -53,7 +53,7 @@ public record Calculator(IPlant PlantTemplate)
         float overcharge = 0.0f;
         float undercharge = 0.0f;
         float cost = 0.0f;
-
+ 
         DateTime now = startAt.ToClosestHour();
 
         List<IntegrationStep> debugResults = new();
@@ -87,6 +87,49 @@ public record Calculator(IPlant PlantTemplate)
             ));
         }
 
-        return new Evaluation(chargePowerLimit, undercharge, overcharge, Math.Round((decimal)cost, 2), debugResults);
+        return new Evaluation(chargePowerLimit, Math.Round((decimal)cost, 2), debugResults, CalculateOverchargePeriods(debugResults));
+    }
+
+    private List<OverchargePeriod> CalculateOverchargePeriods(IEnumerable<IntegrationStep> integrationSteps)
+    {
+        List<OverchargePeriod> overchargePeriods = new();
+
+        var accumulator = (Overcharge: 0.0f, Since: (DateTime?)null);
+
+        var sourceData = integrationSteps
+            .Zip(integrationSteps.Skip(1).Append(null))
+            .Select(pair => (
+                HasUnderchargeOccurred: pair.Second?.CumulativeUndercharge > pair.First.CumulativeUndercharge,
+                HasOverchargeOccurred: pair.Second?.CumulativeOvercharge > pair.First.CumulativeOvercharge,
+                First: pair.First,
+                Second: pair.Second
+            ));
+
+        foreach (var pair in sourceData)
+        {
+            if (pair.HasUnderchargeOccurred == true || pair.HasOverchargeOccurred == false || pair.Second == null)
+            {
+                // Undercharge occurred, or no longer in overcharge, or at end of list.
+                // Draw a line under any overcharge period accumulated so far.
+
+                if (accumulator.Since != null)
+                {
+                    overchargePeriods.Add(new OverchargePeriod(
+                        accumulator.Since ?? throw new InvalidOperationException(),
+                        pair.First.DateTime,
+                        accumulator.Overcharge));
+
+                    accumulator = (0.0f, null);
+                }                
+            }
+            else if (pair.HasOverchargeOccurred)
+            {
+                // If there's any net overcharge in this period, then count it towards the OverchargePeriod.
+
+                accumulator = (accumulator.Overcharge + (pair.Second.CumulativeOvercharge - pair.First.CumulativeOvercharge), accumulator.Since ?? pair.First.DateTime);
+            }
+        }
+
+        return overchargePeriods;
     }
 }
