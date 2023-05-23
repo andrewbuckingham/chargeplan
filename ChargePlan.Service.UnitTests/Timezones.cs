@@ -7,41 +7,37 @@ using MathNet.Numerics.Interpolation;
 
 namespace ChargePlan.Service.UnitTests;
 
-public class UnitTest1
+public class Timezones
 {
-    private static IPlant Plant() => new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 80, 5);
+    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 100, 0);
+    private static PowerAtAbsoluteTimes ZeroDemand() => new PowerAtAbsoluteTimes(
+        Name: "Zero Demand",
+        Values: new()
+        {
+            new (TimeOnly.MinValue, 0.0f),
+            new (new(04,00), 0.0f),
+            new (new(08,00), 0.0f),
+            new (new(12,00), 0.0f),
+            new (TimeOnly.MaxValue, 0.0f)
+        }
+    );
+    private static PriceAtAbsoluteTimes UnitPrice() => new PriceAtAbsoluteTimes(
+        Name: "Unit Price",
+        Values: new()
+        {
+            new (TimeOnly.MinValue, 1.0M),
+        }
+    );
 
     [Fact]
-    public void SmallDemand_WithEnoughBattery_IsSatisfied()
+    public void Bst_ShiftableDemandNow_StartsDemand()
     {
-        var demand = new PowerAtAbsoluteTimes(
-            Name: "SmallDemand_WithEnoughBattery_IsSatisfied",
-            Values: new()
-            {
-                new (TimeOnly.MinValue, 1.0f),
-                new (new(04,00), 1.0f),
-                new (new(08,00), 1.0f),
-                new (new(12,00), 1.0f),
-                new (TimeOnly.MaxValue, 1.0f)
-            }
-        );
-
-        var pricing = new PriceAtAbsoluteTimes(
-            Name: "SmallDemand_WithEnoughBattery_IsSatisfied",
-            Values: new()
-            {
-                new (TimeOnly.MinValue, 1.0M),
-            }
-        );
-
-        var hugeBattery = new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 100, 0);
-
-        var algorithm = new AlgorithmBuilder(hugeBattery)
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
             .WithInitialBatteryEnergy(1000.0f)
             .WithExplicitStartDate(DateTime.Today.AddDays(1))
             .ForDay(DateTime.Today.AddDays(1))
-            .AddPricing(pricing)
-            .AddDemand(demand)
+            .AddPricing(UnitPrice())
+            .AddDemand(ZeroDemand())
             .Build();
 
         var result = algorithm.DecideStrategy();

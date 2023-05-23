@@ -14,7 +14,7 @@ public record Algorithm(
     PlantState InitialState,
     IEnumerable<IShiftableDemandProfile> ShiftableDemands,
     HashSet<string> CompletedDemands,
-    DateTime? ExplicitStartDate)
+    DateTimeOffset? ExplicitStartDate)
 {
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
@@ -24,8 +24,8 @@ public record Algorithm(
         // First decision is based just on the main demand profile.
         Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
 
-        DateTime fromDate = (ExplicitStartDate ?? DemandProfile.Starting.OrAtEarliest(DateTime.Now.ToLocalTime())).ToClosestHour();
-        DateTime toDate = DemandProfile.Until;
+        DateTimeOffset fromDate = (ExplicitStartDate ?? new DateTimeOffset(DemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
+        DateTimeOffset toDate = DemandProfile.Until;
 
         // Iterate through options for shiftable demand.
         // For each day, fit the highest priority and largest demand in first, and then iteratively the smaller ones.
@@ -35,7 +35,7 @@ public record Algorithm(
             .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MaxValue)
             .ThenBy(demand => demand.Priority)
             .ThenByDescending(demand => demand
-                .AsDemandProfile(fromDate)
+                .AsDemandProfile(fromDate.LocalDateTime)
                 .AsSpline(StepInterpolation.Interpolate)
                 .Integrate(fromDate.AsTotalHours(), toDate.AsTotalHours()))
             .ToArray();
@@ -46,7 +46,7 @@ public record Algorithm(
             (
                 ShiftableDemand: shiftableDemand,
                 Trials: shiftByTimespans
-                    .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
+                    .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.LocalDateTime.Add(ts)))) // Apply the profile at each trial hour
                     .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
                     .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
                     .Where(f => f.Demand.Starting.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
@@ -56,7 +56,7 @@ public record Algorithm(
             .Where(f => f.Trials.Any()) // Exclude demands that have missed this window totally i.e. likely have already happened
             .ToArray();
 
-        var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTime StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
+        var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTimeOffset StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
         foreach (var s in shiftableDemandsAsTrialProfiles)
         {
             // Take the previously-decided shiftable demands...
@@ -65,7 +65,7 @@ public record Algorithm(
             // ...and append this shiftable demand to the end of that list, for each of its trials.
             // Ignore trials which are too soon.
             var trialResults = s.Trials
-                .Where(f => !completedShiftableDemandOptimisations.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt, f.StartAt)))
+                .Where(f => !completedShiftableDemandOptimisations.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt.LocalDateTime, f.StartAt.LocalDateTime)))
                 .Select(t => ((
                     s.ShiftableDemand,
                     t.StartAt,
@@ -103,7 +103,7 @@ public record Algorithm(
         );
     }
 
-    private IEnumerable<TimeSpan> CreateTrialTimespans(DateTime fromDate, DateTime toDate)
+    private IEnumerable<TimeSpan> CreateTrialTimespans(DateTimeOffset fromDate, DateTimeOffset toDate)
     {
         TimeSpan ts = TimeSpan.Zero;
 

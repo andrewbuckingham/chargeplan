@@ -58,6 +58,7 @@ var host = new HostBuilder()
 
         // Repos
         services
+            .AddSingleton<IUserRepositories, UserRepositories>()
             .AddSingleton<IUserAuthorisationRepository, UserAuthorisationRepository>()
             .AddSingleton<IUserPlantRepository, UserPlantRepository>()
             .AddSingleton<IUserChargeRepository, UserChargeRepository>()

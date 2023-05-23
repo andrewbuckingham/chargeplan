@@ -29,14 +29,14 @@ public record Calculator(IPlant PlantTemplate)
         IExportProfile exportProfile,
         PlantState initialState,
         float? chargePowerLimit = null,
-        DateTime? explicitStartDate = null)
+        DateTimeOffset? explicitStartDate = null)
     {
         IPlant plant = PlantTemplate with { State = initialState };
 
         TimeSpan step = TimeSpan.FromMinutes(15);
 
-        DateTime startAt = (explicitStartDate ?? baseloadDemandProfile.Starting.OrAtEarliest(DateTime.Now.ToLocalTime())).ToClosestHour();
-        DateTime endAt = baseloadDemandProfile.Until - step;
+        DateTimeOffset startAt = (explicitStartDate ?? new DateTimeOffset(baseloadDemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
+        DateTimeOffset endAt = baseloadDemandProfile.Until - step;
 
         if (startAt < baseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
 
@@ -54,7 +54,7 @@ public record Calculator(IPlant PlantTemplate)
         float undercharge = 0.0f;
         float cost = 0.0f;
  
-        DateTime now = startAt.ToClosestHour();
+        DateTimeOffset now = startAt.ToClosestHour();
 
         List<IntegrationStep> debugResults = new();
 
@@ -102,8 +102,8 @@ public record Calculator(IPlant PlantTemplate)
         List<OverchargePeriod> overchargePeriods = new();
         List<UnderchargePeriod> underchargePeriods = new();
 
-        var overchargeAccumulator = (Overcharge: 0.0f, Since: (DateTime?)null);
-        var underchargeAccumulator = (Undercharge: 0.0f, Since: (DateTime?)null);
+        var overchargeAccumulator = (Overcharge: 0.0f, Since: (DateTimeOffset?)null);
+        var underchargeAccumulator = (Undercharge: 0.0f, Since: (DateTimeOffset?)null);
 
         var sourceData = integrationSteps
             .Zip(integrationSteps.Skip(1).Append(null))

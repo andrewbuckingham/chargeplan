@@ -7,9 +7,9 @@ public class DemandProfile : IDemandProfile
 {
     public List<DemandValue> Values = new();
 
-    public DateTime Starting => Values.Min(f => f.DateTime);
+    public DateTime Starting => Values.Min(f => f.DateTime.ToLocalTime());
 
-    public DateTime Until => Values.Max(f => f.DateTime);
+    public DateTime Until => Values.Max(f => f.DateTime.ToLocalTime());
 
     public string Name { get; set; } = String.Empty;
     public string Type { get; set; } = String.Empty;

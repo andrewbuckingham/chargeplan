@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
         {
             "name": ".NET Core Launch (console)",
             "type": "coreclr",
@@ -27,6 +28,17 @@
             "WARNING17": "*********************************************************************************",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/ChargePlan.ConsoleApp/bin/Debug/net7.0/ChargePlan.ConsoleApp.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": ".NET Core Launch (XUnit)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/ChargePlan.Service.UnitTests/bin/Debug/net7.0/ChargePlan.Service.UnitTests.dll",
             "args": [],
             "cwd": "${workspaceFolder}",
             "console": "internalConsole",

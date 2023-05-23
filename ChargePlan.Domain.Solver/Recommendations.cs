@@ -8,7 +8,7 @@ public record Recommendations(
 public record ShiftableDemandRecommendation(
     string Name,
     string Type,
-    DateTime StartAt,
+    DateTimeOffset StartAt,
     decimal AddedCost,
     string DemandHash
 );

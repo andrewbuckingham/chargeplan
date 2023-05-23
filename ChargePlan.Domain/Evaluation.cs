@@ -12,13 +12,13 @@ public record Evaluation(float? ChargeRateLimit, decimal TotalCost, List<Integra
 /// Amount of overcharge energy, up until a period of undercharge.
 /// </summary>
 public record OverchargePeriod(
-    DateTime From,
-    DateTime To,
+    DateTimeOffset From,
+    DateTimeOffset To,
     float OverchargeEnergy
 );
 
 public record UnderchargePeriod(
-    DateTime From,
-    DateTime To,
+    DateTimeOffset From,
+    DateTimeOffset To,
     float UnderchargeEnergy
 );
