@@ -78,7 +78,7 @@ public record Algorithm(
                     f.Demand,
                     f.Evaluation,
                     ActualAddedCost: f.Evaluation.TotalCost - evaluation.TotalCost,
-                    EffectiveAddedCost: f.ShiftableDemand.EffectiveCost(f.Evaluation.TotalCost - evaluation.TotalCost)
+                    EffectiveAddedCost: f.ShiftableDemand.EffectiveCost(fromDate, f.StartAt, f.Evaluation.TotalCost - evaluation.TotalCost)
                 )))
                 .OrderBy(f => f.EffectiveAddedCost) // Order by the lowest total cost trial (applying threshold)...
                 .ThenBy(f => f.StartAt);

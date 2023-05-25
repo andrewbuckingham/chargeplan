@@ -17,7 +17,8 @@ public class ShiftableDemand : IShiftableDemandProfile
     public (DateTime From, DateTime To)? WithinDayRange { get; set; } = null;
     public TimeSpan? DontRepeatWithin { get; set; } = null;
 
-    public decimal? StartWheneverCheaperThan { get; set; } = 0.01M;
+    public decimal? StartWheneverCheaperThan { get; set; } = 0.00M;
+    public decimal? NextDayMustSaveAtLeast { get; set; } = 0.04M;
 
     public IDemandProfile AsDemandProfile(DateTime startingAt)
         => new DemandProfile()
