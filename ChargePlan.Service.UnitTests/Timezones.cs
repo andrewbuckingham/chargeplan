@@ -1,9 +1,4 @@
 using System.Diagnostics;
-using ChargePlan.Builder;
-using ChargePlan.Builder.Templates;
-using ChargePlan.Domain;
-using ChargePlan.Domain.Plant;
-using MathNet.Numerics.Interpolation;
 
 namespace ChargePlan.Service.UnitTests;
 
