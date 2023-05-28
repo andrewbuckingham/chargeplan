@@ -4,7 +4,7 @@ public class Demands
 {
     private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
-        Name: "Zero Demand",
+        Name: "Constant Demand",
         Values: new()
         {
             new (TimeOnly.MinValue, kw),

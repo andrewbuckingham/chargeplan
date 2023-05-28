@@ -6,6 +6,8 @@ namespace ChargePlan.Domain;
 
 public record Calculator(IPlant PlantTemplate)
 {
+    private static TimeSpan TimeStep = TimeSpan.FromMinutes(15);
+
     /// <summary>
     /// Calculate the end position in battery charge, and accumulated costs,
     /// for a test set of parameters.
@@ -33,7 +35,7 @@ public record Calculator(IPlant PlantTemplate)
     {
         IPlant plant = PlantTemplate with { State = initialState };
 
-        TimeSpan step = TimeSpan.FromMinutes(15);
+        TimeSpan step = TimeStep;
 
         DateTimeOffset startAt = (explicitStartDate ?? new DateTimeOffset(baseloadDemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
         DateTimeOffset endAt = baseloadDemandProfile.Until - step;
@@ -53,7 +55,7 @@ public record Calculator(IPlant PlantTemplate)
         float overcharge = 0.0f;
         float undercharge = 0.0f;
         float cost = 0.0f;
- 
+
         DateTimeOffset now = startAt.ToClosestHour();
 
         List<IntegrationStep> debugResults = new();
@@ -97,13 +99,14 @@ public record Calculator(IPlant PlantTemplate)
             overchargeAndUnderchargePeriods.Item2);
     }
 
-    private (List<OverchargePeriod>, List<UnderchargePeriod>) CalculateOverchargePeriods(IEnumerable<IntegrationStep> integrationSteps)
+    private enum Direction { Indeterminate = 0, Undercharge, Overcharge };
+    private record Accumulator(float Amount, Direction Direction, DateTimeOffset Since);
+
+    private (List<OverchargePeriod> Overcharge, List<UnderchargePeriod> Undercharge) CalculateOverchargePeriods(IEnumerable<IntegrationStep> integrationSteps)
     {
         List<OverchargePeriod> overchargePeriods = new();
         List<UnderchargePeriod> underchargePeriods = new();
-
-        var overchargeAccumulator = (Overcharge: 0.0f, Since: (DateTimeOffset?)null);
-        var underchargeAccumulator = (Undercharge: 0.0f, Since: (DateTimeOffset?)null);
+        Accumulator accumulator = new(0.0f, Direction.Indeterminate, integrationSteps.First().DateTime - TimeStep);
 
         var sourceData = integrationSteps
             .Zip(integrationSteps.Skip(1).Append(null))
@@ -115,46 +118,32 @@ public record Calculator(IPlant PlantTemplate)
             ));
 
         foreach (var pair in sourceData)
-        {
-            // 1. Overcharge logic.
-            if (pair.HasUnderchargeOccurred == true || pair.HasOverchargeOccurred == false || pair.Second == null)
+        {            
+            if (pair.HasOverchargeOccurred) accumulator = accumulator with
             {
-                // Undercharge occurred, or no longer in overcharge, or at end of list.
-                // Draw a line under any overcharge period accumulated so far.
-
-                if (overchargeAccumulator.Since != null)
-                {
-                    overchargePeriods.Add(new OverchargePeriod(
-                        overchargeAccumulator.Since ?? throw new InvalidOperationException(),
-                        pair.First.DateTime,
-                        overchargeAccumulator.Overcharge));
-
-                    overchargeAccumulator = (0.0f, null);
-                }                
+                Direction = Direction.Overcharge,
+                Amount = accumulator.Amount + ((pair.Second?.CumulativeOvercharge ?? pair.First.CumulativeOvercharge) - pair.First.CumulativeOvercharge)
+            };
+            else if (pair.HasUnderchargeOccurred) accumulator = accumulator with
+            {
+                Direction = Direction.Undercharge,
+                Amount = accumulator.Amount + ((pair.Second?.CumulativeUndercharge ?? pair.First.CumulativeUndercharge) - pair.First.CumulativeUndercharge)
+            };
+            else if (accumulator.Direction == Direction.Overcharge)
+            {
+                // No longer overcharge, but we were previously in a period of such. Add and clear down.
+                overchargePeriods.Add(new OverchargePeriod(accumulator.Since, pair.First.DateTime - TimeStep, accumulator.Amount));
+                accumulator = new(0.0f, Direction.Indeterminate, pair.First.DateTime - TimeStep);
             }
-            else if (pair.HasOverchargeOccurred)
+            else if (accumulator.Direction == Direction.Undercharge)
             {
-                // If there's any net overcharge in this period, then count it towards the OverchargePeriod.
-
-                overchargeAccumulator = (overchargeAccumulator.Overcharge + (pair.Second.CumulativeOvercharge - pair.First.CumulativeOvercharge), overchargeAccumulator.Since ?? pair.First.DateTime);
+                // No longer overcharge, but we were previously in a period of such. Add and clear down.
+                underchargePeriods.Add(new UnderchargePeriod(accumulator.Since, pair.First.DateTime - TimeStep, accumulator.Amount));
+                accumulator = new(0.0f, Direction.Indeterminate, pair.First.DateTime - TimeStep);
             }
-
-            // 2. Undercharge logic.
-            if (pair.HasOverchargeOccurred == true || pair.HasUnderchargeOccurred == false || pair.Second == null)
+            else
             {
-                if (underchargeAccumulator.Since != null)
-                {
-                    underchargePeriods.Add(new UnderchargePeriod(
-                        underchargeAccumulator.Since ?? throw new InvalidOperationException(),
-                        pair.First.DateTime,
-                        underchargeAccumulator.Undercharge));
-
-                    underchargeAccumulator = (0.0f, null);
-                }                
-            }
-            else if (pair.HasUnderchargeOccurred)
-            {
-                underchargeAccumulator = (underchargeAccumulator.Undercharge + (pair.Second.CumulativeUndercharge - pair.First.CumulativeUndercharge), underchargeAccumulator.Since ?? pair.First.DateTime);
+                accumulator = accumulator with { Direction = Direction.Indeterminate };
             }
         }
 

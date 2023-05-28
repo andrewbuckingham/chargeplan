@@ -6,7 +6,7 @@ public class Plant
     private static IPlant LimitedCapacityBattery(float capacity) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, 100, 0);
     private static IPlant LimitedDischargeBattery(float throughput) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
-        Name: "Zero Demand",
+        Name: "Constant Demand",
         Values: new()
         {
             new (TimeOnly.MinValue, kw),

@@ -1,10 +1,3 @@
-using System.Diagnostics;
-using ChargePlan.Builder;
-using ChargePlan.Builder.Templates;
-using ChargePlan.Domain;
-using ChargePlan.Domain.Plant;
-using MathNet.Numerics.Interpolation;
-
 namespace ChargePlan.Service.UnitTests;
 
 public class UnitTest1
@@ -46,23 +39,8 @@ public class UnitTest1
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.0M, result.Evaluation.TotalCost);
+        Assert.Equal(decimal.Zero, result.Evaluation.TotalCost);
     }
-
-    // [Theory]
-    // [InlineData(
-    //     new float[] { 0.3f, 1.0f, 0.3f },
-    //     new float[] { })]
-    // public void Test1()
-    // {
-    //     var calc = new Calculator();
-
-    //     DateTime datum = DateTime.Today;
-
-    //     StorageProfile storageProfile = new() { CapacityKilowatts = 4.8f };
-
-    //     DemandProfile demandProfile = new();
-    // }
 
     // [Fact]
     // public void ShiftableDemand_ProducesInterpolation()
