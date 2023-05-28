@@ -27,7 +27,7 @@ public class Overcharge
     [Fact]
     public void OverchargeNow_DueToCapacity_IsDetected()
     {
-        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(1.0f))
+        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(1.0f), Interpolations.Step())
             .WithInitialBatteryEnergy(1.0f)
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
@@ -45,7 +45,7 @@ public class Overcharge
     [Fact]
     public void OverchargeNow_DueToImminentCapacity_IsDetected()
     {
-        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(2.0f))
+        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(2.0f), Interpolations.Step())
             .WithInitialBatteryEnergy(0.0f)
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
@@ -58,5 +58,41 @@ public class Overcharge
         Assert.Equal(1, result.Evaluation.OverchargePeriods.Count);
         Assert.Equal(TimeSpan.Zero, result.Evaluation.OverchargePeriods.Single().From.TimeOfDay);
         Assert.Equal(TimeSpan.FromHours(4), result.Evaluation.OverchargePeriods.Single().To.TimeOfDay);
+    }
+
+    [Fact]
+    public void OverchargeLater_DueToCapacity_IsDetected()
+    {
+        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(2.0f), Interpolations.Step())
+            .WithInitialBatteryEnergy(0.0f)
+            .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f })
+            .ForDay(DateTime.Today.AddDays(1))
+            .AddPricing(ConstantPrice(0.0M))
+            .AddDemand(ConstantDemand(1.0f))
+            .Build();
+
+        var result = algorithm.DecideStrategy();
+
+        Assert.Equal(1, result.Evaluation.OverchargePeriods.Count);
+        Assert.Equal(TimeSpan.FromHours(1), result.Evaluation.OverchargePeriods.Single().From.TimeOfDay);
+        Assert.Equal(TimeSpan.FromHours(5), result.Evaluation.OverchargePeriods.Single().To.TimeOfDay);
+    }
+
+    [Fact]
+    public void OverchargeNow_WithBatteryNowBufferingSolarLater_IsDetected()
+    {
+        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(2.0f), Interpolations.Step())
+            .WithInitialBatteryEnergy(1.0f)
+            .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f })
+            .ForDay(DateTime.Today.AddDays(1))
+            .AddPricing(ConstantPrice(0.0M))
+            .AddDemand(ConstantDemand(1.0f))
+            .Build();
+
+        var result = algorithm.DecideStrategy();
+
+        Assert.Equal(1, result.Evaluation.OverchargePeriods.Count);
+        Assert.Equal(TimeSpan.Zero, result.Evaluation.OverchargePeriods.Single().From.TimeOfDay);
+        Assert.Equal(TimeSpan.FromHours(5), result.Evaluation.OverchargePeriods.Single().To.TimeOfDay);
     }
 }

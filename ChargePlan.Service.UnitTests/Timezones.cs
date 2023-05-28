@@ -27,7 +27,7 @@ public class Timezones
     [Fact]
     public void Bst_ShiftableDemandNow_StartsDemand()
     {
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
             .WithInitialBatteryEnergy(1000.0f)
             .WithExplicitStartDate(DateTime.Today.AddDays(1))
             .ForDay(DateTime.Today.AddDays(1))

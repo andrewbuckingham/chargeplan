@@ -29,7 +29,7 @@ public class UnitTest1
 
         var hugeBattery = new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 100, 0);
 
-        var algorithm = new AlgorithmBuilder(hugeBattery)
+        var algorithm = new AlgorithmBuilder(hugeBattery, Interpolations.Step())
             .WithInitialBatteryEnergy(1000.0f)
             .WithExplicitStartDate(DateTime.Today.AddDays(1))
             .ForDay(DateTime.Today.AddDays(1))

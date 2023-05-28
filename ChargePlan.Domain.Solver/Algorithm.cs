@@ -1,7 +1,3 @@
-using System.Diagnostics;
-using System.Linq;
-using MathNet.Numerics.Interpolation;
-
 namespace ChargePlan.Domain.Solver;
 
 public record Algorithm(
@@ -11,6 +7,7 @@ public record Algorithm(
     IChargeProfile ChargeProfile,
     IPricingProfile PricingProfile,
     IExportProfile ExportProfile,
+    IInterpolationFactory interpolationFactory,
     PlantState InitialState,
     IEnumerable<IShiftableDemandProfile> ShiftableDemands,
     HashSet<string> CompletedDemands,
@@ -36,7 +33,7 @@ public record Algorithm(
             .ThenBy(demand => demand.Priority)
             .ThenByDescending(demand => demand
                 .AsDemandProfile(fromDate.LocalDateTime)
-                .AsSpline(StepInterpolation.Interpolate)
+                .AsSpline(interpolationFactory.InterpolateShiftableDemand)
                 .Integrate(fromDate.AsTotalHours(), toDate.AsTotalHours()))
             .ToArray();
 
@@ -128,6 +125,7 @@ public record Algorithm(
                 ChargeProfile,
                 PricingProfile,
                 ExportProfile,
+                interpolationFactory,
                 InitialState,
                 chargeLimit,
                 ExplicitStartDate

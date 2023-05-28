@@ -4,4 +4,3 @@ global using ChargePlan.Builder;
 global using ChargePlan.Builder.Templates;
 global using ChargePlan.Domain;
 global using ChargePlan.Domain.Plant;
-global using MathNet.Numerics.Interpolation;

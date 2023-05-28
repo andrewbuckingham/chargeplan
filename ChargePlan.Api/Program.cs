@@ -54,7 +54,8 @@ var host = new HostBuilder()
             .AddScoped<UserProfileService>()
             .AddScoped<AdhocRecommendationService>()
             .AddSingleton<IDirectNormalIrradianceProvider, DniProvider>()
-            .AddSingleton<IPlantFactory, PlantFactory>();
+            .AddSingleton<IPlantFactory, PlantFactory>()
+            .AddSingleton<IInterpolationFactory, ChargePlan.Domain.Splines.InterpolationFactory>();
 
         // Repos
         services

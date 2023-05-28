@@ -31,6 +31,7 @@
     <ProjectReference Include="..\ChargePlan.Service\ChargePlan.Service.csproj" />
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
     <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Splines\ChargePlan.Domain.Splines.csproj" />
     <ProjectReference Include="..\ChargePlan.Weather.OpenMeteo\ChargePlan.Weather.OpenMeteo.csproj" />
     <ProjectReference Include="..\ChargePlan.Infrastructure.AzureBlob\ChargePlan.Infrastructure.AzureBlob.csproj" />
   </ItemGroup>

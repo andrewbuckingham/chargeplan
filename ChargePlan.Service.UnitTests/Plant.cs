@@ -31,7 +31,7 @@ public class Plant
     [Fact]
     public void HalfThroughput_UnlimitedPv_HalfCost()
     {
-        var algorithm = new AlgorithmBuilder(LimitedThroughputPlant(0.5f))
+        var algorithm = new AlgorithmBuilder(LimitedThroughputPlant(0.5f), Interpolations.Step())
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 24).Select(f => 1.0f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -46,7 +46,7 @@ public class Plant
     [Fact]
     public void HalfDischarge_NoPv_HalfCost()
     {
-        var algorithm = new AlgorithmBuilder(LimitedDischargeBattery(0.5f))
+        var algorithm = new AlgorithmBuilder(LimitedDischargeBattery(0.5f), Interpolations.Step())
             .WithInitialBatteryEnergy(1000.0f)
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -61,7 +61,7 @@ public class Plant
     [Fact]
     public void BatterySaturated_HalfCapacity_HalfCost()
     {
-        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(6.0f))
+        var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(6.0f), Interpolations.Step())
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 12).Select(f => 1.0f).Append(0.0f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))

@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using ChargePlan.Domain.Exceptions;
-using MathNet.Numerics.Interpolation;
 
 namespace ChargePlan.Domain;
 
@@ -29,6 +28,7 @@ public record Calculator(IPlant PlantTemplate)
         IChargeProfile chargeProfile,
         IPricingProfile pricingProfile,
         IExportProfile exportProfile,
+        IInterpolationFactory interpolationFactory,
         PlantState initialState,
         float? chargePowerLimit = null,
         DateTimeOffset? explicitStartDate = null)
@@ -43,14 +43,14 @@ public record Calculator(IPlant PlantTemplate)
         if (startAt < baseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
 
         var demandSplines = Enumerable.Empty<(IInterpolation Interpolation, IDemandProfile Profile)>()
-            .Append((Interpolation: baseloadDemandProfile.AsSpline(CubicSpline.InterpolateAkima), Profile: baseloadDemandProfile))
-            .Concat(specificDemandProfiles.Select(demandProfile => (Interpolation: demandProfile.AsSpline(StepInterpolation.Interpolate), Profile: demandProfile)))
+            .Append((Interpolation: baseloadDemandProfile.AsSpline(interpolationFactory.InterpolateBaseload), Profile: baseloadDemandProfile))
+            .Concat(specificDemandProfiles.Select(demandProfile => (Interpolation: demandProfile.AsSpline(interpolationFactory.InterpolateShiftableDemand), Profile: demandProfile)))
             .ToArray();
 
-        var generationSpline = generationProfile.AsSplineOrZero(CubicSpline.InterpolateAkima);
-        var chargeSpline = chargeProfile.AsSplineOrZero(StepInterpolation.Interpolate);
-        var pricingSpline = pricingProfile.AsSpline(StepInterpolation.Interpolate);
-        var exportSpline = exportProfile.AsSplineOrZero(StepInterpolation.Interpolate);
+        var generationSpline = generationProfile.AsSplineOrZero(interpolationFactory.InterpolateGeneration);
+        var chargeSpline = chargeProfile.AsSplineOrZero(interpolationFactory.InterpolateCharging);
+        var pricingSpline = pricingProfile.AsSpline(interpolationFactory.InterpolatePricing);
+        var exportSpline = exportProfile.AsSplineOrZero(interpolationFactory.InterpolateExport);
 
         float overcharge = 0.0f;
         float undercharge = 0.0f;
@@ -132,14 +132,14 @@ public record Calculator(IPlant PlantTemplate)
             else if (accumulator.Direction == Direction.Overcharge)
             {
                 // No longer overcharge, but we were previously in a period of such. Add and clear down.
-                overchargePeriods.Add(new OverchargePeriod(accumulator.Since, pair.First.DateTime - TimeStep, accumulator.Amount));
-                accumulator = new(0.0f, Direction.Indeterminate, pair.First.DateTime - TimeStep);
+                overchargePeriods.Add(new OverchargePeriod(accumulator.Since, pair.First.DateTime, accumulator.Amount));
+                accumulator = new(0.0f, Direction.Indeterminate, pair.First.DateTime);
             }
             else if (accumulator.Direction == Direction.Undercharge)
             {
                 // No longer overcharge, but we were previously in a period of such. Add and clear down.
-                underchargePeriods.Add(new UnderchargePeriod(accumulator.Since, pair.First.DateTime - TimeStep, accumulator.Amount));
-                accumulator = new(0.0f, Direction.Indeterminate, pair.First.DateTime - TimeStep);
+                underchargePeriods.Add(new UnderchargePeriod(accumulator.Since, pair.First.DateTime, accumulator.Amount));
+                accumulator = new(0.0f, Direction.Indeterminate, pair.First.DateTime);
             }
             else
             {

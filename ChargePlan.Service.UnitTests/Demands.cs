@@ -25,7 +25,7 @@ public class Demands
     [Fact]
     public void BasicDemand_GridOnly_CorrectCost()
     {
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
             .AddDemand(ConstantDemand(1.0f))
@@ -39,7 +39,7 @@ public class Demands
     [Fact]
     public void BasicDemand_PerfectPvOnly_ZeroCost()
     {
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 24).Select(f => 1.0f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -54,7 +54,7 @@ public class Demands
     [Fact]
     public void BasicDemand_HalfPvHalfGrid_CorrectCost()
     {
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 24).Select(f => 0.5f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -69,7 +69,7 @@ public class Demands
     [Fact]
     public void BasicDemand_BatteryOnly_ZeroCost()
     {
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
             .WithInitialBatteryEnergy(24.0f)
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -84,7 +84,7 @@ public class Demands
     [Fact]
     public void BasicDemand_HalfBatteryHalfPv_ZeroCost()
     {
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
             .WithInitialBatteryEnergy(12.0f)
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 24).Select(f => 0.5f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
@@ -100,7 +100,7 @@ public class Demands
     [Fact]
     public void BasicDemand_QtrBatteryQtrPv_HalfCost()
     {
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant())
+        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
             .WithInitialBatteryEnergy(6.0f)
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 24).Select(f => 0.25f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))

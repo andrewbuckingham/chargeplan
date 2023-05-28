@@ -17,6 +17,7 @@ public class UserRecommendationService
 
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
     private readonly IPlantFactory _plantFactory;
+    private readonly IInterpolationFactory _interpolationFactory;
 
     private readonly IUserRepositories _repos;
 
@@ -25,6 +26,7 @@ public class UserRecommendationService
         ILogger<UserRecommendationService> logger,
         IDirectNormalIrradianceProvider dniWeatherProvider,
         IPlantFactory plantFactory,
+        IInterpolationFactory interpolationFactory,
         IUserRepositories repos)
     {
         _user = user ?? throw new ArgumentNullException(nameof(user));
@@ -32,6 +34,7 @@ public class UserRecommendationService
 
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
         _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
+        _interpolationFactory = interpolationFactory ?? throw new ArgumentNullException(nameof(interpolationFactory));
 
         _repos = repos ?? throw new ArgumentNullException(nameof(repos));
     }
@@ -58,7 +61,7 @@ public class UserRecommendationService
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync();
 
-        var mainBuilder = new AlgorithmBuilder(plant)
+        var mainBuilder = new AlgorithmBuilder(plant, _interpolationFactory)
             .WithInitialBatteryEnergy(parameters.InitialBatteryEnergy)
             .WithGeneration(generation)
             .ExcludingCompletedDemands(completedDemands.Entity);

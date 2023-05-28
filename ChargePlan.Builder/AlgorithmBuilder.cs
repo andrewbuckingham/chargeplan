@@ -10,13 +10,14 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         ChargeProfile ChargeProfile,
         PricingProfile PricingProfile,
         ExportProfile ExportProfile,
+        IInterpolationFactory InterpolationFactory,
         PlantState InitialState,
         ShiftableDemand[] ShiftableDemands,
         DemandCompleted[] CompletedDemands,
         DateTime? ExplicitStartDate)
 {
-    public AlgorithmBuilder(IPlant plantTemplate)
-        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), plantTemplate.State, new ShiftableDemand[] {}, new DemandCompleted[] {}, null) {}
+    public AlgorithmBuilder(IPlant plantTemplate, IInterpolationFactory interpolationFactory)
+        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), interpolationFactory, plantTemplate.State, new ShiftableDemand[] {}, new DemandCompleted[] {}, null) {}
 
     /// <summary>
     /// Set how much energy is in the battery storage at the start of the period.
@@ -69,5 +70,5 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
 }
