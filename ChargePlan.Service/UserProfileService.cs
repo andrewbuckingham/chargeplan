@@ -48,7 +48,7 @@ public class UserProfileService
                 Domain.ShiftableDemandPriority.Low,
                 (DateTime.Today, DateTime.Today.AddDays(f.Item2)),
                 null));
-        
+
         foreach (var demand in matchingDemands)
         {
             await PostCompletedDemandAsHash(new DemandCompleted(
@@ -90,6 +90,52 @@ public class UserProfileService
                     Entity = completedDemands.Entity
                         .Where(f => f.DateTime > DateTime.Now.AddMonths(-1).ToLocalTime()) // Prune old ones
                         .Append(demandCompleted)
+                        .ToArray()
+                };
+
+                completedDemands = await _completed.UpsertAsync(_user.Id, completedDemands);
+            }
+
+            return completedDemands.Entity;
+        });
+
+    public async Task<IEnumerable<DemandCompleted>> GetCompletedDemandsToday(string arg)
+        => await Policy
+            .Handle<ConcurrencyException>()
+            .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+            .ExecuteAsync(async () =>
+        {
+            var completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
+            var result = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Now.Date).ToArray();
+
+            return result;
+        });
+
+    public async Task DeleteCompletedDemandToday(string type)
+    => await Policy
+            .Handle<ConcurrencyException>()
+            .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+            .ExecuteAsync(async () =>
+        {
+            EtaggedEntity<DemandCompleted[]> completedDemands;
+
+            try
+            {
+                completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
+            }
+            catch (JsonException)
+            {
+                _logger.LogWarning("Demand completions JSON is invalid. Replacing with empty structure.");
+                completedDemands = new(new DemandCompleted[] { }, String.Empty);
+            }
+
+            if (completedDemands.Entity.Any(f => f.Name.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
+            {
+                completedDemands = completedDemands with
+                {
+                    Entity = completedDemands.Entity
+                        .Where(f => f.DateTime > DateTime.Now.AddMonths(-1).ToLocalTime()) // Prune old ones
+                        .Where(f => f.Name.Equals(type, StringComparison.InvariantCultureIgnoreCase) == false)
                         .ToArray()
                 };
 

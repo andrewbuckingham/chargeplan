@@ -6,7 +6,19 @@ public static class Sol
     /// In Radians.
     /// </summary>
     public static double DniToIrradiation(double dni, double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation)
-        => Math.Max(0.0, dni * Math.Cos(sunAzimith - planeAzimuth) * Math.Cos(sunElevation - planeElevation));
+    {
+        // Not much light if it's below the horizon...
+        if (sunElevation < 0) return 0.0;
+
+        double azimuth = sunAzimith - planeAzimuth;
+        double elevation = sunElevation - planeElevation;
+
+        // Likewise if it's past normal to the panel front face.
+        if (Math.Abs(azimuth) > Math.PI / 2) return 0.0;
+        if (Math.Abs(elevation) > Math.PI / 2) return 0.0;
+
+        return Math.Max(0.0, dni * Math.Cos(azimuth) * Math.Cos(elevation));
+    }
 
     public static (double Altitude, double Azimuth) SunPositionRads(DateTime dateTime, double latitudeDegrees, double longitudeDegrees)
     {

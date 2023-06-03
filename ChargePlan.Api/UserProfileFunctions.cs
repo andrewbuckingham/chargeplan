@@ -39,6 +39,14 @@ public class UserProfileFunctions
     public Task<HttpResponseData> PostCompletedDemandMatchFirstType([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/today/types")] HttpRequestData req)
         => req.CreateWithService<IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandMatchFirstType), _service.PostCompletedDemandMatchFirstType);
 
+    [Function(nameof(GetCompletedDemandsToday))]
+    public Task<HttpResponseData> GetCompletedDemandsToday([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/demands/completed/today/types")] HttpRequestData req)
+        => req.CreateWithService<IEnumerable<DemandCompleted>>(_logger, nameof(GetCompletedDemandsToday), _service.GetCompletedDemandsToday);
+
+    [Function(nameof(DeleteCompletedDemandToday))]
+    public Task<HttpResponseData> DeleteCompletedDemandToday([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/me/demands/completed/today/types/{type}")] HttpRequestData req, string type)
+        => req.DeleteWithService<IEnumerable<DemandCompleted>>(_logger, nameof(DeleteCompletedDemandToday), _service.DeleteCompletedDemandToday(type));
+
     // [Function(nameof(PostCompletedDemandAsHash))]
     // public async Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
     // {

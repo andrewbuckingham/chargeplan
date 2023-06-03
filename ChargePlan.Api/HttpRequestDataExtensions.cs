@@ -96,4 +96,25 @@ public static class HttpRequestDataExtensions
             throw;
         }
     }
+
+    public static async Task<HttpResponseData> DeleteWithService<TParam>(this HttpRequestData req, ILogger logger, string name, Task service)
+    {
+        logger.LogInformation(name);
+
+        try
+        {
+            await service;
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed calling service {name}");
+            var response = req.CreateResponse(HttpStatusCode.InternalServerError);
+            //return response;
+            throw;
+        }
+    }
+
 }

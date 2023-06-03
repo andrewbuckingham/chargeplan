@@ -4,6 +4,30 @@ public class UnitTest1
 {
     private static IPlant Plant() => new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 80, 5);
 
+    [Theory]
+    [InlineData(0, Math.PI / 2, 0, 0)]
+    [InlineData(0, Math.PI / 2, Math.PI, Math.PI / 2)]
+    public void SunAngle_ZeroAngleSubtendingPanelFrontFace_ProducesZero(double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation)
+    {
+        double irradiation = ChargePlan.Weather.Sol.DniToIrradiation(1.0, planeAzimuth, planeElevation, sunAzimith, sunElevation);
+        Assert.Equal(0.0, irradiation, 8);
+    }
+
+    [Fact]
+    public void SunAngle_AtDirectNormalToPanel_ProducesMaximum()
+    {
+        double irradiation = ChargePlan.Weather.Sol.DniToIrradiation(1.0, 0.0, Math.PI / 2, 0, Math.PI / 2);
+        Assert.Equal(1.0, irradiation, 8);
+    }
+
+    [Fact]
+    public void SunPosAzimuth_AtMidday_IsZeroForSouth()
+    {
+        var testDate = new DateTime(2023, 06, 23, 12, 00, 00, DateTimeKind.Utc);
+        var pos = ChargePlan.Weather.Sol.SunPositionRads(testDate, 45.0, 0.0);
+        Assert.Equal(0, pos.Azimuth, 1);
+    }
+
     [Fact]
     public void SmallDemand_WithEnoughBattery_IsSatisfied()
     {
