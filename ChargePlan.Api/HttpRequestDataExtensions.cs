@@ -13,7 +13,10 @@ public static class HttpRequestDataExtensions
 
         try
         {
-            T result = await service() ?? throw new InvalidStateException("Service returned null");
+            T? result = await service(); //?? throw new InvalidStateException("Service returned null");
+
+            if (result == null) return req.CreateResponse(HttpStatusCode.NotFound);
+            
             var response = req.CreateResponse(HttpStatusCode.OK);
             await response.WriteAsJsonAsync(result);
 
@@ -71,4 +74,47 @@ public static class HttpRequestDataExtensions
             throw;
         }
     }
+
+    public static async Task<HttpResponseData> CreateWithService<TResult>(this HttpRequestData req, ILogger logger, string name, Func<string, Task<TResult>> service)
+    {
+        logger.LogInformation(name);
+
+        try
+        {
+            string received = await req.ReadAsStringAsync() ?? throw new InvalidStateException("You must send some data");
+            TResult result = await service(received) ?? throw new InvalidStateException("Service returned null");
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(result);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed calling service {name}");
+            var response = req.CreateResponse(HttpStatusCode.InternalServerError);
+            //return response;
+            throw;
+        }
+    }
+
+    public static async Task<HttpResponseData> DeleteWithService<TParam>(this HttpRequestData req, ILogger logger, string name, Task service)
+    {
+        logger.LogInformation(name);
+
+        try
+        {
+            await service;
+            var response = req.CreateResponse(HttpStatusCode.OK);
+
+            return response;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, $"Failed calling service {name}");
+            var response = req.CreateResponse(HttpStatusCode.InternalServerError);
+            //return response;
+            throw;
+        }
+    }
+
 }

@@ -10,11 +10,13 @@ public class AdhocRecommendationService
 {
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
     private readonly IPlantFactory _plantFactory;
+    private readonly IInterpolationFactory _interpolationFactory;
 
-    public AdhocRecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlantFactory plantFactory)
+    public AdhocRecommendationService(IDirectNormalIrradianceProvider dniWeatherProvider, IPlantFactory plantFactory, IInterpolationFactory interpolationFactory)
     {
         _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
+        _interpolationFactory = interpolationFactory ?? throw new ArgumentNullException(nameof(interpolationFactory));
     }
 
     public async Task<Recommendations> CalculateRecommendations(ChargePlanAdhocParameters input)
@@ -30,7 +32,7 @@ public class AdhocRecommendationService
 
         IPlant plant = _plantFactory.CreatePlant(input.Plant.PlantType);
 
-        var mainBuilder = new AlgorithmBuilder(plant)
+        var mainBuilder = new AlgorithmBuilder(plant, _interpolationFactory)
             .WithInitialBatteryEnergy(input.InitialBatteryEnergy)
             .WithGeneration(generation);
 

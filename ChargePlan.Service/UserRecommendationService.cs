@@ -6,63 +6,49 @@ using ChargePlan.Service.Entities;
 using ChargePlan.Service.Facades;
 using ChargePlan.Service.Infrastructure;
 using ChargePlan.Weather;
+using Microsoft.Extensions.Logging;
 
 namespace ChargePlan.Service;
 
 public class UserRecommendationService
 {
     private readonly UserPermissionsFacade _user;
+    private readonly ILogger _logger;
 
     private readonly IDirectNormalIrradianceProvider _dniWeatherProvider;
     private readonly IPlantFactory _plantFactory;
+    private readonly IInterpolationFactory _interpolationFactory;
 
-    private readonly IUserPlantRepository _plant;
-    private readonly IUserDemandRepository _demand;
-    private readonly IUserShiftableDemandRepository _shiftable;
-    private readonly IUserChargeRepository _charge;
-    private readonly IUserPricingRepository _pricing;
-    private readonly IUserExportRepository _export;
-    private readonly IUserDayTemplatesRepository _days;
-    private readonly IUserDemandCompletedRepository _completedDemands;
+    private readonly IUserRepositories _repos;
 
     public UserRecommendationService(
         UserPermissionsFacade user,
+        ILogger<UserRecommendationService> logger,
         IDirectNormalIrradianceProvider dniWeatherProvider,
         IPlantFactory plantFactory,
-        IUserPlantRepository plant,
-        IUserDemandRepository demand,
-        IUserShiftableDemandRepository shiftable,
-        IUserChargeRepository charge,
-        IUserPricingRepository pricing,
-        IUserExportRepository export,
-        IUserDayTemplatesRepository days,
-        IUserDemandCompletedRepository completedDemands)
+        IInterpolationFactory interpolationFactory,
+        IUserRepositories repos)
     {
-        _user = user;
+        _user = user ?? throw new ArgumentNullException(nameof(user));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         _dniWeatherProvider = dniWeatherProvider ?? throw new ArgumentNullException(nameof(dniWeatherProvider));
         _plantFactory = plantFactory ?? throw new ArgumentNullException(nameof(plantFactory));
+        _interpolationFactory = interpolationFactory ?? throw new ArgumentNullException(nameof(interpolationFactory));
 
-        _plant = plant;
-        _demand = demand;
-        _shiftable = shiftable;
-        _charge = charge;
-        _pricing = pricing;
-        _export = export;
-        _days = days;
-
-        _completedDemands = completedDemands;
+        _repos = repos ?? throw new ArgumentNullException(nameof(repos));
     }
+
     public async Task<Recommendations> CalculateRecommendations(UserRecommendationParameters parameters)
     {
-        var plantSpec = await _plant.GetAsync(_user.Id) ?? new(new());
-        var input = await _days.GetAsync(_user.Id) ?? throw new InvalidStateException("Must defined day templates first");
-        var allShiftable = await _shiftable.GetAsyncOrEmpty(_user.Id);
-        var allDemands = await _demand.GetAsyncOrEmpty(_user.Id);
-        var allCharge = await _charge.GetAsyncOrEmpty(_user.Id);
-        var allPricing = await _pricing.GetAsyncOrEmpty(_user.Id);
-        var allExport = await _export.GetAsyncOrEmpty(_user.Id);
-        var completedDemands = await _completedDemands.GetAsyncOrEmpty(_user.Id);
+        var plantSpec = await _repos.Plant.GetAsync(_user.Id) ?? new(new());
+        var input = await _repos.Days.GetAsync(_user.Id) ?? throw new InvalidStateException("Must defined day templates first");
+        var allShiftable = await _repos.Shiftable.GetAsyncOrEmpty(_user.Id);
+        var allDemands = await _repos.Demand.GetAsyncOrEmpty(_user.Id);
+        var allCharge = await _repos.Charge.GetAsyncOrEmpty(_user.Id);
+        var allPricing = await _repos.Pricing.GetAsyncOrEmpty(_user.Id);
+        var allExport = await _repos.Export.GetAsyncOrEmpty(_user.Id);
+        var completedDemands = await _repos.CompletedDemands.GetAsyncOrEmpty(_user.Id);
 
         IPlant plant = _plantFactory.CreatePlant(plantSpec.PlantType);
 
@@ -75,10 +61,10 @@ public class UserRecommendationService
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync();
 
-        var mainBuilder = new AlgorithmBuilder(plant)
+        var mainBuilder = new AlgorithmBuilder(plant, _interpolationFactory)
             .WithInitialBatteryEnergy(parameters.InitialBatteryEnergy)
             .WithGeneration(generation)
-            .ExcludingCompletedDemands(completedDemands);
+            .ExcludingCompletedDemands(completedDemands.Entity);
 
         foreach (var shiftable in input.ShiftableDemandsAnyDay.Where(f => f.Disabled == false))
         {
@@ -126,6 +112,19 @@ public class UserRecommendationService
 
         var algorithm = dayBuilder.Build();
         var recommendations = algorithm.DecideStrategy();
+
+        try
+        {
+            await _repos.Recommendations.UpsertAsync(_user.Id, recommendations);
+        }
+        catch (InfrastructureException iex)
+        {
+            _logger.LogError($"Couldn't write latest recommendation for {_user.Id}", iex);
+        }
+
         return recommendations;
     }
+
+    public Task<Recommendations?> GetLastRecommendation()
+        => _repos.Recommendations.GetAsync(_user.Id);
 }

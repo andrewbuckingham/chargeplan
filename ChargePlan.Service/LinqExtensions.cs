@@ -15,4 +15,7 @@ public static class LinqExtensions
 
         return items.Single(predicate);
     }
+
+    public static IEnumerable<Tuple<T1, T2>> CrossJoin<T1, T2>(this IEnumerable<T1> sequence1, IEnumerable<T2> sequence2)
+        => sequence1.SelectMany(t1 => sequence2.Select(t2 => Tuple.Create(t1, t2)));
 }

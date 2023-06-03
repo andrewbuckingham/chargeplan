@@ -19,7 +19,7 @@ public record WeatherBuilder(Func<float, Task<IGenerationProfile>> FetchGenerati
                     var sun = Sol.SunPositionRads(f.DateTime, Latitude, Longitude);
                     double irradiatedPower = Sol.DniToIrradiation(f.PowerWatts, PanelAzimuth.ToRads(), PanelElevation.ToRads(), sun.Azimuth.ToRads(), sun.Altitude.ToRads());
 
-                    return new GenerationValue(f.DateTime, irradianceScalar * (float)irradiatedPower / 1000.0f);
+                    return new GenerationValue(f.DateTime.ToLocalTime(), irradianceScalar * (float)irradiatedPower / 1000.0f);
                 })
             }
         };

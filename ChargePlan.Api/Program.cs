@@ -35,6 +35,10 @@ var host = new HostBuilder()
             .AddAzureClients(configureClients =>
             {
                 configureClients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"));
+
+                configureClients
+                    .AddQueueServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"))
+                    .ConfigureOptions(c => c.MessageEncoding = Azure.Storage.Queues.QueueMessageEncoding.Base64);
             });
 
         // Auth
@@ -50,10 +54,12 @@ var host = new HostBuilder()
             .AddScoped<UserProfileService>()
             .AddScoped<AdhocRecommendationService>()
             .AddSingleton<IDirectNormalIrradianceProvider, DniProvider>()
-            .AddSingleton<IPlantFactory, PlantFactory>();
+            .AddSingleton<IPlantFactory, PlantFactory>()
+            .AddSingleton<IInterpolationFactory, ChargePlan.Domain.Splines.InterpolationFactory>();
 
         // Repos
         services
+            .AddSingleton<IUserRepositories, UserRepositories>()
             .AddSingleton<IUserAuthorisationRepository, UserAuthorisationRepository>()
             .AddSingleton<IUserPlantRepository, UserPlantRepository>()
             .AddSingleton<IUserChargeRepository, UserChargeRepository>()
@@ -62,7 +68,8 @@ var host = new HostBuilder()
             .AddSingleton<IUserPricingRepository, UserPricingRepository>()
             .AddSingleton<IUserShiftableDemandRepository, UserShiftableDemandRepository>()
             .AddSingleton<IUserDayTemplatesRepository, UserDayTemplatesRepository>()
-            .AddSingleton<IUserDemandCompletedRepository, UserDemandCompletedRepository>();
+            .AddSingleton<IUserDemandCompletedRepository, UserDemandCompletedRepository>()
+            .AddSingleton<IUserRecommendationsRepository, UserRecommendationsRepository>();
     })
     .Build();
 

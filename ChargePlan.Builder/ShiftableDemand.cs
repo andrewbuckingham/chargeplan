@@ -17,8 +17,16 @@ public class ShiftableDemand : IShiftableDemandProfile
     public (DateTime From, DateTime To)? WithinDayRange { get; set; } = null;
     public TimeSpan? DontRepeatWithin { get; set; } = null;
 
+    public decimal? StartWheneverCheaperThan { get; set; } = 0.00M;
+    public decimal? NextDayMustSaveAtLeast { get; set; } = 0.04M;
+
     public IDemandProfile AsDemandProfile(DateTime startingAt)
-        => new DemandProfile() { Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList() };
+        => new DemandProfile()
+        {
+            Values = this.Values.Select(f => f.AsDemandValue(startingAt)).ToList(),
+            Name = Name,
+            Type = Type
+        };
 }
 
 public record ShiftableDemandValue(TimeSpan RelativeTime, float Power)

@@ -12,8 +12,9 @@ RUN cd /src/dotnet-function-app && \
 # FROM mcr.microsoft.com/azure-functions/dotnet-isolated:3.0-dotnet-isolated5.0-appservice
 FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated7.0
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
+    TZ=Europe/London \
     AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
-    AzureWebJobsStorage=UseDevelopmentStorage=true
+    AzureWebJobsStorage=DefaultEndpointsProtocol=https;AccountName=sachargeplanazfn;AccountKey=OBdURgo8e49us0QIm0gmOH88tG9wg67bnvBY9j9PvIb+gzB7uYjo5/3eLfFRaxh7MHWJu6oFvHGJ+ASt6ZQfHw==;EndpointSuffix=core.windows.net
 
 COPY --from=installer-env ["/home/site/wwwroot", "/home/site/wwwroot"]
 EXPOSE 80

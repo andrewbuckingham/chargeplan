@@ -13,14 +13,16 @@ public record PowerAtAbsoluteTimes(List<(TimeOnly TimeOfDay, float Power)> Value
     public ChargeProfile AsChargeProfile(DateTime startAt) => new()
     {
         Values = Values
-            .Select(f => new ChargeValue(startAt.Date + f.TimeOfDay.ToTimeSpan(), f.Power))
+            .Select(f => new ChargeValue(startAt.Date.ToLocalTime() + f.TimeOfDay.ToTimeSpan(), f.Power))
             .ToList()
     };
 
     public DemandProfile AsDemandProfile(DateTime startAt) => new()
     {
+        Name = "Baseload",
+        Type = "Baseload",
         Values = Values
-            .Select(f => new DemandValue(startAt.Date + f.TimeOfDay.ToTimeSpan(), f.Power))
+            .Select(f => new DemandValue(startAt.Date.ToLocalTime() + f.TimeOfDay.ToTimeSpan(), f.Power))
             .ToList()
     };
 }

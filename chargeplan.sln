@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Api", "ChargePla
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Infrastructure.AzureBlob", "ChargePlan.Infrastructure.AzureBlob\ChargePlan.Infrastructure.AzureBlob.csproj", "{536C5DB0-8442-45FA-BF92-440F7FB5B924}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChargePlan.Domain.Splines", "ChargePlan.Domain.Splines\ChargePlan.Domain.Splines.csproj", "{2193073B-A4C0-4D42-B9E0-3DE15D19FEC6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -78,5 +80,9 @@ Global
 		{536C5DB0-8442-45FA-BF92-440F7FB5B924}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{536C5DB0-8442-45FA-BF92-440F7FB5B924}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{536C5DB0-8442-45FA-BF92-440F7FB5B924}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2193073B-A4C0-4D42-B9E0-3DE15D19FEC6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2193073B-A4C0-4D42-B9E0-3DE15D19FEC6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2193073B-A4C0-4D42-B9E0-3DE15D19FEC6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2193073B-A4C0-4D42-B9E0-3DE15D19FEC6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

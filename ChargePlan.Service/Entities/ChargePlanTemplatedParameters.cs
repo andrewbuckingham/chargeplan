@@ -25,7 +25,7 @@ public record ShiftableDemandNameAndPriority(
 
 public record ShiftableDemandNameAndPriorityOverDays(
     string Name,
-    int OverNumberOfDays,
+    int OverNumberOfDays = 1,
     ShiftableDemandPriority Priority = ShiftableDemandPriority.High,
     TimeSpan? DontRepeatWithin = null,
     bool Disabled = false

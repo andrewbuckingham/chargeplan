@@ -4,6 +4,7 @@
     <ProjectReference Include="..\ChargePlan.Domain\ChargePlan.Domain.csproj" />
     <ProjectReference Include="..\ChargePlan.Domain.Solver\ChargePlan.Domain.Solver.csproj" />
     <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain.Splines\ChargePlan.Domain.Splines.csproj" />
     <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
     <ProjectReference Include="..\ChargePlan.Weather\ChargePlan.Weather.csproj" />
     <ProjectReference Include="..\ChargePlan.Weather.OpenMeteo\ChargePlan.Weather.OpenMeteo.csproj" />

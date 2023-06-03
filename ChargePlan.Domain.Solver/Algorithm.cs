@@ -1,7 +1,3 @@
-using System.Diagnostics;
-using System.Linq;
-using MathNet.Numerics.Interpolation;
-
 namespace ChargePlan.Domain.Solver;
 
 public record Algorithm(
@@ -11,10 +7,11 @@ public record Algorithm(
     IChargeProfile ChargeProfile,
     IPricingProfile PricingProfile,
     IExportProfile ExportProfile,
+    IInterpolationFactory interpolationFactory,
     PlantState InitialState,
     IEnumerable<IShiftableDemandProfile> ShiftableDemands,
     HashSet<string> CompletedDemands,
-    DateTime? ExplicitStartDate)
+    DateTimeOffset? ExplicitStartDate)
 {
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
@@ -24,8 +21,8 @@ public record Algorithm(
         // First decision is based just on the main demand profile.
         Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>());
 
-        DateTime fromDate = (ExplicitStartDate ?? DemandProfile.Starting.OrAtEarliest(DateTime.Now)).ToClosestHour();
-        DateTime toDate = DemandProfile.Until;
+        DateTimeOffset fromDate = (ExplicitStartDate ?? new DateTimeOffset(DemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
+        DateTimeOffset toDate = DemandProfile.Until;
 
         // Iterate through options for shiftable demand.
         // For each day, fit the highest priority and largest demand in first, and then iteratively the smaller ones.
@@ -35,8 +32,8 @@ public record Algorithm(
             .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MaxValue)
             .ThenBy(demand => demand.Priority)
             .ThenByDescending(demand => demand
-                .AsDemandProfile(fromDate)
-                .AsSpline(StepInterpolation.Interpolate)
+                .AsDemandProfile(fromDate.LocalDateTime)
+                .AsSpline(interpolationFactory.InterpolateShiftableDemand)
                 .Integrate(fromDate.AsTotalHours(), toDate.AsTotalHours()))
             .ToArray();
 
@@ -46,7 +43,7 @@ public record Algorithm(
             (
                 ShiftableDemand: shiftableDemand,
                 Trials: shiftByTimespans
-                    .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.Add(ts)))) // Apply the profile at each trial hour
+                    .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.LocalDateTime.Add(ts)))) // Apply the profile at each trial hour
                     .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
                     .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
                     .Where(f => f.Demand.Starting.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
@@ -56,7 +53,7 @@ public record Algorithm(
             .Where(f => f.Trials.Any()) // Exclude demands that have missed this window totally i.e. likely have already happened
             .ToArray();
 
-        var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTime StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
+        var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTimeOffset StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
         foreach (var s in shiftableDemandsAsTrialProfiles)
         {
             // Take the previously-decided shiftable demands...
@@ -64,16 +61,26 @@ public record Algorithm(
 
             // ...and append this shiftable demand to the end of that list, for each of its trials.
             // Ignore trials which are too soon.
-            var optimal = s.Trials
-                .Where(f => !completedShiftableDemandOptimisations.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt, f.StartAt)))
+            var trialResults = s.Trials
+                .Where(f => !completedShiftableDemandOptimisations.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt.LocalDateTime, f.StartAt.LocalDateTime)))
                 .Select(t => ((
                     s.ShiftableDemand,
                     t.StartAt,
                     t.Demand,
-                    Evaluation: IterateChargeRates(completedDemands.Concat(new[] { t.Demand })))))
+                    Evaluation: IterateChargeRates(completedDemands.Append(t.Demand)))))
                 .ToArray()
-                .OrderBy(f => f.Evaluation.TotalCost) // Order by the lowest total cost trial...
-                .FirstOrDefault(); // ...and declare that as "optimal"
+                .Select(f => ((
+                    f.ShiftableDemand,
+                    f.StartAt,
+                    f.Demand,
+                    f.Evaluation,
+                    ActualAddedCost: f.Evaluation.TotalCost - evaluation.TotalCost,
+                    EffectiveAddedCost: f.ShiftableDemand.EffectiveCost(fromDate, f.StartAt, f.Evaluation.TotalCost - evaluation.TotalCost)
+                )))
+                .OrderBy(f => f.EffectiveAddedCost) // Order by the lowest total cost trial (applying threshold)...
+                .ThenBy(f => f.StartAt);
+            
+            var optimal = trialResults.FirstOrDefault(); // ...and declare that as "optimal"
 
             if (optimal != default)
             {
@@ -89,11 +96,11 @@ public record Algorithm(
             evaluation,
             completedShiftableDemandOptimisations
                 .OrderBy(f => f.StartAt)
-                .Select(f => new ShiftableDemandRecommendation(f.ShiftableDemand, f.StartAt, f.AddedCost, f.ShiftableDemand.AsDemandHash()))
+                .Select(f => new ShiftableDemandRecommendation(f.ShiftableDemand.Name, f.ShiftableDemand.Type, f.StartAt, f.AddedCost, f.ShiftableDemand.AsDemandHash()))
         );
     }
 
-    private IEnumerable<TimeSpan> CreateTrialTimespans(DateTime fromDate, DateTime toDate)
+    private IEnumerable<TimeSpan> CreateTrialTimespans(DateTimeOffset fromDate, DateTimeOffset toDate)
     {
         TimeSpan ts = TimeSpan.Zero;
 
@@ -118,6 +125,7 @@ public record Algorithm(
                 ChargeProfile,
                 PricingProfile,
                 ExportProfile,
+                interpolationFactory,
                 InitialState,
                 chargeLimit,
                 ExplicitStartDate

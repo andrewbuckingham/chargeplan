@@ -132,7 +132,7 @@ var generation = await new WeatherBuilder(45.0, 0.0, 54.528728, -1.553050)
 
 Console.WriteLine(generation.ToString());
 
-var algorithm = new AlgorithmBuilder(new Hy36(0.8f * 5.2f, 2.8f, 2.8f, 3.6f))
+var algorithm = new AlgorithmBuilder(new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 80, 5), new ChargePlan.Domain.Splines.InterpolationFactory())
     .WithInitialBatteryEnergy(0.3f)
     .WithExplicitStartDate(DateTime.Today)
     .WithGeneration(generation)
@@ -153,7 +153,7 @@ var recommendations = algorithm.DecideStrategy();
 Debug.WriteLine(recommendations.Evaluation);
 foreach (var shiftableDemand in recommendations.ShiftableDemands)
 {
-    Debug.WriteLine($"{shiftableDemand.ShiftableDemand.Name}: {shiftableDemand.StartAt} (+£{shiftableDemand.AddedCost})");
+    Debug.WriteLine($"{shiftableDemand.Name}: {shiftableDemand.StartAt} (+£{shiftableDemand.AddedCost})");
 }
 
 foreach (var step in recommendations.Evaluation.DebugResults)

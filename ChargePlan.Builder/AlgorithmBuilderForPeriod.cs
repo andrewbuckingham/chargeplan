@@ -10,6 +10,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         ChargeProfile ChargeProfile,
         PricingProfile PricingProfile,
         ExportProfile ExportProfile,
+        IInterpolationFactory InterpolationFactory,
         PlantState InitialState,
         ShiftableDemand[] ShiftableDemands,
         DemandCompleted[] CompletedDemands,
@@ -28,7 +29,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     public AlgorithmBuilderForPeriod AddShiftableDemand(PowerAtRelativeTimes template, ShiftableDemandPriority priority = ShiftableDemandPriority.Essential, TimeSpan? dontRepeatWithin = null)
         => AddForEachDay((builder, day)
         => builder with { ShiftableDemands = builder.ShiftableDemands
-            .Append(template.AsShiftableDemand(priority, (day.Date, day.Date.AddDays(1)), dontRepeatWithin))
+            .Append(template.AsShiftableDemand(priority, (day.Date.ToLocalTime(), day.Date.AddDays(1).ToLocalTime()), dontRepeatWithin))
             .ToArray() }
             );
 
@@ -41,7 +42,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
 
     private AlgorithmBuilderForPeriod AddForEachDay(Func<AlgorithmBuilderForPeriod, DateTime, AlgorithmBuilderForPeriod> action)
     {
@@ -60,6 +61,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         ChargeProfile,
         PricingProfile,
         ExportProfile,
+        InterpolationFactory,
         InitialState,
         ShiftableDemands,
         CompletedDemands.Select(f => f.DemandHash).ToHashSet(),
