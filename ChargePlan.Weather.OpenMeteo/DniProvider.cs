@@ -7,7 +7,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
     private IHttpClientFactory _clientFactory;
 
     private const string _uri = "https://api.open-meteo.com/v1/forecast?latitude=54.528728&longitude=-1.553050&current_weather=true&hourly=direct_normal_irradiance&forecast_days=3";
-    private const float _fudgeFactor = 1.2f;
+    private const float _fudgeFactor = 1.8f;
 
     public DniProvider(IHttpClientFactory clientFactory)
     {

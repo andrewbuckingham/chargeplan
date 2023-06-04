@@ -125,7 +125,7 @@ var tea = new PowerAtRelativeTimes(new List<(TimeSpan RelativeTime, float Power)
     new (TimeSpan.FromHours(0.5), 0.0f)
 }, "Tea", new(17, 00), new(19, 00));
 
-var generation = await new WeatherBuilder(45.0, 0.0, 54.528728, -1.553050)
+var generation = await new WeatherBuilder(45.0f, 0.0f, 54.528728f, -1.553050f)
     .WithDniSource(new DniProvider(serviceProvider.GetRequiredService<IHttpClientFactory>()))
     .WithArrayArea(7 * 1.722f * 1.134f)
     .BuildAsync();

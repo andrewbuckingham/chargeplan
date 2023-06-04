@@ -28,7 +28,7 @@ public class UserProfileService
 
     public async Task<UserPlantParameters> GetPlantParameters()
     {
-        return (await _plant.GetAsync(_user.Id)) ?? new(new());
+        return (await _plant.GetAsync(_user.Id)) ?? new();
     }
 
     public Task<UserPlantParameters> PutPlantParameters(UserPlantParameters plant)

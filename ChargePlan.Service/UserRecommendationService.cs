@@ -41,7 +41,7 @@ public class UserRecommendationService
 
     public async Task<Recommendations> CalculateRecommendations(UserRecommendationParameters parameters)
     {
-        var plantSpec = await _repos.Plant.GetAsync(_user.Id) ?? new(new());
+        var plantSpec = await _repos.Plant.GetAsync(_user.Id) ?? new();
         var input = await _repos.Days.GetAsync(_user.Id) ?? throw new InvalidStateException("Must defined day templates first");
         var allShiftable = await _repos.Shiftable.GetAsyncOrEmpty(_user.Id);
         var allDemands = await _repos.Demand.GetAsyncOrEmpty(_user.Id);
@@ -59,6 +59,7 @@ public class UserRecommendationService
                 plantSpec.ArraySpecification.LongDegrees)
             .WithArrayArea(plantSpec.ArraySpecification.ArrayArea)
             .WithDniSource(_dniWeatherProvider)
+            .AddShading(plantSpec.ArrayShading)
             .BuildAsync();
 
         var mainBuilder = new AlgorithmBuilder(plant, _interpolationFactory)
