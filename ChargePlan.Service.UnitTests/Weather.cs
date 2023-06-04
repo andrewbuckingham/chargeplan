@@ -65,18 +65,18 @@ public class Weather
 
 file record DummyDni(DateTime day) : IDirectNormalIrradianceProvider
 {
-    public async Task<IEnumerable<(DateTime DateTime, float PowerWatts)>> GetForecastAsync()
+    public async Task<IEnumerable<(DateTime DateTime, float DirectWatts, float? DiffuseWatts)>> GetDniForecastAsync()
     {
-        IEnumerable<(DateTime DateTime, float PowerWatts)> Iterate()
+        IEnumerable<(DateTime DateTime, float DirectWatts, float? DiffuseWatts)> Iterate()
         {
             DateTime dt = day.Date;
             DateTime end = day.Date.AddDays(1);
 
             while (dt < end)
             {
-                yield return (dt, 1000.0f);
-                //                dt += TimeSpan.FromMinutes(1);
-                dt += TimeSpan.FromHours(4);
+                yield return (dt, 1000.0f, null);
+                dt += TimeSpan.FromMinutes(1);
+                //dt += TimeSpan.FromHours(4);
             }
         };
 

@@ -7,17 +7,17 @@ public static class Sol
     /// Note that the plane elevation at right-angles to the Sun will produce maximum. I.e. a plane elevation of 0 radians (laying on the ground)
     /// with the Sun directly overhead will produce a maximum.
     /// </summary>
-    public static double DniToIrradiation(double dni, double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation)
+    public static double DniToIrradiation(double dni, double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation, double? diffuseIrradiation)
     {
         // Not much light if it's below the horizon...
-        if (sunElevation < 0) return 0.0;
+        if (sunElevation < 0) return diffuseIrradiation ?? 0.0;
 
         double azimuth = sunAzimith - planeAzimuth;
         double elevation = sunElevation - planeElevation;
 
         // Likewise if it's past normal to the panel front face.
-        if (Math.Abs(azimuth) > Math.PI / 2) return 0.0;
-        if (Math.Abs(elevation) > Math.PI / 2) return 0.0;
+        if (Math.Abs(azimuth) > Math.PI / 2) return diffuseIrradiation ?? 0.0;
+        if (Math.Abs(elevation) > Math.PI / 2) return diffuseIrradiation ?? 0.0;
 
         return Math.Max(0.0, dni * Math.Abs(Math.Cos(azimuth)) * Math.Abs(Math.Sin(elevation)));
     }

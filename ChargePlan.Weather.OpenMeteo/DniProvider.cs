@@ -6,7 +6,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
 {
     private IHttpClientFactory _clientFactory;
 
-    private const string _uri = "https://api.open-meteo.com/v1/forecast?latitude=54.528728&longitude=-1.553050&current_weather=true&hourly=direct_normal_irradiance&forecast_days=3";
+    private const string _uri = "https://api.open-meteo.com/v1/forecast?latitude=54.528728&longitude=-1.553050&current_weather=true&hourly=direct_normal_irradiance,diffuse_radiation&forecast_days=3";
     private const float _fudgeFactor = 1.8f;
 
     public DniProvider(IHttpClientFactory clientFactory)
@@ -14,7 +14,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
         _clientFactory = clientFactory ?? throw new ArgumentNullException(nameof(clientFactory));
     }
 
-    public async Task<IEnumerable<(DateTime DateTime, float PowerWatts)>> GetForecastAsync()
+    public async Task<IEnumerable<(DateTime DateTime, float DirectWatts, float? DiffuseWatts)>> GetDniForecastAsync()
     {
         using var client = _clientFactory.CreateClient();
         var response = await client.GetAsync(_uri);
@@ -24,8 +24,8 @@ public class DniProvider : IDirectNormalIrradianceProvider
         var entity = await JsonSerializer.DeserializeAsync<ResponseEntity>(response.Content.ReadAsStream()) ?? throw new InvalidOperationException();
 
         var values = entity.hourly.time
-            .Zip(entity.hourly.direct_normal_irradiance)
-            .Select(pair => (DateTime: DateTime.Parse(pair.First + ":00.000Z"), PowerWatts: (float)pair.Second * _fudgeFactor))
+            .Zip(entity.hourly.direct_normal_irradiance, entity.hourly.diffuse_radiation)
+            .Select(pair => (DateTime: DateTime.Parse(pair.First + ":00.000Z"), DirectWatts: (float)pair.Second * _fudgeFactor, DiffuseWatts: (float?)pair.Third * _fudgeFactor))
             .ToArray();
 
         return values;

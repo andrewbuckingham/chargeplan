@@ -13,31 +13,12 @@ namespace ChargePlan.Weather;
 /// <param name="Longitude">Degrees</param>
 /// <param name="IrradianceToPowerScalar"></param>
 /// <param name="ShadingPolygons"></param>
-public record WeatherBuilder(Func<WeatherBuilder, Task<IGenerationProfile>> FetchGenerationProfile, float PanelElevation, float PanelAzimuth, float Latitude, float Longitude, float IrradianceToPowerScalar, IEnumerable<Shading> ShadingPolygons)
+public record WeatherBuilder(IDirectNormalIrradianceProvider? DniProvider, float PanelElevation, float PanelAzimuth, float Latitude, float Longitude, float IrradianceToPowerScalar, IEnumerable<Shading> ShadingPolygons)
 {
-    public WeatherBuilder(float PanelElevation, float PanelAzimuth, float Latitude, float Longitude) : this(Unset, PanelElevation, PanelAzimuth, Latitude, Longitude, 1.0f, Enumerable.Empty<Shading>()) { }
-
-    private static Task<IGenerationProfile> Unset(WeatherBuilder _) => throw new InvalidStateException("Please add a weather source");
+    public WeatherBuilder(float PanelElevation, float PanelAzimuth, float Latitude, float Longitude) : this(null, PanelElevation, PanelAzimuth, Latitude, Longitude, 1.0f, Enumerable.Empty<Shading>()) { }
 
     public WeatherBuilder WithDniSource(IDirectNormalIrradianceProvider dni)
-        => this with
-        {
-            FetchGenerationProfile = async (WeatherBuilder wb) => new GenerationProfile()
-            {
-                Values = (await dni.GetForecastAsync()).Select(f =>
-                {
-                    var sun = Sol.SunPositionRads(f.DateTime, wb.Latitude, wb.Longitude);
-
-                    if (wb.ShadingPolygons.Any(f => f.IsSunPositionShaded((sun.Altitude.ToDegrees(), sun.Azimuth.ToDegrees()))))
-                    {
-                        return new GenerationValue(f.DateTime.ToLocalTime(), 0.0f);
-                    }
-
-                    double irradiatedPower = Sol.DniToIrradiation(f.PowerWatts, wb.PanelAzimuth.ToRads(), wb.PanelElevation.ToRads(), sun.Azimuth, sun.Altitude);
-                    return new GenerationValue(f.DateTime.ToLocalTime(), wb.IrradianceToPowerScalar * (float)irradiatedPower / 1000.0f);
-                })
-            }
-        };
+        => this with { DniProvider = dni };
 
     public WeatherBuilder WithArrayArea(float areaSqm, float efficiencyPercent = 20.5f)
         => this with { IrradianceToPowerScalar = areaSqm * efficiencyPercent / 100.0f };
@@ -50,5 +31,31 @@ public record WeatherBuilder(Func<WeatherBuilder, Task<IGenerationProfile>> Fetc
 
     public WeatherBuilder AddShadingToHorizon(float degreesAltitude) => AddShading(new Shading((0, -180), (degreesAltitude, -180), (degreesAltitude, 180), (0, 180)));
 
-    public Task<IGenerationProfile> BuildAsync() => FetchGenerationProfile(this);
+    public async Task<IGenerationProfile> BuildAsync()
+    {
+        var generation = Enumerable.Empty<GenerationValue>();
+
+        if (DniProvider != null)
+        {
+            generation = (await DniProvider.GetDniForecastAsync()).Select(f =>
+            {
+                var sun = Sol.SunPositionRads(f.DateTime, Latitude, Longitude);
+
+                double irradiatedPower = Sol.DniToIrradiation(f.DirectWatts, PanelAzimuth.ToRads(), PanelElevation.ToRads(), sun.Azimuth, sun.Altitude, f.DiffuseWatts);
+
+                if (irradiatedPower > 0.0 && ShadingPolygons.Any(p => p.IsSunPositionShaded((sun.Altitude.ToDegrees(), sun.Azimuth.ToDegrees()))))
+                {
+                    irradiatedPower = f.DiffuseWatts ?? 0.0f;
+                }
+
+                return new GenerationValue(f.DateTime.ToLocalTime(), IrradianceToPowerScalar * (float)irradiatedPower / 1000.0f);
+            });
+        }
+        else
+        {
+            throw new InvalidOperationException("Please supply a weather forecast provider e.g. call WithDniSource");
+        }
+
+        return new GenerationProfile() { Values = generation };
+    }
 }

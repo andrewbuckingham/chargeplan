@@ -11,7 +11,7 @@ public class UnitTest1
     [InlineData(Math.PI, 0, Math.PI, 0)]
     public void SunAngle_ZeroAngleSubtendingPanelFrontFace_ProducesZero(double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation)
     {
-        double irradiation = ChargePlan.Weather.Sol.DniToIrradiation(1.0, planeAzimuth, planeElevation, sunAzimith, sunElevation);
+        double irradiation = ChargePlan.Weather.Sol.DniToIrradiation(1.0, planeAzimuth, planeElevation, sunAzimith, sunElevation, null);
         Assert.Equal(0.0, irradiation, 8);
     }
 
@@ -22,7 +22,7 @@ public class UnitTest1
     [InlineData(Math.PI, 0, Math.PI, Math.PI / 2)]
     public void SunAngle_AtDirectNormalToPanel_ProducesMaximum(double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation)
     {
-        double irradiation = ChargePlan.Weather.Sol.DniToIrradiation(1.0, planeAzimuth, planeElevation, sunAzimith, sunElevation);
+        double irradiation = ChargePlan.Weather.Sol.DniToIrradiation(1.0, planeAzimuth, planeElevation, sunAzimith, sunElevation, null);
         Assert.Equal(1.0, irradiation, 8);
     }
 

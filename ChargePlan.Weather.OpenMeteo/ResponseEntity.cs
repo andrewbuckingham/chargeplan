@@ -14,6 +14,7 @@ public class Hourly
 {
     public List<string> time { get; set; }
     public List<double> direct_normal_irradiance { get; set; }
+    public List<double> diffuse_radiation { get; set; }
 }
 
 public class HourlyUnits
