@@ -59,6 +59,7 @@ public class UserRecommendationService
                 plantSpec.ArraySpecification.LongDegrees)
             .WithArrayArea(plantSpec.ArraySpecification.ArrayArea)
             .WithDniSource(_dniWeatherProvider)
+            .WithForecastSettings(sunlightScalar: plantSpec.WeatherForecastSettings.SunlightScalar)
             .AddShading(plantSpec.ArrayShading)
             .BuildAsync();
 
