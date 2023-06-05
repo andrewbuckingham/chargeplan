@@ -51,6 +51,7 @@ public class UserRecommendationService
         var completedDemands = await _repos.CompletedDemands.GetAsyncOrEmpty(_user.Id);
 
         IPlant plant = _plantFactory.CreatePlant(plantSpec.PlantType);
+        DateTime today = DateTime.Today;
 
         var generation = await new WeatherBuilder(
                 plantSpec.ArraySpecification.ArrayElevationDegrees,
@@ -72,20 +73,18 @@ public class UserRecommendationService
         {
             var demand = allShiftable.OnlyOne(f => f.Name, shiftable.Name);
             mainBuilder = mainBuilder.AddShiftableDemandAnyDay(demand,
-                noSoonerThan: DateTime.Today.AddYears(-1),
-                noLaterThan: DateTime.Today.AddDays(shiftable.OverNumberOfDays),
+                noSoonerThan: today.AddYears(-1),
+                noLaterThan: today.AddDays(shiftable.OverNumberOfDays),
                 shiftable.Priority,
                 shiftable.DontRepeatWithin);
         }
 
-        var days = input.DayTemplates
-            .Select(f =>
+        var days = Enumerable.Range(0, parameters.DaysToRecommendOver)
+            .Select(daysFromNow =>
             {
-                int dayNumber = (int)DateTime.Today.DayOfWeek - (int)f.DayOfWeek;
-                if (dayNumber < 0) dayNumber += 7;
-
-                DateTime date = DateTime.Today.AddDays(dayNumber);
-                return (Date: date, Template: f);
+                DateTime date = today.AddDays(daysFromNow);
+                var template = input.DayTemplates.FirstOrDefault(f => f.DayOfWeek == date.DayOfWeek) ?? throw new InvalidStateException($"Input is missing a day template for {date.DayOfWeek}");
+                return (Date: date, Template: template);
             })
             .OrderBy(f => f.Date)
             .Take(parameters.DaysToRecommendOver);
