@@ -85,6 +85,7 @@ public record Calculator(IPlant PlantTemplate)
             debugResults.Add(new(
                 now,
                 plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, plant.LastIntegration.GridExport, cost, undercharge, overcharge,
+                new(step.Power(generationEnergy)),
                 demandEnergies.Select(f => new IntegrationStepDemandEnergy(f.Profile.Name, f.Profile.Type, (float)f.Energy)).ToArray()
             ));
         }

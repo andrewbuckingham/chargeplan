@@ -8,6 +8,11 @@ public static class TimeExtensions
     public static float Energy(this TimeSpan ts, float Power) => Power * (float)ts.TotalHours;
 
     /// <summary>
+    /// Calculate average power to have produced this amount of energy over this duration.
+    /// </summary>
+    public static float Power(this TimeSpan ts, float Energy) => Energy / (float)ts.TotalHours;
+
+    /// <summary>
     /// Represent a datetime as a fractional number of hours since mindate.
     /// </summary>
     public static double AsTotalHours(this DateTime dateTime) => (double)dateTime.Ticks / (double)TimeSpan.FromHours(1.0).Ticks;
