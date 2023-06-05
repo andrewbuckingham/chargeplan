@@ -44,6 +44,7 @@ public class ExceptionMiddleware : IFunctionsWorkerMiddleware
             {
                 NotAuthenticatedException => (HttpStatusCode.Unauthorized, LogLevel.Error),
                 NotPermittedException => (HttpStatusCode.Forbidden, LogLevel.Warning),
+                NotFoundException => (HttpStatusCode.NotFound, LogLevel.Warning),
                 InvalidStateException => (HttpStatusCode.UnprocessableEntity, LogLevel.Warning),
                 JsonException => (HttpStatusCode.BadRequest, LogLevel.Warning),
                 _ => (HttpStatusCode.InternalServerError, LogLevel.Error)

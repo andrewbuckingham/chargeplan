@@ -16,14 +16,16 @@ public class UserProfileService
     private readonly IUserPlantRepository _plant;
     private readonly IUserDemandCompletedRepository _completed;
     private readonly IUserShiftableDemandRepository _shiftable;
+    private readonly IUserRecommendationsRepository _recommendations;
 
-    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed, IUserShiftableDemandRepository shiftable)
+    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed, IUserShiftableDemandRepository shiftable, IUserRecommendationsRepository recommendations)
     {
         _logger = logger;
         _user = user;
         _plant = plant;
         _completed = completed;
         _shiftable = shiftable;
+        _recommendations = recommendations;
     }
 
     public async Task<UserPlantParameters> GetPlantParameters()
@@ -37,29 +39,29 @@ public class UserProfileService
     }
 
     public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandMatchFirstType(string shiftableDemandType)
-    {
-        // This is a temporary solution. Should really have an index of hashes from the last run.
-        // Instead, synthesise all the hashes based on likely datetime ranges (today + {n..4} days)
-        // Also calls the proper PostCompleted call many times. A bit hacky.
-        var matchingDemands = (await _shiftable.GetAsyncOrEmpty(_user.Id))
-            .Where(f => f.Type == shiftableDemandType)
-            .CrossJoin(Enumerable.Range(1, 4)) // Where 4 is the max number of days most demands are likely to span...
-            .Select(f => f.Item1.AsShiftableDemand(
-                Domain.ShiftableDemandPriority.Low,
-                (DateTime.Today, DateTime.Today.AddDays(f.Item2)),
-                null));
-
-        foreach (var demand in matchingDemands)
+        => await Policy
+                .Handle<ConcurrencyException>()
+                .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+                .ExecuteAsync(async () =>
         {
-            await PostCompletedDemandAsHash(new DemandCompleted(
-                demand.AsDemandHash(),
-                DateTime.Now.ToLocalTime(),
-                demand.Name
-            ));
-        }
+            // This is a temporary solution. Should really have an index of hashes from the last run.
+            // Instead, synthesise all the hashes based on likely datetime ranges (today + {n..4} days)
+            // Also calls the proper PostCompleted call many times. A bit hacky.
+            var matchingDemand = (await _recommendations.GetAsync(_user.Id) ?? throw new InvalidStateException("There is no stored data from the last run. Please run a demand calculation."))
+                .ShiftableDemands
+                .Where(f => f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
+                .FirstOrDefault();
 
-        return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity.Where(f => f.DateTime.Date == DateTime.Today);
-    }
+            if (matchingDemand == null) throw new NotFoundException();
+
+            await PostCompletedDemandAsHash(new DemandCompleted(
+                matchingDemand.DemandHash,
+                DateTime.Now.ToLocalTime(),
+                matchingDemand.Name
+            ));
+
+            return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity;
+        });
 
     /// <summary>
     /// Record that a demand has been switched on, and that it no longer needs factoring into forthcoming calculations.

@@ -46,37 +46,4 @@ public class UserProfileFunctions
     [Function(nameof(DeleteCompletedDemandToday))]
     public Task<HttpResponseData> DeleteCompletedDemandToday([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/me/demands/completed/today/types/{type}")] HttpRequestData req, string type)
         => req.DeleteWithService<IEnumerable<DemandCompleted>>(_logger, nameof(DeleteCompletedDemandToday), _service.DeleteCompletedDemandToday(type));
-
-    // [Function(nameof(PostCompletedDemandAsHash))]
-    // public async Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
-    // {
-    //     var queue = _queues.GetQueueClient("completeddemands");
-    //     await queue.CreateIfNotExistsAsync();
-    //     await queue.SendMessageAsync(await req.ReadAsStringAsync());
-
-    //     return req.CreateResponse(HttpStatusCode.Accepted);
-    // }
-
-    // [Function(nameof(ProcessCompletedDemandAsHash))]
-    // public async Task ProcessCompletedDemandAsHash([QueueTrigger("completeddemands")] string myQueueItem)
-    // {
-    //     _logger.LogInformation(nameof(ProcessCompletedDemandAsHash));
-
-    //     try
-    //     {
-    //         var demand = JsonSerializer.Deserialize<DemandCompleted>(myQueueItem);
-
-    //         if (demand == null)
-    //             return;
-
-    //         await _service.PostCompletedDemandAsHash(demand);
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         _logger.LogError(ex, $"Failed calling service {nameof(ProcessCompletedDemandAsHash)}");
-            
-    //         //return response;
-    //         throw;
-    //     }
-    // }
 }
