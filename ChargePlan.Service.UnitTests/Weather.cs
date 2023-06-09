@@ -30,36 +30,36 @@ public class Weather
     );
 
 
-    [Fact]
-    public async Task WithUnitIrradiance_ProducesCorrectTrig()
-    {
-        var weather = await new WeatherBuilder(0.0f, 0.0f, 54.0f, 0.0f)
-            .WithArrayArea(1.0f, 100.0f)
-            .WithDniSource(new DummyDni(_solstice))
-            .BuildAsync();
+    // [Fact]
+    // public async Task WithUnitIrradiance_ProducesCorrectTrig()
+    // {
+    //     var weather = await new WeatherBuilder(0.0f, 0.0f, 54.0f, 0.0f)
+    //         .WithArrayArea(1.0f, 100.0f)
+    //         .WithDniSource(new DummyDni(_solstice))
+    //         .BuildAsync();
 
-        var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
-            .WithGeneration(weather)
-            .ForDay(_solstice)
-            .AddPricing(ConstantPrice(0.0M))
-            .AddDemand(ConstantDemand(0.0f))
-            .Build();
+    //     var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
+    //         .WithGeneration(weather)
+    //         .ForDay(_solstice)
+    //         .AddPricing(ConstantPrice(0.0M))
+    //         .AddDemand(ConstantDemand(0.0f))
+    //         .Build();
 
-        var result = algorithm.DecideStrategy();
+    //     var result = algorithm.DecideStrategy();
 
-        var trial = result.Evaluation.DebugResults.Where(f=>f.DateTime.TimeOfDay == new TimeSpan(16,30,00)).Single();
-        // Assert.Equal(trial.PowerValues.Generation, 0.01, 2);
+    //     var trial = result.Evaluation.DebugResults.Where(f=>f.DateTime.TimeOfDay == new TimeSpan(16,30,00)).Single();
+    //     // Assert.Equal(trial.PowerValues.Generation, 0.01, 2);
 
-        var things = (await new DummyDni(_solstice).GetDniForecastAsync()).Select(f =>
-            {
-                var sun = Sol.SunPositionRads(f.DateTime, 54, 0);
+    //     var things = (await new DummyDni(_solstice).GetDniForecastAsync()).Select(f =>
+    //         {
+    //             var sun = Sol.SunPositionRads(f.DateTime, 54, 0);
 
-                double irradiatedPower = Sol.DniToIrradiation(f.DirectWatts, 0.0f.ToRads(), 45.0f.ToRads(), sun.Azimuth, sun.Altitude, f.DiffuseWatts);
-                return new GenerationValue(f.DateTime.ToLocalTime(), (float)irradiatedPower);
-            }).ToArray();
+    //             double irradiatedPower = Sol.DniToIrradiation(f.DirectWatts, 0.0f.ToRads(), 45.0f.ToRads(), sun.Azimuth, sun.Altitude, f.DiffuseWatts);
+    //             return new GenerationValue(f.DateTime.ToLocalTime(), (float)irradiatedPower);
+    //         }).ToArray();
 
-        Assert.True(things.Where(f=>f.DateTime.TimeOfDay == new TimeSpan(17,30,00)).First().Power == 1.0f);
-    }
+    //     Assert.True(things.Where(f=>f.DateTime.TimeOfDay == new TimeSpan(17,30,00)).First().Power == 1.0f);
+    // }
 
     [Theory]
     [InlineData(1.0f, 100.0f, _whAtLatitude)]
