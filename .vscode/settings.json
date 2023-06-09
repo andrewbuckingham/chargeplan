@@ -4,5 +4,6 @@
     "azureFunctions.projectRuntime": "~4",
     "debug.internalConsoleOptions": "neverOpen",
     "azureFunctions.preDeployTask": "publish (functions)",
-    "dotnet-test-explorer.testProjectPath": "ChargePlan.Service.UnitTests/ChargePlan.Service.UnitTests.csproj"
+    "dotnet-test-explorer.testProjectPath": "ChargePlan.Service.UnitTests/ChargePlan.Service.UnitTests.csproj",
+    "dotnet.defaultSolution": "chargeplan.sln"
 }

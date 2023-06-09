@@ -1,3 +1,6 @@
+using System.Runtime.CompilerServices;
+using ChargePlan.Domain.Splines;
+
 namespace ChargePlan.Service.UnitTests;
 
 public class UnitTest1
@@ -18,7 +21,6 @@ public class UnitTest1
     [Theory]
     [InlineData(0, 0, 0, Math.PI / 2)]
     [InlineData(0, Math.PI / 2, 0, 0)]
-    [InlineData(Math.PI, 0, Math.PI, Math.PI / 2)]
     [InlineData(Math.PI, 0, Math.PI, Math.PI / 2)]
     public void SunAngle_AtDirectNormalToPanel_ProducesMaximum(double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation)
     {
@@ -72,27 +74,49 @@ public class UnitTest1
         Assert.Equal(decimal.Zero, result.Evaluation.TotalCost);
     }
 
-    // [Fact]
-    // public void ShiftableDemand_ProducesInterpolation()
-    // {
-    //     var dehumidifiers = new ShiftableDemandValue[]
-    //     {
-    //         new (TimeSpan.FromHours(0.0), 1.0f),
-    //         new (TimeSpan.FromHours(1.0), 0.0f)
-    //     };
+    [Fact]
+    public void Generation_ProducesInterpolation_WithGoodMatch()
+    {
+        double[] powers = new double[]
+        {
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            3.3,
+            14.3,
+            49.5,
+            103.2,
+            155.9,
+            179.7,
+            246.7,
+            334.2,
+            405.2,
+            421,
+            400.6,
+            404.5,
+            338.2,
+            218,
+            92.7,
+            6.3,
+            0,
+            0,
+        };
 
-    //     var datum = DateTime.Today;
+        var values = powers.Select((f,i) => new GenerationValue(DateTime.Today.AddHours(i), (float)f));
 
-    //     var demand = new ShiftableDemand() { Values = dehumidifiers.ToList() }
-    //         .AsDemandProfile(datum.AddHours(1))
-    //         .AsSpline(StepInterpolation.Interpolate);
+        var generation = new GenerationProfile() { Values = values.ToList() };
+        var spline = generation.AsSpline(new InterpolationFactory(Generation: InterpolationType.Step).InterpolateGeneration);
 
-    //     var beforePeriod = demand.Interpolate(datum.AddHours(0.0).AsTotalHours());
-    //     var duringPeriod = demand.Interpolate(datum.AddHours(1.9).AsTotalHours());
-    //     var afterPeriod = demand.Interpolate(datum.AddHours(4).AsTotalHours());
+        var checks = Enumerable.Range(0,powers.Length * 4).Select(i => (
+            Nearest: powers[i / 4],
+            Interpolated: spline.Interpolate(DateTime.Today.AddMinutes(15 * i).AsTotalHours())));
 
-    //     Assert.Equal(0.0, beforePeriod, 1);
-    //     Assert.Equal(1.0, duringPeriod, 1);
-    //     Assert.Equal(0.0, afterPeriod, 1);
-    // }
+        foreach (var check in checks)
+        {
+            Assert.InRange(check.Interpolated, check.Nearest * 0.99, check.Nearest * 1.01);
+        }
+    }
 }

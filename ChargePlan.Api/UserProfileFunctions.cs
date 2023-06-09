@@ -46,4 +46,14 @@ public class UserProfileFunctions
     [Function(nameof(DeleteCompletedDemandToday))]
     public Task<HttpResponseData> DeleteCompletedDemandToday([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/me/demands/completed/today/types/{type}")] HttpRequestData req, string type)
         => req.DeleteWithService<IEnumerable<DemandCompleted>>(_logger, nameof(DeleteCompletedDemandToday), _service.DeleteCompletedDemandToday(type));
+
+#region Some overloads to help with clients that can't do DELETE verbs
+    [Function(nameof(GetCompletedDemandsToday_BadHttpClient))]
+    public Task<HttpResponseData> GetCompletedDemandsToday_BadHttpClient([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/demands/completed/today/delete-types/{type}")] HttpRequestData req)
+        => req.CreateWithService<IEnumerable<DemandCompleted>>(_logger, nameof(GetCompletedDemandsToday_BadHttpClient), _service.GetCompletedDemandsToday);
+
+    [Function(nameof(DeleteCompletedDemandToday_BadHttpClient))]
+    public Task<HttpResponseData> DeleteCompletedDemandToday_BadHttpClient([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/today/delete-types/{type}")] HttpRequestData req, string type)
+        => req.DeleteWithService<IEnumerable<DemandCompleted>>(_logger, nameof(DeleteCompletedDemandToday_BadHttpClient), _service.DeleteCompletedDemandToday(type));
+#endregion
 }

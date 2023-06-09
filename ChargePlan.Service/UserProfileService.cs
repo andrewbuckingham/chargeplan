@@ -15,16 +15,14 @@ public class UserProfileService
     private readonly UserPermissionsFacade _user;
     private readonly IUserPlantRepository _plant;
     private readonly IUserDemandCompletedRepository _completed;
-    private readonly IUserShiftableDemandRepository _shiftable;
     private readonly IUserRecommendationsRepository _recommendations;
 
-    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed, IUserShiftableDemandRepository shiftable, IUserRecommendationsRepository recommendations)
+    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed, IUserRecommendationsRepository recommendations)
     {
         _logger = logger;
         _user = user;
         _plant = plant;
         _completed = completed;
-        _shiftable = shiftable;
         _recommendations = recommendations;
     }
 
@@ -50,14 +48,13 @@ public class UserProfileService
             var matchingDemand = (await _recommendations.GetAsync(_user.Id) ?? throw new InvalidStateException("There is no stored data from the last run. Please run a demand calculation."))
                 .ShiftableDemands
                 .Where(f => f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
-                .FirstOrDefault();
-
-            if (matchingDemand == null) throw new NotFoundException();
-
+                .FirstOrDefault() ?? throw new NotFoundException();
+                
             await PostCompletedDemandAsHash(new DemandCompleted(
                 matchingDemand.DemandHash,
                 DateTime.Now.ToLocalTime(),
-                matchingDemand.Name
+                matchingDemand.Name,
+                matchingDemand.Type
             ));
 
             return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity;
@@ -131,13 +128,13 @@ public class UserProfileService
                 completedDemands = new(new DemandCompleted[] { }, String.Empty);
             }
 
-            if (completedDemands.Entity.Any(f => f.Name.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
+            if (completedDemands.Entity.Any(f => f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
             {
                 completedDemands = completedDemands with
                 {
                     Entity = completedDemands.Entity
                         .Where(f => f.DateTime > DateTime.Now.AddMonths(-1).ToLocalTime()) // Prune old ones
-                        .Where(f => f.Name.Equals(type, StringComparison.InvariantCultureIgnoreCase) == false)
+                        .Where(f => f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase) == false)
                         .ToArray()
                 };
 

@@ -15,11 +15,7 @@ public static class Sol
         double azimuth = sunAzimith - planeAzimuth;
         double elevation = sunElevation - planeElevation;
 
-        // Likewise if it's past normal to the panel front face.
-        if (Math.Abs(azimuth) > Math.PI / 2) return diffuseIrradiation ?? 0.0;
-        if (Math.Abs(elevation) > Math.PI / 2) return diffuseIrradiation ?? 0.0;
-
-        return Math.Max(0.0, dni * Math.Abs(Math.Cos(azimuth)) * Math.Abs(Math.Sin(elevation)));
+        return Math.Max(diffuseIrradiation ?? 0.0, dni * Math.Max(0.0f, Math.Cos(azimuth)) * Math.Max(0.0f, Math.Sin(Math.Abs(elevation))));
     }
 
     public static (double Altitude, double Azimuth) SunPositionRads(DateTime dateTime, float latitudeDegrees, float longitudeDegrees)

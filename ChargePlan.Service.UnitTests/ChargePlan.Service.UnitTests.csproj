@@ -1,16 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\ChargePlan.Domain\ChargePlan.Domain.csproj" />
-    <ProjectReference Include="..\ChargePlan.Domain.Splines\ChargePlan.Domain.Splines.csproj" />
-  </ItemGroup>
-  
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-
-    <IsPackable>false</IsPackable>
+<!-- 
+    <IsPackable>false</IsPackable> -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,9 +23,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ChargePlan.Service\ChargePlan.Service.csproj" />
-    <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
+    <ProjectReference Include="..\ChargePlan.Domain\ChargePlan.Domain.csproj" />
     <ProjectReference Include="..\ChargePlan.Domain.Plant\ChargePlan.Domain.Plant.csproj" />
+    <ProjectReference Include="..\ChargePlan.Weather\ChargePlan.Weather.csproj" />
+    <ProjectReference Include="..\ChargePlan.Builder\ChargePlan.Builder.csproj" />
     <ProjectReference Include="..\ChargePlan.Domain.Splines\ChargePlan.Domain.Splines.csproj" />
   </ItemGroup>
 
