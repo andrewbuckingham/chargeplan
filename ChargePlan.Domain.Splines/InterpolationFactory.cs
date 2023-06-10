@@ -20,7 +20,7 @@ public record InterpolationFactory(
     ) : IInterpolationFactory
 {
     private IInterpolation CreateCubicSpline(IEnumerable<double> xValues, IEnumerable<double> yValues)
-        => new MathNetWrapper(MathNet.Numerics.Interpolation.CubicSpline.InterpolatePchip(xValues, yValues));
+        => new MathNetWrapper(MathNet.Numerics.Interpolation.CubicSpline.InterpolateAkima(xValues, yValues));
 
     private IInterpolation CreateStepInterpolation(IEnumerable<double> xValues, IEnumerable<double> yValues)
         => new MathNetWrapper(MathNet.Numerics.Interpolation.StepInterpolation.Interpolate(xValues, yValues));

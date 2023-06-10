@@ -42,12 +42,9 @@ public class UserProfileService
                 .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
                 .ExecuteAsync(async () =>
         {
-            // This is a temporary solution. Should really have an index of hashes from the last run.
-            // Instead, synthesise all the hashes based on likely datetime ranges (today + {n..4} days)
-            // Also calls the proper PostCompleted call many times. A bit hacky.
             var matchingDemand = (await _recommendations.GetAsync(_user.Id) ?? throw new InvalidStateException("There is no stored data from the last run. Please run a demand calculation."))
                 .ShiftableDemands
-                .Where(f => f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
+                .Where(f => f.StartAt.Date == DateTime.Today && f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
                 .FirstOrDefault() ?? throw new NotFoundException();
                 
             await PostCompletedDemandAsHash(new DemandCompleted(
@@ -98,14 +95,14 @@ public class UserProfileService
             return completedDemands.Entity;
         });
 
-    public async Task<IEnumerable<DemandCompleted>> GetCompletedDemandsToday(string arg)
+    public async Task<IEnumerable<DemandCompleted>> GetCompletedDemandsToday()
         => await Policy
             .Handle<ConcurrencyException>()
             .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
             .ExecuteAsync(async () =>
         {
             var completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
-            var result = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Now.Date).ToArray();
+            var result = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Today).ToArray();
 
             return result;
         });
@@ -134,7 +131,7 @@ public class UserProfileService
                 {
                     Entity = completedDemands.Entity
                         .Where(f => f.DateTime > DateTime.Now.AddMonths(-1).ToLocalTime()) // Prune old ones
-                        .Where(f => f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase) == false)
+                        .Where(f => !(f.DateTime.Date == DateTime.Today && f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
                         .ToArray()
                 };
 
