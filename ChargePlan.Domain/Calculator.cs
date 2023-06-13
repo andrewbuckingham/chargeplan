@@ -5,7 +5,7 @@ namespace ChargePlan.Domain;
 
 public record Calculator(IPlant PlantTemplate)
 {
-    private static TimeSpan TimeStep = TimeSpan.FromMinutes(15);
+    private static readonly TimeSpan TimeStep = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Calculate the end position in battery charge, and accumulated costs,

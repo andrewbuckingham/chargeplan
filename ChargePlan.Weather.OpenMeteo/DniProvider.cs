@@ -24,7 +24,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
         // Note the OpenMeteo forecast is for the "preceding hour"
         var values = entity.hourly.time
             .Zip(entity.hourly.direct_normal_irradiance, entity.hourly.diffuse_radiation)
-            .Select(pair => (DateTime: DateTime.Parse(pair.First + ":00.000Z") - TimeSpan.FromHours(1), DirectWatts: (float)pair.Second, DiffuseWatts: (float?)pair.Third))
+            .Select(pair => (DateTime: DateTime.Parse(pair.First + ":00.000Z"), DirectWatts: (float)pair.Second, DiffuseWatts: (float?)pair.Third))
             .ToArray();
 
         return values;

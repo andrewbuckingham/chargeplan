@@ -36,27 +36,6 @@ public class UserProfileService
         return _plant.UpsertAsync(_user.Id, plant);
     }
 
-    public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandMatchFirstType(string shiftableDemandType)
-        => await Policy
-                .Handle<ConcurrencyException>()
-                .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
-                .ExecuteAsync(async () =>
-        {
-            var matchingDemand = (await _recommendations.GetAsync(_user.Id) ?? throw new InvalidStateException("There is no stored data from the last run. Please run a demand calculation."))
-                .ShiftableDemands
-                .Where(f => f.StartAt.Date == DateTime.Today && f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
-                .FirstOrDefault() ?? throw new NotFoundException();
-                
-            await PostCompletedDemandAsHash(new DemandCompleted(
-                matchingDemand.DemandHash,
-                DateTime.Now.ToLocalTime(),
-                matchingDemand.Name,
-                matchingDemand.Type
-            ));
-
-            return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity;
-        });
-
     /// <summary>
     /// Record that a demand has been switched on, and that it no longer needs factoring into forthcoming calculations.
     /// Demand completions are identified by their unique hash of their name and datetime.
@@ -107,7 +86,42 @@ public class UserProfileService
             return result;
         });
 
-    public async Task DeleteCompletedDemandToday(string type)
+    public async Task<IEnumerable<DemandCompleted>> GetCompletedDemandsTodayType(string type)
+        => await Policy
+            .Handle<ConcurrencyException>()
+            .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+            .ExecuteAsync(async () =>
+        {
+            var completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
+            var result = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Today && f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)).ToArray();
+
+            return result;
+        });
+
+    public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandTodayType(string shiftableDemandType)
+        => await Policy
+                .Handle<ConcurrencyException>()
+                .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+                .ExecuteAsync(async () =>
+        {
+            var matchingDemand = (await _recommendations.GetAsync(_user.Id) ?? throw new InvalidStateException("There is no stored data from the last run. Please run a demand calculation."))
+                .ShiftableDemands
+                .Where(f => f.StartAt.Date == DateTime.Today && f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
+                .FirstOrDefault() ?? throw new NotFoundException();
+                
+            await PostCompletedDemandAsHash(new DemandCompleted(
+                matchingDemand.DemandHash,
+                DateTime.Now.ToLocalTime(),
+                matchingDemand.Name,
+                matchingDemand.Type
+            ));
+
+            return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity
+                .Where(f => f.DateTime.Date == DateTime.Today && f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
+                .ToArray();
+        });
+
+    public async Task DeleteCompletedDemandTodayType(string type)
     => await Policy
             .Handle<ConcurrencyException>()
             .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
@@ -125,7 +139,7 @@ public class UserProfileService
                 completedDemands = new(new DemandCompleted[] { }, String.Empty);
             }
 
-            if (completedDemands.Entity.Any(f => f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
+            if (completedDemands.Entity.Any(f => f.DateTime.Date == DateTime.Today && f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
             {
                 completedDemands = completedDemands with
                 {
@@ -137,7 +151,9 @@ public class UserProfileService
 
                 completedDemands = await _completed.UpsertAsync(_user.Id, completedDemands);
             }
-
-            return completedDemands.Entity;
+            else
+            {
+                throw new NotFoundException();
+            }
         });
 }
