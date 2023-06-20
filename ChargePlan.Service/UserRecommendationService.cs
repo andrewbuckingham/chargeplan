@@ -58,7 +58,7 @@ public class UserRecommendationService
                 plantSpec.ArraySpecification.ArrayAzimuthDegrees,
                 plantSpec.ArraySpecification.LatDegrees,
                 plantSpec.ArraySpecification.LongDegrees)
-            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea)
+            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea, absolutePeakWatts: plantSpec.ArraySpecification.AbsolutePeakWatts)
             .WithDniSource(_dniWeatherProvider)
             .WithForecastSettings(sunlightScalar: plantSpec.WeatherForecastSettings.SunlightScalar)
             .AddShading(plantSpec.ArrayShading)
@@ -113,6 +113,16 @@ public class UserRecommendationService
 
         var algorithm = dayBuilder.Build();
         var recommendations = algorithm.DecideStrategy();
+
+        // Some elements are determined by this service rather than the algorithm:
+        recommendations = recommendations with
+        {
+            CompletedDemands = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Today).ToArray(),
+            Evaluation = recommendations.Evaluation with
+            {
+                ChargeRateLimit = plant.ChargeRateWithSafetyFactor(recommendations.Evaluation.ChargeRateLimit, plantSpec.AlgorithmSettings.ChargeRateLimitScalar)
+            }
+        };
 
         try
         {

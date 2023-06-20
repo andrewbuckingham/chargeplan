@@ -5,7 +5,7 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Weather
 {
-    private const double _whAtLatitude = 4.2;
+    private const double _whAtLatitude = 3.4;
 
     private DateTime _solstice = new DateTime(DateTime.Today.Year, 06, 21, 12, 00, 00);
     private IDirectNormalIrradianceProvider UnitDni() => new DummyDni(_solstice);

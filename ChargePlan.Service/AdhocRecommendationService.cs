@@ -26,8 +26,10 @@ public class AdhocRecommendationService
                 input.Plant.ArraySpecification.ArrayAzimuthDegrees,
                 input.Plant.ArraySpecification.LatDegrees,
                 input.Plant.ArraySpecification.LongDegrees)
-            .WithArrayArea(input.Plant.ArraySpecification.ArrayArea)
+            .WithArrayArea(input.Plant.ArraySpecification.ArrayArea, absolutePeakWatts: input.Plant.ArraySpecification.AbsolutePeakWatts)
             .WithDniSource(_dniWeatherProvider)
+            .WithForecastSettings(sunlightScalar: input.Plant.WeatherForecastSettings.SunlightScalar)
+            .AddShading(input.Plant.ArrayShading)
             .BuildAsync();
 
         IPlant plant = _plantFactory.CreatePlant(input.Plant.PlantType);
@@ -59,6 +61,12 @@ public class AdhocRecommendationService
 
         var algorithm = dayBuilder.Build();
         var recommendations = algorithm.DecideStrategy();
+
+        recommendations = recommendations with
+        {
+            Evaluation = recommendations.Evaluation with { ChargeRateLimit = recommendations.Evaluation.ChargeRateLimit * input.Plant.AlgorithmSettings.ChargeRateLimitScalar }
+        };
+
         return recommendations;
     }
 }

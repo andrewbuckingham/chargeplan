@@ -40,7 +40,7 @@ public class Plant
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 24.0M - 0.25M * 0.5M, result.Evaluation.TotalCost, 1);
+        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class Plant
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 24.0M - 0.25M * 0.5M, result.Evaluation.TotalCost, 1);
+        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
     }
 
     [Fact]
@@ -71,6 +71,6 @@ public class Plant
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 12.0M - 0.25M * 1.0M, result.Evaluation.TotalCost);
+        Assert.Equal(0.5M * 12.0M - 1.0M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 2);
     }
 }

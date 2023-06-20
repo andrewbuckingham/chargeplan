@@ -1,5 +1,4 @@
 using ChargePlan.Domain;
-using ChargePlan.Domain.Exceptions;
 
 namespace ChargePlan.Weather;
 
@@ -13,15 +12,15 @@ namespace ChargePlan.Weather;
 /// <param name="Longitude">Degrees</param>
 /// <param name="IrradianceToPowerScalar"></param>
 /// <param name="ShadingPolygons"></param>
-public record WeatherBuilder(IDirectNormalIrradianceProvider? DniProvider, float PanelElevation, float PanelAzimuth, float Latitude, float Longitude, float IrradianceToPowerScalar, float SunlightScalar, IEnumerable<Shading> ShadingPolygons)
+public record WeatherBuilder(IDirectNormalIrradianceProvider? DniProvider, float PanelElevation, float PanelAzimuth, float Latitude, float Longitude, float IrradianceToPowerScalar, int? AbsolutePeakWatts, float SunlightScalar, IEnumerable<Shading> ShadingPolygons)
 {
-    public WeatherBuilder(float PanelElevation, float PanelAzimuth, float Latitude, float Longitude) : this(null, PanelElevation, PanelAzimuth, Latitude, Longitude, 1.0f, 1.0f, Enumerable.Empty<Shading>()) { }
+    public WeatherBuilder(float PanelElevation, float PanelAzimuth, float Latitude, float Longitude) : this(null, PanelElevation, PanelAzimuth, Latitude, Longitude, 1.0f, null, 1.0f, Enumerable.Empty<Shading>()) { }
 
     public WeatherBuilder WithDniSource(IDirectNormalIrradianceProvider dni)
         => this with { DniProvider = dni };
 
-    public WeatherBuilder WithArrayArea(float areaSqm, float efficiencyPercent = 20.5f)
-        => this with { IrradianceToPowerScalar = areaSqm * efficiencyPercent / 100.0f };
+    public WeatherBuilder WithArrayArea(float areaSqm, float efficiencyPercent = 20.5f, int? absolutePeakWatts = null)
+        => this with { IrradianceToPowerScalar = areaSqm * efficiencyPercent / 100.0f, AbsolutePeakWatts = absolutePeakWatts };
 
     public WeatherBuilder AddShading(Shading shading)
         => this with { ShadingPolygons = ShadingPolygons.Append(shading) };
@@ -52,7 +51,10 @@ public record WeatherBuilder(IDirectNormalIrradianceProvider? DniProvider, float
                     irradiatedPower = f.DiffuseWatts ?? 0.0f;
                 }
 
-                return new GenerationValue(f.DateTime.ToLocalTime(), IrradianceToPowerScalar * (float)irradiatedPower / 1000.0f);
+                float kw = IrradianceToPowerScalar * (float)irradiatedPower / 1000.0f;
+                kw = Math.Min(kw, (AbsolutePeakWatts ?? int.MaxValue) / 1000.0f);
+
+                return new GenerationValue(f.DateTime.ToLocalTime(), kw);
             });
         }
         else
