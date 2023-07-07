@@ -10,7 +10,10 @@ public record IntegrationStep(
     float CumulativeCost,
     float CumulativeUndercharge,
     float CumulativeOvercharge,
+    PowerValues PowerValues,
     IntegrationStepDemandEnergy[] DemandEnergies
 );
 
 public record IntegrationStepDemandEnergy(string Name, string Type, float Energy);
+
+public record PowerValues(float Generation);

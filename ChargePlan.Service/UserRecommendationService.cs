@@ -41,7 +41,7 @@ public class UserRecommendationService
 
     public async Task<Recommendations> CalculateRecommendations(UserRecommendationParameters parameters)
     {
-        var plantSpec = await _repos.Plant.GetAsync(_user.Id) ?? new(new());
+        var plantSpec = await _repos.Plant.GetAsync(_user.Id) ?? new();
         var input = await _repos.Days.GetAsync(_user.Id) ?? throw new InvalidStateException("Must defined day templates first");
         var allShiftable = await _repos.Shiftable.GetAsyncOrEmpty(_user.Id);
         var allDemands = await _repos.Demand.GetAsyncOrEmpty(_user.Id);
@@ -51,14 +51,17 @@ public class UserRecommendationService
         var completedDemands = await _repos.CompletedDemands.GetAsyncOrEmpty(_user.Id);
 
         IPlant plant = _plantFactory.CreatePlant(plantSpec.PlantType);
+        DateTime today = DateTime.Today;
 
         var generation = await new WeatherBuilder(
                 plantSpec.ArraySpecification.ArrayElevationDegrees,
                 plantSpec.ArraySpecification.ArrayAzimuthDegrees,
                 plantSpec.ArraySpecification.LatDegrees,
                 plantSpec.ArraySpecification.LongDegrees)
-            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea)
+            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea, absolutePeakWatts: plantSpec.ArraySpecification.AbsolutePeakWatts)
             .WithDniSource(_dniWeatherProvider)
+            .WithForecastSettings(sunlightScalar: plantSpec.WeatherForecastSettings.SunlightScalar)
+            .AddShading(plantSpec.ArrayShading)
             .BuildAsync();
 
         var mainBuilder = new AlgorithmBuilder(plant, _interpolationFactory)
@@ -70,20 +73,18 @@ public class UserRecommendationService
         {
             var demand = allShiftable.OnlyOne(f => f.Name, shiftable.Name);
             mainBuilder = mainBuilder.AddShiftableDemandAnyDay(demand,
-                noSoonerThan: DateTime.Today.AddYears(-1),
-                noLaterThan: DateTime.Today.AddDays(shiftable.OverNumberOfDays),
+                noSoonerThan: today.AddYears(-1),
+                noLaterThan: today.AddDays(shiftable.OverNumberOfDays),
                 shiftable.Priority,
                 shiftable.DontRepeatWithin);
         }
 
-        var days = input.DayTemplates
-            .Select(f =>
+        var days = Enumerable.Range(0, parameters.DaysToRecommendOver)
+            .Select(daysFromNow =>
             {
-                int dayNumber = (int)DateTime.Today.DayOfWeek - (int)f.DayOfWeek;
-                if (dayNumber < 0) dayNumber += 7;
-
-                DateTime date = DateTime.Today.AddDays(dayNumber);
-                return (Date: date, Template: f);
+                DateTime date = today.AddDays(daysFromNow);
+                var template = input.DayTemplates.FirstOrDefault(f => f.DayOfWeek == date.DayOfWeek) ?? throw new InvalidStateException($"Input is missing a day template for {date.DayOfWeek}");
+                return (Date: date, Template: template);
             })
             .OrderBy(f => f.Date)
             .Take(parameters.DaysToRecommendOver);
@@ -112,6 +113,16 @@ public class UserRecommendationService
 
         var algorithm = dayBuilder.Build();
         var recommendations = algorithm.DecideStrategy();
+
+        // Some elements are determined by this service rather than the algorithm:
+        recommendations = recommendations with
+        {
+            CompletedDemands = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Today).ToArray(),
+            Evaluation = recommendations.Evaluation with
+            {
+                ChargeRateLimit = plant.ChargeRateWithSafetyFactor(recommendations.Evaluation.ChargeRateLimit, plantSpec.AlgorithmSettings.ChargeRateLimitScalar)
+            }
+        };
 
         try
         {

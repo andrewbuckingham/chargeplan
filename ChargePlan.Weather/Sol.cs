@@ -4,23 +4,21 @@ public static class Sol
 {
     /// <summary>
     /// In Radians.
+    /// Note that the plane elevation at right-angles to the Sun will produce maximum. I.e. a plane elevation of 0 radians (laying on the ground)
+    /// with the Sun directly overhead will produce a maximum.
     /// </summary>
-    public static double DniToIrradiation(double dni, double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation)
+    public static double DniToIrradiation(double dni, double planeAzimuth, double planeElevation, double sunAzimith, double sunElevation, double? diffuseIrradiation)
     {
         // Not much light if it's below the horizon...
-        if (sunElevation < 0) return 0.0;
+        if (sunElevation < 0) return diffuseIrradiation ?? 0.0;
 
         double azimuth = sunAzimith - planeAzimuth;
         double elevation = sunElevation - planeElevation;
 
-        // Likewise if it's past normal to the panel front face.
-        if (Math.Abs(azimuth) > Math.PI / 2) return 0.0;
-        if (Math.Abs(elevation) > Math.PI / 2) return 0.0;
-
-        return Math.Max(0.0, dni * Math.Cos(azimuth) * Math.Cos(elevation));
+        return Math.Max(diffuseIrradiation ?? 0.0, dni * Math.Max(0.0f, Math.Cos(azimuth)) * Math.Max(0.0f, Math.Sin(Math.Abs(elevation))));
     }
 
-    public static (double Altitude, double Azimuth) SunPositionRads(DateTime dateTime, double latitudeDegrees, double longitudeDegrees)
+    public static (double Altitude, double Azimuth) SunPositionRads(DateTime dateTime, float latitudeDegrees, float longitudeDegrees)
     {
         // double latRadians = latitudeDegrees * Math.PI / 180.0;
         // double declination = DeclinationRads(dateTime);
@@ -38,6 +36,6 @@ public static class Sol
         return (result.Altitude, result.Azimuth);
     }
 
-    public static double ToDegrees(this double rads) => rads * 180.0 / Math.PI;
-    public static double ToRads(this double degrees) => degrees * Math.PI / 180;
+    public static float ToDegrees(this double rads) => (float)(rads * 180.0 / Math.PI);
+    public static double ToRads(this float degrees) => (double)degrees * Math.PI / 180.0;
 }

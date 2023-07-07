@@ -5,7 +5,7 @@ namespace ChargePlan.Domain;
 
 public record Calculator(IPlant PlantTemplate)
 {
-    private static TimeSpan TimeStep = TimeSpan.FromMinutes(15);
+    public static readonly TimeSpan TimeStep = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Calculate the end position in battery charge, and accumulated costs,
@@ -85,6 +85,7 @@ public record Calculator(IPlant PlantTemplate)
             debugResults.Add(new(
                 now,
                 plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, plant.LastIntegration.GridExport, cost, undercharge, overcharge,
+                new(step.Power(generationEnergy)),
                 demandEnergies.Select(f => new IntegrationStepDemandEnergy(f.Profile.Name, f.Profile.Type, (float)f.Energy)).ToArray()
             ));
         }

@@ -6,20 +6,20 @@ namespace ChargePlan.Domain.Splines;
 public enum InterpolationType
 {
     Undefined = 0,
-    CubicAkima,
+    CubicSpline,
     Step,
 }
 
 public record InterpolationFactory(
-    InterpolationType Baseload = InterpolationType.CubicAkima,
+    InterpolationType Baseload = InterpolationType.CubicSpline,
     InterpolationType ShiftableDemand = InterpolationType.Step,
-    InterpolationType Generation = InterpolationType.CubicAkima,
+    InterpolationType Generation = InterpolationType.CubicSpline,
     InterpolationType Charging = InterpolationType.Step,
     InterpolationType Pricing = InterpolationType.Step,
     InterpolationType Export = InterpolationType.Step
     ) : IInterpolationFactory
 {
-    private IInterpolation CreateCubicSplineAkima(IEnumerable<double> xValues, IEnumerable<double> yValues)
+    private IInterpolation CreateCubicSpline(IEnumerable<double> xValues, IEnumerable<double> yValues)
         => new MathNetWrapper(MathNet.Numerics.Interpolation.CubicSpline.InterpolateAkima(xValues, yValues));
 
     private IInterpolation CreateStepInterpolation(IEnumerable<double> xValues, IEnumerable<double> yValues)
@@ -27,7 +27,7 @@ public record InterpolationFactory(
 
     private Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> From(InterpolationType type) => type switch
     {
-        InterpolationType.CubicAkima => CreateCubicSplineAkima,
+        InterpolationType.CubicSpline => CreateCubicSpline,
         InterpolationType.Step => CreateStepInterpolation,
         _ => throw new InvalidOperationException()
     };
@@ -40,8 +40,8 @@ public record InterpolationFactory(
     public IInterpolation InterpolateExport(IEnumerable<double> xValues, IEnumerable<double> yValues) => From(Export)(xValues, yValues);
 }
 
-file record MathNetWrapper(MathNet.Numerics.Interpolation.IInterpolation wrapped) : IInterpolation
+file record MathNetWrapper(MathNet.Numerics.Interpolation.IInterpolation Wrapped) : IInterpolation
 {
-    public double Integrate(double a, double b) => wrapped.Integrate(a, b);
-    public double Interpolate(double t) => wrapped.Interpolate(t);
+    public double Integrate(double a, double b) => Wrapped.Integrate(a, b);
+    public double Interpolate(double t) => Wrapped.Interpolate(t);
 }

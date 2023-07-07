@@ -2,7 +2,8 @@ namespace ChargePlan.Domain.Solver;
 
 public record Recommendations(
     Evaluation Evaluation,
-    IEnumerable<ShiftableDemandRecommendation> ShiftableDemands
+    IEnumerable<ShiftableDemandRecommendation> ShiftableDemands,
+    IEnumerable<DemandCompleted> CompletedDemands
 );
 
 public record ShiftableDemandRecommendation(

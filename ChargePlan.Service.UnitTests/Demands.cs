@@ -33,7 +33,7 @@ public class Demands
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(1.0M * 24.0M - 0.25M * 1.0M, result.Evaluation.TotalCost);
+        Assert.Equal(1.0M * 24.0M - 1.0M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 2);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class Demands
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 24.0M - 0.25M * 0.5M, result.Evaluation.TotalCost, 1);
+        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
     }
 
     [Fact]
@@ -110,6 +110,6 @@ public class Demands
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(12.0M - 0.25M * 0.25M, result.Evaluation.TotalCost, 0);
+        Assert.Equal(12.0M - 0.25M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 0);
     }
 }

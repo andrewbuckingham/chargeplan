@@ -35,48 +35,25 @@ public class UserProfileFunctions
     public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/hashes")] HttpRequestData req)
         => req.CreateWithService<DemandCompleted, IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandAsHash), _service.PostCompletedDemandAsHash);
 
-    [Function(nameof(PostCompletedDemandMatchFirstType))]
-    public Task<HttpResponseData> PostCompletedDemandMatchFirstType([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/today/types")] HttpRequestData req)
-        => req.CreateWithService<IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandMatchFirstType), _service.PostCompletedDemandMatchFirstType);
+    [Function(nameof(PostCompletedDemandTodayType))]
+    public Task<HttpResponseData> PostCompletedDemandTodayType([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/today/types/{type}")] HttpRequestData req, string type)
+        => req.CreateWithService<IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandTodayType), (_) => _service.PostCompletedDemandTodayType(type));
 
-    [Function(nameof(GetCompletedDemandsToday))]
-    public Task<HttpResponseData> GetCompletedDemandsToday([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/demands/completed/today/types")] HttpRequestData req)
-        => req.CreateWithService<IEnumerable<DemandCompleted>>(_logger, nameof(GetCompletedDemandsToday), _service.GetCompletedDemandsToday);
+    [Function(nameof(GetCompletedDemandsTodayType))]
+    public Task<HttpResponseData> GetCompletedDemandsTodayType([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/demands/completed/today/types/{type}")] HttpRequestData req, string type)
+        => req.GetFromService<IEnumerable<DemandCompleted>>(_logger, nameof(GetCompletedDemandsTodayType), () => _service.GetCompletedDemandsTodayType(type));
 
-    [Function(nameof(DeleteCompletedDemandToday))]
-    public Task<HttpResponseData> DeleteCompletedDemandToday([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/me/demands/completed/today/types/{type}")] HttpRequestData req, string type)
-        => req.DeleteWithService<IEnumerable<DemandCompleted>>(_logger, nameof(DeleteCompletedDemandToday), _service.DeleteCompletedDemandToday(type));
+    [Function(nameof(DeleteCompletedDemandTodayType))]
+    public Task<HttpResponseData> DeleteCompletedDemandTodayType([HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "user/me/demands/completed/today/types/{type}")] HttpRequestData req, string type)
+        => req.DeleteWithService<IEnumerable<DemandCompleted>>(_logger, nameof(DeleteCompletedDemandTodayType), _service.DeleteCompletedDemandTodayType(type));
 
-    // [Function(nameof(PostCompletedDemandAsHash))]
-    // public async Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed")] HttpRequestData req)
-    // {
-    //     var queue = _queues.GetQueueClient("completeddemands");
-    //     await queue.CreateIfNotExistsAsync();
-    //     await queue.SendMessageAsync(await req.ReadAsStringAsync());
+#region Some overloads to help with clients that can't do DELETE verbs
+    [Function(nameof(GetCompletedDemandsTodayType_BadHttpClient))]
+    public Task<HttpResponseData> GetCompletedDemandsTodayType_BadHttpClient([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/demands/completed/today/types/{type}/delete")] HttpRequestData req, string type)
+        => req.GetFromService<IEnumerable<DemandCompleted>>(_logger, nameof(GetCompletedDemandsTodayType_BadHttpClient), () => _service.GetCompletedDemandsTodayType(type));
 
-    //     return req.CreateResponse(HttpStatusCode.Accepted);
-    // }
-
-    // [Function(nameof(ProcessCompletedDemandAsHash))]
-    // public async Task ProcessCompletedDemandAsHash([QueueTrigger("completeddemands")] string myQueueItem)
-    // {
-    //     _logger.LogInformation(nameof(ProcessCompletedDemandAsHash));
-
-    //     try
-    //     {
-    //         var demand = JsonSerializer.Deserialize<DemandCompleted>(myQueueItem);
-
-    //         if (demand == null)
-    //             return;
-
-    //         await _service.PostCompletedDemandAsHash(demand);
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         _logger.LogError(ex, $"Failed calling service {nameof(ProcessCompletedDemandAsHash)}");
-            
-    //         //return response;
-    //         throw;
-    //     }
-    // }
+    [Function(nameof(DeleteCompletedDemandTodayType_BadHttpClient))]
+    public Task<HttpResponseData> DeleteCompletedDemandTodayType_BadHttpClient([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/today/types/{type}/delete")] HttpRequestData req, string type)
+        => req.DeleteWithService<IEnumerable<DemandCompleted>>(_logger, nameof(DeleteCompletedDemandTodayType_BadHttpClient), _service.DeleteCompletedDemandTodayType(type));
+#endregion
 }

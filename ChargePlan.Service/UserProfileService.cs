@@ -15,50 +15,25 @@ public class UserProfileService
     private readonly UserPermissionsFacade _user;
     private readonly IUserPlantRepository _plant;
     private readonly IUserDemandCompletedRepository _completed;
-    private readonly IUserShiftableDemandRepository _shiftable;
+    private readonly IUserRecommendationsRepository _recommendations;
 
-    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed, IUserShiftableDemandRepository shiftable)
+    public UserProfileService(ILogger<UserProfileService> logger, UserPermissionsFacade user, IUserPlantRepository plant, IUserDemandCompletedRepository completed, IUserRecommendationsRepository recommendations)
     {
         _logger = logger;
         _user = user;
         _plant = plant;
         _completed = completed;
-        _shiftable = shiftable;
+        _recommendations = recommendations;
     }
 
     public async Task<UserPlantParameters> GetPlantParameters()
     {
-        return (await _plant.GetAsync(_user.Id)) ?? new(new());
+        return (await _plant.GetAsync(_user.Id)) ?? new();
     }
 
     public Task<UserPlantParameters> PutPlantParameters(UserPlantParameters plant)
     {
         return _plant.UpsertAsync(_user.Id, plant);
-    }
-
-    public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandMatchFirstType(string shiftableDemandType)
-    {
-        // This is a temporary solution. Should really have an index of hashes from the last run.
-        // Instead, synthesise all the hashes based on likely datetime ranges (today + {n..4} days)
-        // Also calls the proper PostCompleted call many times. A bit hacky.
-        var matchingDemands = (await _shiftable.GetAsyncOrEmpty(_user.Id))
-            .Where(f => f.Type == shiftableDemandType)
-            .CrossJoin(Enumerable.Range(1, 4)) // Where 4 is the max number of days most demands are likely to span...
-            .Select(f => f.Item1.AsShiftableDemand(
-                Domain.ShiftableDemandPriority.Low,
-                (DateTime.Today, DateTime.Today.AddDays(f.Item2)),
-                null));
-
-        foreach (var demand in matchingDemands)
-        {
-            await PostCompletedDemandAsHash(new DemandCompleted(
-                demand.AsDemandHash(),
-                DateTime.Now.ToLocalTime(),
-                demand.Name
-            ));
-        }
-
-        return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity.Where(f => f.DateTime.Date == DateTime.Today);
     }
 
     /// <summary>
@@ -99,19 +74,54 @@ public class UserProfileService
             return completedDemands.Entity;
         });
 
-    public async Task<IEnumerable<DemandCompleted>> GetCompletedDemandsToday(string arg)
+    public async Task<IEnumerable<DemandCompleted>> GetCompletedDemandsToday()
         => await Policy
             .Handle<ConcurrencyException>()
             .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
             .ExecuteAsync(async () =>
         {
             var completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
-            var result = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Now.Date).ToArray();
+            var result = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Today).ToArray();
 
             return result;
         });
 
-    public async Task DeleteCompletedDemandToday(string type)
+    public async Task<IEnumerable<DemandCompleted>> GetCompletedDemandsTodayType(string type)
+        => await Policy
+            .Handle<ConcurrencyException>()
+            .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+            .ExecuteAsync(async () =>
+        {
+            var completedDemands = await _completed.GetAsyncOrEmpty(_user.Id);
+            var result = completedDemands.Entity.Where(f => f.DateTime.Date == DateTime.Today && f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)).ToArray();
+
+            return result;
+        });
+
+    public async Task<IEnumerable<DemandCompleted>> PostCompletedDemandTodayType(string shiftableDemandType)
+        => await Policy
+                .Handle<ConcurrencyException>()
+                .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
+                .ExecuteAsync(async () =>
+        {
+            var matchingDemand = (await _recommendations.GetAsync(_user.Id) ?? throw new InvalidStateException("There is no stored data from the last run. Please run a demand calculation."))
+                .ShiftableDemands
+                .Where(f => f.StartAt.Date == DateTime.Today && f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
+                .FirstOrDefault() ?? throw new NotFoundException();
+                
+            await PostCompletedDemandAsHash(new DemandCompleted(
+                matchingDemand.DemandHash,
+                DateTime.Now.ToLocalTime(),
+                matchingDemand.Name,
+                matchingDemand.Type
+            ));
+
+            return (await _completed.GetAsyncOrEmpty(_user.Id)).Entity
+                .Where(f => f.DateTime.Date == DateTime.Today && f.Type.Equals(shiftableDemandType, StringComparison.InvariantCultureIgnoreCase))
+                .ToArray();
+        });
+
+    public async Task DeleteCompletedDemandTodayType(string type)
     => await Policy
             .Handle<ConcurrencyException>()
             .WaitAndRetryAsync(4, f => TimeSpan.FromSeconds(f))
@@ -129,19 +139,21 @@ public class UserProfileService
                 completedDemands = new(new DemandCompleted[] { }, String.Empty);
             }
 
-            if (completedDemands.Entity.Any(f => f.Name.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
+            if (completedDemands.Entity.Any(f => f.DateTime.Date == DateTime.Today && f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
             {
                 completedDemands = completedDemands with
                 {
                     Entity = completedDemands.Entity
                         .Where(f => f.DateTime > DateTime.Now.AddMonths(-1).ToLocalTime()) // Prune old ones
-                        .Where(f => f.Name.Equals(type, StringComparison.InvariantCultureIgnoreCase) == false)
+                        .Where(f => !(f.DateTime.Date == DateTime.Today && f.Type.Equals(type, StringComparison.InvariantCultureIgnoreCase)))
                         .ToArray()
                 };
 
                 completedDemands = await _completed.UpsertAsync(_user.Id, completedDemands);
             }
-
-            return completedDemands.Entity;
+            else
+            {
+                throw new NotFoundException();
+            }
         });
 }

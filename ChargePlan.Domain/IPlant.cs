@@ -16,6 +16,12 @@ public abstract record IPlant(PlantIntegration LastIntegration, PlantState State
     /// The charge rate for the battery in kW at a given scalar value (1.0 represents maximum)
     /// </summary>
     public abstract float ChargeRateAtScalar(float scalarValue);
+
+    /// <summary>
+    /// Take a charge rate (Watts/Kw) and modify it by a scalar, but capping it at the maximum charge rate.
+    /// </summary>
+    public float? ChargeRateWithSafetyFactor(float? chargeRate, float safetyScalarValue)
+        => chargeRate == null ? null : Math.Max(chargeRate.Value * safetyScalarValue, ChargeRateAtScalar(1.0f));
 }
 
 public record PlantIntegration(float GridCharged, float GridExport, float Shortfall, float Wasted);
