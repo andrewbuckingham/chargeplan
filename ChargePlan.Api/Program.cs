@@ -69,7 +69,8 @@ var host = new HostBuilder()
             .AddSingleton<IUserShiftableDemandRepository, UserShiftableDemandRepository>()
             .AddSingleton<IUserDayTemplatesRepository, UserDayTemplatesRepository>()
             .AddSingleton<IUserDemandCompletedRepository, UserDemandCompletedRepository>()
-            .AddSingleton<IUserRecommendationsRepository, UserRecommendationsRepository>();
+            .AddSingleton<IUserRecommendationsRepository, UserRecommendationsRepository>()
+            .AddSingleton<IForecastHistoryRepository, ForecastHistoryRepository>();
     })
     .Build();
 

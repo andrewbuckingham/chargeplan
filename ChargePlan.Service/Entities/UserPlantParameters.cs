@@ -43,7 +43,8 @@ public record ArraySpecification(
 );
 
 public record WeatherForecastSettings(
-    float SunlightScalar = 1.0f
+    float SunlightScalar = 1.0f,
+    float OvercastScalar = 1.0f
 );
 
 public record AlgorithmSettings(
