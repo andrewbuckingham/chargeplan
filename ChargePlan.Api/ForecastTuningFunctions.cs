@@ -21,7 +21,7 @@ public class ForecastTuningFunctions
     }
 
     [Function(nameof(StoreForecastHistory))]
-    public Task StoreForecastHistory([TimerTrigger("0 * * * *", RunOnStartup = true)]TimerInfo myTimer)
+    public Task StoreForecastHistory([TimerTrigger("0 * * * *")]TimerInfo myTimer)
         => _service.StoreForecastInHistory(new Guid(MyUserId));
 
     [Function(nameof(StoreEnergyHistory))]
@@ -30,5 +30,9 @@ public class ForecastTuningFunctions
 
     [Function(nameof(DetermineLatestForecastScalar))]
     public Task<HttpResponseData> DetermineLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/forecast/latestscalar")] HttpRequestData req)
-        => req.GetFromService<WeatherForecastSettings>(_logger, nameof(DetermineLatestForecastScalar), _service.DetermineLatestForecastScalar);
+        => req.GetFromService<WeatherForecastSettings>(_logger, nameof(DetermineLatestForecastScalar), () => _service.DetermineLatestForecastScalar());
+
+    [Function(nameof(DetermineAndApplyLatestForecastScalar))]
+    public Task<HttpResponseData> DetermineAndApplyLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/latestscalar")] HttpRequestData req)
+        => req.CreateWithService<WeatherForecastSettings>(_logger, nameof(DetermineAndApplyLatestForecastScalar), (_) => _service.DetermineAndApplyLatestForecastScalar());
 }

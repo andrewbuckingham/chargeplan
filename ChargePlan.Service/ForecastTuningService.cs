@@ -29,21 +29,6 @@ public class ForecastTuningService
 
     private readonly IUserRepositories _repos;
 
-    /// <summary>
-    /// Total history to store per forecast entry. This must exceed ForecastLengthToOptimiseFor.
-    /// </summary>
-    private static readonly TimeSpan MaximumForecastLengthToStore = TimeSpan.FromHours(24);
-
-    /// <summary>
-    /// Scalar should optimise for correcting the forecast at this distance in the future.
-    /// </summary>
-    private static readonly TimeSpan ForecastLengthToOptimiseFor = TimeSpan.FromHours(24);
-
-    /// <summary>
-    /// What rolling period to average over. Longer gives more stability, shorter reacts more quickly.
-    /// </summary>
-    private static readonly TimeSpan PeriodToAverageOver = TimeSpan.FromDays(7);
-
     public ForecastTuningService(ILogger<ForecastTuningService> logger,
         UserPermissionsFacade user,
         IDirectNormalIrradianceProvider dniWeatherProvider,
@@ -87,7 +72,7 @@ public class ForecastTuningService
         DateTimeOffset start = DateTimeOffset.Now.ToClosestHour();
         DateTimeOffset forecastFor = start;
         TimeSpan step = TimeSpan.FromHours(1);
-        while (forecastFor <= start + MaximumForecastLengthToStore)
+        while (forecastFor <= start + ForecastTuningSettings.MaximumForecastLengthToStore)
         {
             double from = (forecastFor).AsTotalHours();
             double to = (forecastFor + step).AsTotalHours();
@@ -120,6 +105,7 @@ public class ForecastTuningService
         // Ensure aligned to closest hour.
         energyDatapoints = energyDatapoints.Select(f=>f with { InHour = f.InHour.ToClosestHour() });
 
+        // New datapoints overwrite old ones from the same hour.
         var newDataTimestamps = energyDatapoints.Select(f=>f.InHour).ToHashSet();
         history.Entity.Values = history.Entity.Values.Where(f=>newDataTimestamps.Contains(f.InHour) == false).ToList();
         history.Entity.Values.AddRange(energyDatapoints);
@@ -131,24 +117,29 @@ public class ForecastTuningService
         return energyDatapoints;
     }
 
-    public async Task<WeatherForecastSettings> DetermineLatestForecastScalar()
+    public async Task<WeatherForecastSettings> DetermineLatestForecastScalar(ForecastTuningSettings? settings = null)
     {
+        settings ??= new();
+
         var forecastHistory = (await _forecastHistoryRepository.GetAsync(_user.Id))?.Entity ?? new();
         var energyHistory = (await _energyHistoryRepository.GetAsync(_user.Id))?.Entity ?? new();
 
         var now = DateTimeOffset.Now.ToClosestHour();
 
         var forecasts = forecastHistory
-            .GetHourlyForecastsForHorizon(ForecastLengthToOptimiseFor)
-            .Where(f=>f.ForHour > now - PeriodToAverageOver)
+            .GetHourlyForecastsForHorizon(settings.ForecastLengthToOptimiseFor)
+            .Where(f=>f.ForHour > now - settings.PeriodToAverageOver)
             .ToDictionary(f=>f.ForHour);
         
         var actuals = energyHistory.Values
-            .Where(f=>f.InHour > now - PeriodToAverageOver)
+            .Where(f=>f.InHour > now - settings.PeriodToAverageOver)
+            .Where(f=>f.InHour < now.AddHours(-1) && f.Energy >= settings.IgnoreEnergiesBelow) // Most recent data could be partial so ignore. Likewise small values.
             .ToDictionary(f=>f.InHour);
 
         // Match forecast and actuals.
-        var joined = forecasts.Join(actuals, f=>f.Key, f=>f.Key, (forecast,actual) => (DateTime: forecast.Key, Forecast: forecast.Value, Actual: actual.Value));
+        var joined = forecasts
+            .Join(actuals, f=>f.Key, f=>f.Key, (forecast,actual) => (DateTime: forecast.Key, Forecast: forecast.Value, Actual: actual.Value))
+            .ToArray();
 
         if (joined.Count() < 8) throw new InvalidStateException($"Too few datapoints for determining forecast scalar. Found {joined.Count()} but need at least 8.");
 
@@ -161,5 +152,16 @@ public class ForecastTuningService
         float scalar = totalActual / totalForecasted;
 
         return new WeatherForecastSettings(scalar, scalar);
+    }
+
+    public async Task<WeatherForecastSettings> DetermineAndApplyLatestForecastScalar(ForecastTuningSettings? settings = null)
+    {
+        var weather = await DetermineLatestForecastScalar(settings);
+
+        var plant = await _repos.Plant.GetAsync(_user.Id) ?? throw new InvalidStateException("No plant information exists for user");
+        plant = plant with { WeatherForecastSettings = weather };
+        await _repos.Plant.UpsertAsync(_user.Id, plant);
+
+        return weather;
     }
 }
