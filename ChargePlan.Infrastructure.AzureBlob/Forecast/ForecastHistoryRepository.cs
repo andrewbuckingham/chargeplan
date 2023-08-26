@@ -2,6 +2,7 @@ using System.Text.Json;
 using Azure.Storage.Blobs;
 using ChargePlan.Domain.Solver;
 using ChargePlan.Service.Entities;
+using ChargePlan.Service.Entities.ForecastTuning;
 using ChargePlan.Service.Infrastructure;
 
 namespace ChargePlan.Infrastructure.AzureBlob.User;

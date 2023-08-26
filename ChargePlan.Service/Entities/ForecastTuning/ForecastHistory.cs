@@ -1,7 +1,7 @@
 using ChargePlan.Domain.Exceptions;
 using ChargePlan.Domain;
 
-namespace ChargePlan.Service.Entities;
+namespace ChargePlan.Service.Entities.ForecastTuning;
 
 public class ForecastHistory
 {

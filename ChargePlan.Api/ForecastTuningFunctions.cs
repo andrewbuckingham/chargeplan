@@ -1,5 +1,7 @@
 using ChargePlan.Service;
+using ChargePlan.Service.Entities.ForecastTuning;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 
 namespace ChargePlan.Api;
@@ -18,6 +20,10 @@ public class ForecastTuningFunctions
     }
 
     [Function(nameof(StoreForecastHistory))]
-    public Task StoreForecastHistory([TimerTrigger("0 * * * *")]TimerInfo myTimer)
+    public Task StoreForecastHistory([TimerTrigger("0 * * * *", RunOnStartup = true)]TimerInfo myTimer)
         => _service.StoreForecastInHistory(new Guid(MyUserId));
+
+    [Function(nameof(StoreEnergyHistory))]
+    public Task<HttpResponseData> StoreEnergyHistory([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/energyhistory")] HttpRequestData req)
+        => req.CreateWithService<IEnumerable<EnergyDatapoint>, IEnumerable<EnergyDatapoint>>(_logger, nameof(StoreEnergyHistory), _service.StoreEnergyInHistory);
 }

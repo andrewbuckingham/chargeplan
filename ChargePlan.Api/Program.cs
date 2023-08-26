@@ -53,6 +53,7 @@ var host = new HostBuilder()
             .AddScoped<UserTemplateService>()
             .AddScoped<UserProfileService>()
             .AddScoped<AdhocRecommendationService>()
+            .AddScoped<ForecastTuningService>()
             .AddSingleton<IDirectNormalIrradianceProvider, DniProvider>()
             .AddSingleton<IPlantFactory, PlantFactory>()
             .AddSingleton<IInterpolationFactory, ChargePlan.Domain.Splines.InterpolationFactory>();
@@ -70,7 +71,8 @@ var host = new HostBuilder()
             .AddSingleton<IUserDayTemplatesRepository, UserDayTemplatesRepository>()
             .AddSingleton<IUserDemandCompletedRepository, UserDemandCompletedRepository>()
             .AddSingleton<IUserRecommendationsRepository, UserRecommendationsRepository>()
-            .AddSingleton<IForecastHistoryRepository, ForecastHistoryRepository>();
+            .AddSingleton<IForecastHistoryRepository, ForecastHistoryRepository>()
+            .AddSingleton<IEnergyHistoryRepository, EnergyHistoryRepository>();
     })
     .Build();
 
