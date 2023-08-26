@@ -29,7 +29,20 @@ public class ForecastTuningService
 
     private readonly IUserRepositories _repos;
 
+    /// <summary>
+    /// Total history to store per forecast entry. This must exceed ForecastLengthToOptimiseFor.
+    /// </summary>
     private static readonly TimeSpan MaximumForecastLengthToStore = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// Scalar should optimise for correcting the forecast at this distance in the future.
+    /// </summary>
+    private static readonly TimeSpan ForecastLengthToOptimiseFor = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// What rolling period to average over. Longer gives more stability, shorter reacts more quickly.
+    /// </summary>
+    private static readonly TimeSpan PeriodToAverageOver = TimeSpan.FromDays(7);
 
     public ForecastTuningService(ILogger<ForecastTuningService> logger,
         UserPermissionsFacade user,
@@ -104,6 +117,9 @@ public class ForecastTuningService
     {
         var history = await _energyHistoryRepository.GetAsync(_user.Id) ?? new(new(), String.Empty);
 
+        // Ensure aligned to closest hour.
+        energyDatapoints = energyDatapoints.Select(f=>f with { InHour = f.InHour.ToClosestHour() });
+
         var newDataTimestamps = energyDatapoints.Select(f=>f.InHour).ToHashSet();
         history.Entity.Values = history.Entity.Values.Where(f=>newDataTimestamps.Contains(f.InHour) == false).ToList();
         history.Entity.Values.AddRange(energyDatapoints);
@@ -113,5 +129,37 @@ public class ForecastTuningService
         _logger.LogInformation($"Added {energyDatapoints.Count()} datapoints to energy history");
 
         return energyDatapoints;
+    }
+
+    public async Task<WeatherForecastSettings> DetermineLatestForecastScalar()
+    {
+        var forecastHistory = (await _forecastHistoryRepository.GetAsync(_user.Id))?.Entity ?? new();
+        var energyHistory = (await _energyHistoryRepository.GetAsync(_user.Id))?.Entity ?? new();
+
+        var now = DateTimeOffset.Now.ToClosestHour();
+
+        var forecasts = forecastHistory
+            .GetHourlyForecastsForHorizon(ForecastLengthToOptimiseFor)
+            .Where(f=>f.ForHour > now - PeriodToAverageOver)
+            .ToDictionary(f=>f.ForHour);
+        
+        var actuals = energyHistory.Values
+            .Where(f=>f.InHour > now - PeriodToAverageOver)
+            .ToDictionary(f=>f.InHour);
+
+        // Match forecast and actuals.
+        var joined = forecasts.Join(actuals, f=>f.Key, f=>f.Key, (forecast,actual) => (DateTime: forecast.Key, Forecast: forecast.Value, Actual: actual.Value));
+
+        if (joined.Count() < 8) throw new InvalidStateException($"Too few datapoints for determining forecast scalar. Found {joined.Count()} but need at least 8.");
+
+        float totalForecasted = joined.Sum(f=>f.Forecast.Energy);
+        float totalActual = joined.Sum(f=>f.Actual.Energy);
+
+        if (totalForecasted < 1.0f) throw new InvalidStateException("Total forecasted energy is too small for determining forecast scalar.");
+        if (totalActual < 1.0f) throw new InvalidStateException("Total actual energy is too small for determining forecast scalar.");
+
+        float scalar = totalActual / totalForecasted;
+
+        return new WeatherForecastSettings(scalar, scalar);
     }
 }

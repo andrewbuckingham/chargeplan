@@ -1,4 +1,5 @@
 using ChargePlan.Service;
+using ChargePlan.Service.Entities;
 using ChargePlan.Service.Entities.ForecastTuning;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -26,4 +27,8 @@ public class ForecastTuningFunctions
     [Function(nameof(StoreEnergyHistory))]
     public Task<HttpResponseData> StoreEnergyHistory([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/energyhistory")] HttpRequestData req)
         => req.CreateWithService<IEnumerable<EnergyDatapoint>, IEnumerable<EnergyDatapoint>>(_logger, nameof(StoreEnergyHistory), _service.StoreEnergyInHistory);
+
+    [Function(nameof(DetermineLatestForecastScalar))]
+    public Task<HttpResponseData> DetermineLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/forecast/latestscalar")] HttpRequestData req)
+        => req.GetFromService<WeatherForecastSettings>(_logger, nameof(DetermineLatestForecastScalar), _service.DetermineLatestForecastScalar);
 }
