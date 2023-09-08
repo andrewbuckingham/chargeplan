@@ -9,3 +9,4 @@ services:
       dockerfile: Dockerfile
     ports:
       - 8080:80
+    platform: linux/arm64/v8
