@@ -13,7 +13,7 @@ public interface IDirectNormalIrradianceProvider
 /// <param name="DiffuseWatts">Watts of sunlight from diffuse sky (i.e. shaded surface). Null if unknown.</param>
 /// <param name="CloudCoverPercent">Cloud cover percentage at the time of the estimate. Null if unknown.</param>
 public record DniValue(
-    DateTime DateTime,
+    DateTimeOffset DateTime,
     float DirectWatts,
     float? DiffuseWatts,
     int? CloudCoverPercent

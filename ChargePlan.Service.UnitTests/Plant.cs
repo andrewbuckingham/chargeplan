@@ -2,9 +2,9 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Plant
 {
-    private static IPlant LimitedThroughputPlant(float throughput) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, 100, 0);
-    private static IPlant LimitedCapacityBattery(float capacity) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, 100, 0);
-    private static IPlant LimitedDischargeBattery(float throughput) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, 100, 0);
+    private static IPlant LimitedThroughputPlant(float throughput, float chargingEfficiency = 1.0f) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, chargingEfficiency, 100, 0);
+    private static IPlant LimitedCapacityBattery(float capacity, float chargingEfficiency = 1.0f) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, chargingEfficiency, 100, 0);
+    private static IPlant LimitedDischargeBattery(float throughput, float chargingEfficiency = 1.0f) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, chargingEfficiency, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
         Values: new()

@@ -5,30 +5,11 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Weather
 {
-    private const double _whAtLatitude = 3.4;
+    private const double _whAtLatitude = 4.2;//3.4;
 
-    private DateTime _solstice = new DateTime(DateTime.Today.Year, 06, 21, 12, 00, 00);
+    private DateTimeOffset _solstice = new DateTimeOffset(DateTime.Today.Year, 06, 21, 12, 00, 00, TimeSpan.Zero);
     private IDirectNormalIrradianceProvider UnitDni() => new DummyDni(_solstice);
-    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 100, 0);
-    private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new(
-        Name: "Constant Demand",
-        Values: new()
-        {
-            new (TimeOnly.MinValue, kw),
-            new (new(04,00), kw),
-            new (new(08,00), kw),
-            new (new(12,00), kw),
-            new (TimeOnly.MaxValue, kw)
-        }
-    );
-    private static PriceAtAbsoluteTimes ConstantPrice(decimal perHour) => new(
-        Name: $"{perHour} per hour",
-        Values: new()
-        {
-            new (TimeOnly.MinValue, perHour),
-        }
-    );
-
+    private InterpolationFactory InterpolationFactory() => new InterpolationFactory(Generation: InterpolationType.Step);
 
     // [Fact]
     // public async Task WithUnitIrradiance_ProducesCorrectTrig()
@@ -72,7 +53,7 @@ public class Weather
             .WithDniSource(UnitDni())
             .BuildAsync();
 
-        var spline = weather.AsSpline(new InterpolationFactory().InterpolateGeneration);
+        var spline = weather.AsSpline(InterpolationFactory().InterpolateGeneration);
         double wattHours = spline.Integrate(_solstice.Date.AsTotalHours(), _solstice.Date.AddDays(1).AsTotalHours());
         Assert.Equal(expectedWh, wattHours, 2);
     }
@@ -94,7 +75,7 @@ public class Weather
             }))
             .BuildAsync();
 
-        var spline = weather.AsSpline(new InterpolationFactory().InterpolateGeneration);
+        var spline = weather.AsSpline(InterpolationFactory().InterpolateGeneration);
         double wattHours = spline.Integrate(_solstice.Date.AsTotalHours(), _solstice.Date.AddDays(1).AsTotalHours());
         Assert.Equal(expectedWh, wattHours, 1);
     }
@@ -114,19 +95,19 @@ public class Weather
     }
 }
 
-file record DummyDni(DateTime day) : IDirectNormalIrradianceProvider
+file record DummyDni(DateTimeOffset day) : IDirectNormalIrradianceProvider
 {
     public async Task<IEnumerable<DniValue>> GetDniForecastAsync()
     {
         IEnumerable<DniValue> Iterate()
         {
-            DateTime dt = day.Date;
-            DateTime end = day.Date.AddDays(4);
+            DateTimeOffset dt = day.Date;
+            DateTimeOffset end = day.Date.AddDays(4);
 
             while (dt < end)
             {
-                yield return new DniValue(dt, 1000.0f, null, 0);
-                dt += TimeSpan.FromHours(1);
+                yield return new DniValue(dt.LocalDateTime, 1000.0f, null, 0);
+                dt += TimeSpan.FromHours(0.5);
             }
         };
 
