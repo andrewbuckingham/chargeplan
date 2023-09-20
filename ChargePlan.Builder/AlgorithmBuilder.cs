@@ -14,10 +14,11 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         PlantState InitialState,
         ShiftableDemand[] ShiftableDemands,
         DemandCompleted[] CompletedDemands,
-        DateTime? ExplicitStartDate)
+        DateTime? ExplicitStartDate,
+        AlgorithmPrecision AlgorithmPrecision)
 {
     public AlgorithmBuilder(IPlant plantTemplate, IInterpolationFactory interpolationFactory)
-        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), interpolationFactory, plantTemplate.State, new ShiftableDemand[] {}, new DemandCompleted[] {}, null) {}
+        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), interpolationFactory, plantTemplate.State, new ShiftableDemand[] {}, new DemandCompleted[] {}, null, AlgorithmPrecision.Default) {}
 
     /// <summary>
     /// Set how much energy is in the battery storage at the start of the period.
@@ -42,6 +43,9 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         => this with { GenerationProfile = new GenerationProfile() { Values = kwhFigures.Select(f => new GenerationValue(f.DateTime, f.Power)).ToList() } };
     public AlgorithmBuilder WithGeneration(IGenerationProfile generationProfile)
         => this with { GenerationProfile = generationProfile };
+
+    public AlgorithmBuilder WithPrecision(AlgorithmPrecision precision)
+        => this with { AlgorithmPrecision = precision };
 
     /// <summary>
     /// Add a demand which needs to be run at some point on any day, and the algorithm will determine the optimum day and time to run it.
@@ -70,5 +74,5 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
 }

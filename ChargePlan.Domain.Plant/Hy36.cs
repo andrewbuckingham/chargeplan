@@ -12,7 +12,7 @@ public record Hy36(
     private float UpperBoundsKilowattHrs => (float)DepthOfDischargePercent * CapacityKilowattHrs / 100.0f;
     private float LowerBoundsKilowattHrs => (float)ReservePercent * CapacityKilowattHrs / 100.0f;
     private float BatteryChargingEfficiencyScalar => 1.0f - (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f;
-    private float BatteryDischargingEfficiencyScalar => BatteryRoundRoundTripEfficiencyScalar;
+    private float BatteryDischargingEfficiencyScalar => 1.0f + (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f;
 
     public override float ChargeRateAtScalar(float atScalarValue) => Math.Max(0.0f, Math.Min(1.0f, MaxChargeKilowatts * atScalarValue));
 

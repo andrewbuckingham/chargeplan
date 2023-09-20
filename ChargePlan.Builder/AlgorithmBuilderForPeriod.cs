@@ -15,6 +15,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         ShiftableDemand[] ShiftableDemands,
         DemandCompleted[] CompletedDemands,
         DateTime? ExplicitStartDate,
+        AlgorithmPrecision AlgorithmPrecision,
         params DateTime[] Days)
 {
     public AlgorithmBuilderForPeriod AddChargeWindow(PowerAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { ChargeProfile = builder.ChargeProfile.Add(template.AsChargeProfile(day.Date)) });
@@ -42,7 +43,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
 
     private AlgorithmBuilderForPeriod AddForEachDay(Func<AlgorithmBuilderForPeriod, DateTime, AlgorithmBuilderForPeriod> action)
     {
@@ -65,5 +66,6 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         InitialState,
         ShiftableDemands,
         CompletedDemands.Select(f => f.DemandHash).ToHashSet(),
-        ExplicitStartDate);
+        ExplicitStartDate,
+        AlgorithmPrecision);
 }

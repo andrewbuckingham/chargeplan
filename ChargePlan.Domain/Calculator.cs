@@ -5,7 +5,7 @@ namespace ChargePlan.Domain;
 
 public record Calculator(IPlant PlantTemplate)
 {
-    public static readonly TimeSpan TimeStep = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan DefaultTimeStep = TimeSpan.FromMinutes(5);
 
     /// <summary>
     /// Calculate the end position in battery charge, and accumulated costs,
@@ -30,12 +30,13 @@ public record Calculator(IPlant PlantTemplate)
         IExportProfile exportProfile,
         IInterpolationFactory interpolationFactory,
         PlantState initialState,
+        TimeSpan timeStep,
         float? chargePowerLimit = null,
         DateTimeOffset? explicitStartDate = null)
     {
         IPlant plant = PlantTemplate with { State = initialState };
 
-        TimeSpan step = TimeStep;
+        TimeSpan step = timeStep;
 
         DateTimeOffset startAt = (explicitStartDate ?? new DateTimeOffset(baseloadDemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
         DateTimeOffset endAt = baseloadDemandProfile.Until - step;
@@ -90,7 +91,7 @@ public record Calculator(IPlant PlantTemplate)
             ));
         }
 
-        var overchargeAndUnderchargePeriods = CalculateOverchargePeriods(debugResults);
+        var overchargeAndUnderchargePeriods = CalculateOverchargePeriods(debugResults, timeStep);
 
         return new Evaluation(
             chargePowerLimit,
@@ -103,11 +104,11 @@ public record Calculator(IPlant PlantTemplate)
     private enum Direction { Indeterminate = 0, Undercharge, Overcharge };
     private record Accumulator(float Amount, Direction Direction, DateTimeOffset Since);
 
-    private (List<OverchargePeriod> Overcharge, List<UnderchargePeriod> Undercharge) CalculateOverchargePeriods(IEnumerable<IntegrationStep> integrationSteps)
+    private (List<OverchargePeriod> Overcharge, List<UnderchargePeriod> Undercharge) CalculateOverchargePeriods(IEnumerable<IntegrationStep> integrationSteps, TimeSpan timeStep)
     {
         List<OverchargePeriod> overchargePeriods = new();
         List<UnderchargePeriod> underchargePeriods = new();
-        Accumulator accumulator = new(0.0f, Direction.Indeterminate, integrationSteps.First().DateTime - TimeStep);
+        Accumulator accumulator = new(0.0f, Direction.Indeterminate, integrationSteps.First().DateTime - timeStep);
 
         var sourceData = integrationSteps
             .Zip(integrationSteps.Skip(1).Append(null))

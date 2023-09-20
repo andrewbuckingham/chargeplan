@@ -25,7 +25,8 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
     PlantState InitialState,
     ShiftableDemand[] ShiftableDemands,
     DemandCompleted[] CompletedDemands,
-    DateTime? ExplicitStartDate) : AlgorithmBuilder(PlantTemplate,
+    DateTime? ExplicitStartDate,
+    AlgorithmPrecision AlgorithmPrecision) : AlgorithmBuilder(PlantTemplate,
         DemandProfile,
         GenerationProfile,
         ChargeProfile,
@@ -35,7 +36,8 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
         InitialState,
         ShiftableDemands,
         CompletedDemands,
-        ExplicitStartDate)
+        ExplicitStartDate,
+        AlgorithmPrecision)
 {
     public AdvancedAlgorithmBuilder AddChargeWindow(PowerAtAbsoluteTimes template, DateTime day) => this with { ChargeProfile = ChargeProfile.Add(template.AsChargeProfile(day.Date)) };
     public AdvancedAlgorithmBuilder AddDemand(PowerAtAbsoluteTimes template, DateTime day) => this with { DemandProfile = DemandProfile.Add(template.AsDemandProfile(day.Date)) };
