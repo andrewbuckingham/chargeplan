@@ -115,10 +115,12 @@ public record Hy36(
     {
         if (isGridCharge) return (state, 0.0f, energy);
 
-        float shortfallDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit);
-        float shortfallDueToEmpty = -Math.Min(0, (state.BatteryEnergy - LowerBoundsKilowattHrs) - energy);
+        float energyIncludingLosses = energy * BatteryDischargingEfficiencyScalar;
 
-        float deltaforBattery = Math.Min(energy * BatteryDischargingEfficiencyScalar, energyDeltaLimit);
+        float shortfallDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit);
+        float shortfallDueToEmpty = -Math.Min(0, (state.BatteryEnergy - LowerBoundsKilowattHrs) - energyIncludingLosses);
+
+        float deltaforBattery = Math.Min(energyIncludingLosses, energyDeltaLimit);
 
         float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - deltaforBattery);
 
