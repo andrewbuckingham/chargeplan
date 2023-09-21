@@ -132,7 +132,7 @@ var generation = await new WeatherBuilder(45.0f, 0.0f, 54.528728f, -1.553050f)
 
 Console.WriteLine(generation.ToString());
 
-var algorithm = new AlgorithmBuilder(new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 80, 5), new ChargePlan.Domain.Splines.InterpolationFactory())
+var algorithm = new AlgorithmBuilder(new PlantFactory().CreatePlant("Hy36"), new ChargePlan.Domain.Splines.InterpolationFactory())
     .WithInitialBatteryEnergy(0.3f)
     .WithExplicitStartDate(DateTime.Today)
     .WithGeneration(generation)

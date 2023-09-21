@@ -2,9 +2,9 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Plant
 {
-    private static IPlant LimitedThroughputPlant(float throughput) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, 100, 0);
-    private static IPlant LimitedCapacityBattery(float capacity) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, 100, 0);
-    private static IPlant LimitedDischargeBattery(float throughput) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, 100, 0);
+    private static IPlant LimitedThroughputPlant(float throughput, float chargingEfficiency = 1.0f) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, chargingEfficiency, 100, 0);
+    private static IPlant LimitedCapacityBattery(float capacity, float chargingEfficiency = 1.0f) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, chargingEfficiency, 100, 0);
+    private static IPlant LimitedDischargeBattery(float throughput, float chargingEfficiency = 1.0f) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, chargingEfficiency, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
         Values: new()
@@ -40,7 +40,7 @@ public class Plant
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
+        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public class Plant
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
+        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
     }
 
     [Fact]
@@ -71,6 +71,6 @@ public class Plant
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 12.0M - 1.0M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 2);
+        Assert.Equal(0.5M * 12.0M - 1.0M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 2);
     }
 }

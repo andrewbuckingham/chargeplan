@@ -2,7 +2,7 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Demands
 {
-    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 100, 0);
+    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 1.0f, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
         Values: new()
@@ -33,7 +33,7 @@ public class Demands
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(1.0M * 24.0M - 1.0M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 2);
+        Assert.Equal(1.0M * 24.0M - 1.0M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 2);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class Demands
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
+        Assert.Equal(0.5M * 24.0M - 0.5M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 1);
     }
 
     [Fact]
@@ -110,6 +110,6 @@ public class Demands
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(12.0M - 0.25M * (decimal)Calculator.TimeStep.TotalHours, result.Evaluation.TotalCost, 0);
+        Assert.Equal(12.0M - 0.25M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 0);
     }
 }

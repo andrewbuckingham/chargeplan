@@ -11,7 +11,8 @@ public record Algorithm(
     PlantState InitialState,
     IEnumerable<IShiftableDemandProfile> ShiftableDemands,
     HashSet<string> CompletedDemands,
-    DateTimeOffset? ExplicitStartDate)
+    DateTimeOffset? ExplicitStartDate,
+    AlgorithmPrecision AlgorithmPrecision)
 {
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
@@ -116,7 +117,7 @@ public record Algorithm(
     {
         var chargeRates = Enumerable
             .Range(0, 101) // Go between 0 and 100%
-            .Chunk(5) // ...in steps of n%
+            .Chunk(AlgorithmPrecision.IterateInPercents) // ...in steps of n%
             .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent.First() / 100.0f));
 
         var results = chargeRates.Select(chargeLimit => new Calculator(PlantTemplate).Calculate(
@@ -128,6 +129,7 @@ public record Algorithm(
                 ExportProfile,
                 interpolationFactory,
                 InitialState,
+                AlgorithmPrecision.TimeStep,
                 chargeLimit,
                 ExplicitStartDate
             ))

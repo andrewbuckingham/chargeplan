@@ -21,11 +21,10 @@ public class DniProvider : IDirectNormalIrradianceProvider
 
         var entity = await JsonSerializer.DeserializeAsync<ResponseEntity>(response.Content.ReadAsStream()) ?? throw new InvalidOperationException();
 
-        // Note the OpenMeteo forecast is for the "preceding hour"
         var values = entity.hourly.time
             .Zip(entity.hourly.direct_normal_irradiance, entity.hourly.diffuse_radiation, entity.hourly.cloudcover)
             .Select(items => new DniValue(
-                DateTime: DateTime.Parse(items.First + ":00.000Z"),
+                DateTime: DateTime.Parse(items.First + ":00.000Z").AddHours(-1), // Note the OpenMeteo forecast is for the "preceding hour"
                 DirectWatts: (float)items.Second,
                 DiffuseWatts: (float?)items.Third,
                 CloudCoverPercent: items.Fourth)
