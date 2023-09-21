@@ -18,7 +18,7 @@ public static class Sol
         return Math.Max(diffuseIrradiation ?? 0.0, dni * Math.Max(0.0f, Math.Cos(azimuth)) * Math.Max(0.0f, Math.Sin(Math.Abs(elevation))));
     }
 
-    public static (double Altitude, double Azimuth) SunPositionRads(DateTime dateTime, float latitudeDegrees, float longitudeDegrees)
+    public static (double Altitude, double Azimuth) SunPositionRads(DateTimeOffset dateTime, float latitudeDegrees, float longitudeDegrees)
     {
         // double latRadians = latitudeDegrees * Math.PI / 180.0;
         // double declination = DeclinationRads(dateTime);
@@ -31,7 +31,7 @@ public static class Sol
         // azimuth = 360 * azimuth / (2.0 * Math.PI);;
 
         // return (altitude, azimuth);
-        var result = SunCalcSharp.SunCalc.GetPosition(dateTime, latitudeDegrees, longitudeDegrees);
+        var result = SunCalcSharp.SunCalc.GetPosition(dateTime.UtcDateTime, latitudeDegrees, longitudeDegrees);
 
         return (result.Altitude, result.Azimuth);
     }
