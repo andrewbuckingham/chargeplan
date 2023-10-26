@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace ChargePlan.Service.UnitTests;
 
 public class Plant
@@ -25,6 +27,16 @@ public class Plant
         Values: new()
         {
             new (TimeOnly.MinValue, perHour),
+        }
+    );
+    private static PriceAtAbsoluteTimes OctopusGoPrice(decimal perHourOvernight, decimal perHourDaytime) => new PriceAtAbsoluteTimes(
+        Name: $"{perHourOvernight}/{perHourDaytime} per hour",
+        Values: new()
+        {
+            new (TimeOnly.MinValue, perHourDaytime),
+            new (new TimeOnly(0, 30, 0), perHourOvernight),
+            new (new TimeOnly(4, 30, 0), perHourDaytime),
+            new (TimeOnly.MaxValue, perHourDaytime)
         }
     );
 
@@ -72,5 +84,33 @@ public class Plant
         var result = algorithm.DecideStrategy();
 
         Assert.Equal(0.5M * 12.0M - 1.0M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 2);
+    }
+
+    [Fact]
+    public void LimitedPlant_WhenGridChargingWithPoorSolar_HasUnlimitedThroughputAndUsesOvernightCharge()
+    {
+        var hugeShiftableDemand = PowerAtRelativeTimes.Empty() with {Values = new (TimeSpan RelativeTime, float Power)[]
+        {
+            (TimeSpan.Zero, 1.0f), // 1 kW for 2 hrs. Should exceed plant throughput when have multiple of them.
+            (new TimeSpan(2,0,0), 0.0f)
+        }.ToList()};
+
+        decimal perHourOvernight = 0.1M;
+        decimal perHourDaytime = 1.0M;
+        
+        var algorithm = new AlgorithmBuilder(LimitedThroughputPlant(1.0f), Interpolations.Step())
+            .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.1f, 0.1f }) // Tiny bit of daytime generation, sohuld be ignored
+            .AddShiftableDemandAnyDay(hugeShiftableDemand with { Name = "Demand 1" }, priority: ShiftableDemandPriority.Essential)
+            .AddShiftableDemandAnyDay(hugeShiftableDemand with { Name = "Demand 2" }, priority: ShiftableDemandPriority.Essential)
+            .AddShiftableDemandAnyDay(hugeShiftableDemand with { Name = "Demand 3" }, priority: ShiftableDemandPriority.Medium)
+            .AddShiftableDemandAnyDay(hugeShiftableDemand with { Name = "Demand 4" }, priority: ShiftableDemandPriority.Low)
+            .ForDay(DateTime.Today.AddDays(1))
+            .AddDemand(ConstantDemand(0.11f))
+            .AddPricing(OctopusGoPrice(perHourOvernight, perHourDaytime))
+            .Build();
+
+        var result = algorithm.DecideStrategy();
+
+        Assert.True(result.ShiftableDemands.All(f => f.StartAt == DateTime.Today.AddDays(1).AddMinutes(30))); // Everything starts as soon as the cheap overnight period begins.
     }
 }

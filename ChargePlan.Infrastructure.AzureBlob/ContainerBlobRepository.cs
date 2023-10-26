@@ -3,7 +3,7 @@ using Azure.Storage.Blobs;
 
 namespace ChargePlan.Infrastructure.AzureBlob;
 
-public abstract class ContainerBlobRepository<T> : BlobRepository<T>//, IRepository<T>
+public abstract class ContainerBlobRepository<T> : BlobRepository<T>
 {
     protected ContainerBlobRepository(BlobServiceClient blobServiceClient, JsonSerializerOptions jsonOptions) : base(blobServiceClient, jsonOptions)
     {

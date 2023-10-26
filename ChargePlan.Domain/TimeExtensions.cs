@@ -1,3 +1,5 @@
+using System.ComponentModel.Design;
+
 namespace ChargePlan.Domain;
 
 public static class TimeExtensions
@@ -34,4 +36,12 @@ public static class TimeExtensions
     /// </summary>
     public static DateTimeOffset OrAtEarliest(this DateTimeOffset dateTime, DateTimeOffset earliestAllowedDate)
         => dateTime.Ticks < earliestAllowedDate.Ticks ? earliestAllowedDate : dateTime;
+
+    /// <summary>
+    /// Start of the month.
+    /// </summary>
+    public static DateTimeOffset ToStartOfMonth(this DateTimeOffset dateTime) => new DateTimeOffset(
+        year: dateTime.Year, month: dateTime.Month, day: 1,
+        hour: 0, minute: 0, second: 0, dateTime.Offset
+    );
 }

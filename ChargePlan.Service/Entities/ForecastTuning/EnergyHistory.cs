@@ -8,7 +8,7 @@ namespace ChargePlan.Service.Entities.ForecastTuning;
 /// </summary>
 public class EnergyHistory
 {
-    public List<EnergyDatapoint> Values = new();
+    public List<EnergyDatapoint> Values = new();    
 }
 
 public record EnergyDatapoint(

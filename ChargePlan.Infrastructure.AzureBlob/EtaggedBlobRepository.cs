@@ -19,7 +19,7 @@ public class EtaggedBlobRepository<T>
         _jsonOptions = jsonOptions;
     }
 
-    public async Task<EtaggedEntity<T>?> GetAsync(string containerName, string blobName)
+    protected async Task<(T Entity, string ETag)?> GetBlobAsync(string containerName, string blobName)
     {
         var container = _blobServiceClient.GetBlobContainerClient(containerName);
         await container.CreateIfNotExistsAsync();
@@ -34,7 +34,7 @@ public class EtaggedBlobRepository<T>
 
             if (entity == null) return null;
 
-            return new(entity, etag);
+            return (entity, etag);
         }
         catch (Azure.RequestFailedException rfe)
         {
@@ -42,7 +42,7 @@ public class EtaggedBlobRepository<T>
         }
     }
 
-    public async Task<EtaggedEntity<T>> UpsertAsync(string containerName, string blobName, EtaggedEntity<T> entity)
+    protected async Task<(T Entity, string ETag)> UpsertBlobAsync(string containerName, string blobName, (T Entity, string ETag) entity)
     {
         var container = _blobServiceClient.GetBlobContainerClient(containerName);
         await container.CreateIfNotExistsAsync();
@@ -75,7 +75,7 @@ public class EtaggedBlobRepository<T>
         }
     }
 
-    public async Task DeleteAsync(string containerName, string blobName)
+    protected async Task DeleteBlobAsync(string containerName, string blobName)
     {
         var container = _blobServiceClient.GetBlobContainerClient(containerName);
         await container.CreateIfNotExistsAsync();

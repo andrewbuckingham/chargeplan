@@ -7,7 +7,7 @@ using ChargePlan.Service.Infrastructure;
 
 namespace ChargePlan.Infrastructure.AzureBlob.User;
 
-public class ForecastHistoryRepository : ContainerEtaggedBlobRepository<ForecastHistory>, IForecastHistoryRepository
+public class ForecastHistoryRepository : ContainerEtaggedBlobRepositoryWithId<ForecastHistory>, IForecastHistoryRepository
 {
     public ForecastHistoryRepository(BlobServiceClient blobServiceClient, JsonSerializerOptions jsonOptions) : base(blobServiceClient, jsonOptions)
     {
