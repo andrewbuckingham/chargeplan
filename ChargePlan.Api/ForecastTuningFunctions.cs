@@ -20,8 +20,11 @@ public class ForecastTuningFunctions
         _service = service ?? throw new ArgumentNullException(nameof(service));
     }
 
+#if DEBUGkjkjh
+#else
     [Function(nameof(StoreForecastHistory))]
-    public Task StoreForecastHistory([TimerTrigger("0 * * * *")]TimerInfo myTimer)
+#endif
+    public Task StoreForecastHistory([TimerTrigger("* * * * *")]TimerInfo myTimer)
         => _service.StoreForecastInHistory(new Guid(MyUserId));
 
     [Function(nameof(StoreEnergyHistory))]

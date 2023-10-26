@@ -67,7 +67,7 @@ public class ForecastTuningService
             .BuildAsync())
             .AsSpline(_interpolationFactory.InterpolateGeneration);
 
-        var history = await _forecastHistoryRepository.GetAsync(userId) ?? new(new(), String.Empty);
+        List<ForecastDatapoint> allForecastDatapoints = new();
 
         DateTimeOffset start = DateTimeOffset.Now.ToClosestHour();
         DateTimeOffset forecastFor = start;
@@ -78,7 +78,7 @@ public class ForecastTuningService
             double to = (forecastFor + step).AsTotalHours();
             float energy = Math.Max(0.0f, (float)forecastSpline.Integrate(from, to));
 
-            history.Entity.Values.Add(new ForecastDatapoint(
+            allForecastDatapoints.Add(new ForecastDatapoint(
                 ForHour: forecastFor,
                 ProducedAt: start,
                 Energy: energy,
@@ -88,41 +88,75 @@ public class ForecastTuningService
             forecastFor += step;
         }
 
-        history.Entity.Values = history.Entity.Values
-            .OrderBy(f=>f.ForHour)
-            .ThenBy(f=>f.ForecastLength)
-            .ToList();
+        var byMonth = allForecastDatapoints
+            .OrderBy(f => f.ForHour)
+            .ThenBy(f => f.ForecastLength)
+            .GroupBy(f => f.ForHour.ToStartOfMonth());
 
-        await _forecastHistoryRepository.UpsertAsync(userId, history);
+        foreach (var grouping in byMonth)
+        {
+            DateTimeOffset month = grouping.Key;
+            IEnumerable<ForecastDatapoint> forecastDatapoints = grouping;
+
+            var history = await _forecastHistoryRepository.GetAsync(userId, month) ?? _forecastHistoryRepository.Create(userId, month);
+
+            // New datapoints overwrite old ones from the same hour.
+            var newDataTimestamps = forecastDatapoints.Select(f => (f.ForHour, f.ProducedAt)).ToHashSet();
+            history.Entity.Values = history.Entity.Values.Where(f => newDataTimestamps.Contains((f.ForHour, f.ProducedAt)) == false).ToList();
+            history.Entity.Values.AddRange(forecastDatapoints);
+
+            await _forecastHistoryRepository.UpsertAsync(userId, history);        
+        }
 
         _logger.LogInformation($"Added forecast history at {start}");
     }
 
-    public async Task<IEnumerable<EnergyDatapoint>> StoreEnergyInHistory(IEnumerable<EnergyDatapoint> energyDatapoints)
+    public async Task<IEnumerable<EnergyDatapoint>> StoreEnergyInHistory(IEnumerable<EnergyDatapoint> allEnergyDatapoints)
     {
-        var history = await _energyHistoryRepository.GetAsync(_user.Id) ?? new(new(), String.Empty);
-
         // Ensure aligned to closest hour.
-        energyDatapoints = energyDatapoints.Select(f=>f with { InHour = f.InHour.ToClosestHour() });
+        allEnergyDatapoints = allEnergyDatapoints.Select(f => f with { InHour = f.InHour.ToClosestHour() });
 
-        // New datapoints overwrite old ones from the same hour.
-        var newDataTimestamps = energyDatapoints.Select(f=>f.InHour).ToHashSet();
-        history.Entity.Values = history.Entity.Values.Where(f=>newDataTimestamps.Contains(f.InHour) == false).ToList();
-        history.Entity.Values.AddRange(energyDatapoints);
+        var byMonth = allEnergyDatapoints.GroupBy(f => f.InHour.ToStartOfMonth());
 
-        await _energyHistoryRepository.UpsertAsync(_user.Id, history);        
+        foreach (var grouping in byMonth)
+        {
+            DateTimeOffset month = grouping.Key;
+            IEnumerable<EnergyDatapoint> energyDatapoints = grouping;
 
-        _logger.LogInformation($"Added {energyDatapoints.Count()} datapoints to energy history");
+            var history = await _energyHistoryRepository.GetAsync(_user.Id, month) ?? _energyHistoryRepository.Create(_user.Id, month);
 
-        return energyDatapoints;
+            // New datapoints overwrite old ones from the same hour.
+            var newDataTimestamps = energyDatapoints.Select(f => f.InHour).ToHashSet();
+            history.Entity.Values = history.Entity.Values.Where(f => newDataTimestamps.Contains(f.InHour) == false).ToList();
+            history.Entity.Values.AddRange(energyDatapoints);
+
+            await _energyHistoryRepository.UpsertAsync(_user.Id, history);        
+        }
+
+        _logger.LogInformation($"Added {allEnergyDatapoints.Count()} datapoints to energy history");
+
+        return allEnergyDatapoints;
     }
 
     public async Task<WeatherForecastSettings> DetermineLatestForecastScalar(ForecastTuningSettings? settings = null)
     {
         settings ??= new();
 
-        var forecastHistory = (await _forecastHistoryRepository.GetAsync(_user.Id))?.Entity ?? new();
-        var energyHistory = (await _energyHistoryRepository.GetAsync(_user.Id))?.Entity ?? new();
+        DateTimeOffset earliestDateToConsider = DateTimeOffset.Now - settings.PeriodToAverageOver;
+
+        var forecastHistory = new ForecastHistory()
+        {
+            Values = (await _forecastHistoryRepository.GetSinceAsync(_user.Id, earliestDateToConsider))
+                .SelectMany(f => f.Values)
+                .ToList()
+        };
+
+        var energyHistory = new EnergyHistory()
+        {
+            Values = (await _energyHistoryRepository.GetSinceAsync(_user.Id, earliestDateToConsider))
+                .SelectMany(f => f.Values)
+                .ToList()
+        };
 
         var now = DateTimeOffset.Now.ToClosestHour();
 

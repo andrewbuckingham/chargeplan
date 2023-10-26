@@ -3,6 +3,6 @@ using ChargePlan.Service.Entities.ForecastTuning;
 
 namespace ChargePlan.Service.Infrastructure;
 
-public interface IForecastHistoryRepository : IEtaggedRepository<ForecastHistory>
+public interface IForecastHistoryRepository : IEtaggedRepositoryByMonth<ForecastHistory>
 {
 }

@@ -7,7 +7,7 @@ using ChargePlan.Service.Infrastructure;
 
 namespace ChargePlan.Infrastructure.AzureBlob.User;
 
-public class EnergyHistoryRepository : ContainerEtaggedBlobRepository<EnergyHistory>, IEnergyHistoryRepository
+public class EnergyHistoryRepository : ContainerEtaggedBlobRepositoryWithId<EnergyHistory>, IEnergyHistoryRepository
 {
     public EnergyHistoryRepository(BlobServiceClient blobServiceClient, JsonSerializerOptions jsonOptions) : base(blobServiceClient, jsonOptions)
     {
