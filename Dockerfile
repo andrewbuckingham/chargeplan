@@ -8,9 +8,9 @@ RUN cd /src/dotnet-function-app && \
     mkdir -p /home/site/wwwroot && \
     dotnet publish ./ChargePlan.Api/*.csproj --output /home/site/wwwroot
 
-#FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated7.0
-FROM mohsinonxrm/azure-functions-dotnet:4-isolated7.0-arm64v8
-
+# To enable ssh & remote debugging on app service change the base image to the one below
+# FROM mcr.microsoft.com/azure-functions/dotnet-isolated:3.0-dotnet-isolated5.0-appservice
+FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated7.0
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
     TZ=Europe/London \
     AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
