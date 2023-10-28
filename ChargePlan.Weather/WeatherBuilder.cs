@@ -54,7 +54,7 @@ public record WeatherBuilder(IDirectNormalIrradianceProvider? DniProvider, float
                 float kw = IrradianceToPowerScalar * (float)irradiatedPower / 1000.0f;
                 kw = Math.Min(kw, (AbsolutePeakWatts ?? int.MaxValue) / 1000.0f);
 
-                return new GenerationValue(f.DateTime.LocalDateTime, kw);
+                return new GenerationValue(f.DateTime, kw);
             });
         }
         else

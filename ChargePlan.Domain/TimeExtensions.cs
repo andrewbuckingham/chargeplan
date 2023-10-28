@@ -27,7 +27,7 @@ public static class TimeExtensions
     /// <summary>
     /// Represent a datetime as a fractional number of hours since mindate.
     /// </summary>
-    public static double AsTotalHours(this DateTimeOffset dateTime) => (double)dateTime.Ticks / (double)TimeSpan.FromHours(1.0).Ticks;
+    public static double AsTotalHours(this DateTimeOffset dateTime) => (double)dateTime.UtcTicks / (double)TimeSpan.FromHours(1.0).Ticks;
 
     /// <summary>
     /// Align to the closest previous hour

@@ -75,8 +75,6 @@ public record Calculator(IPlant PlantTemplate)
             float generationEnergy = Math.Max(0.0f, (float)generationSpline.Integrate(from, to));
             float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
-            if (float.IsFinite(generationEnergy) == false) generationEnergy = 0.0f;
-
             plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step);
             
             plant.ThrowIfInvalid();
