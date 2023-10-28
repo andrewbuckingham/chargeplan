@@ -1,3 +1,5 @@
+using ChargePlan.Domain.Exceptions;
+
 namespace ChargePlan.Domain;
 
 public abstract record IPlant(PlantIntegration LastIntegration, PlantState State)
@@ -22,6 +24,14 @@ public abstract record IPlant(PlantIntegration LastIntegration, PlantState State
     /// </summary>
     public float? ChargeRateWithSafetyFactor(float? chargeRate, float safetyScalarValue)
         => chargeRate == null ? null : Math.Max(chargeRate.Value * safetyScalarValue, ChargeRateAtScalar(1.0f));
+
+    public void ThrowIfInvalid()
+    {
+        if (float.IsNaN(LastIntegration.GridCharged) || float.IsFinite(LastIntegration.GridCharged) == false) throw new InvalidStateException($"Invalid LastIntegration.GridCharged: {LastIntegration}");
+        if (float.IsNaN(LastIntegration.GridExport) || float.IsFinite(LastIntegration.GridExport) == false) throw new InvalidStateException($"Invalid LastIntegration.GridExport: {LastIntegration}");
+        if (float.IsNaN(LastIntegration.Shortfall) || float.IsFinite(LastIntegration.Shortfall) == false) throw new InvalidStateException($"Invalid LastIntegration.Shortfall: {LastIntegration}");
+        if (float.IsNaN(LastIntegration.Wasted) || float.IsFinite(LastIntegration.Wasted) == false) throw new InvalidStateException($"Invalid LastIntegration.Wasted: {LastIntegration}");
+    }
 }
 
 public record PlantIntegration(float GridCharged, float GridExport, float Shortfall, float Wasted);

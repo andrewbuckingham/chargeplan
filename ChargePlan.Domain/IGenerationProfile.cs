@@ -4,4 +4,4 @@ public interface IGenerationProfile : ISplineable<GenerationValue>
 {
 }
 
-public record GenerationValue(DateTime DateTime, float Power);
+public record GenerationValue(DateTimeOffset DateTime, float Power);

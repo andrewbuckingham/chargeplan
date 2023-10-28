@@ -24,7 +24,7 @@ public class DniProvider : IDirectNormalIrradianceProvider
         var values = entity.hourly.time
             .Zip(entity.hourly.direct_normal_irradiance, entity.hourly.diffuse_radiation, entity.hourly.cloudcover)
             .Select(items => new DniValue(
-                DateTime: DateTime.Parse(items.First + ":00.000Z").AddHours(-1), // Note the OpenMeteo forecast is for the "preceding hour"
+                DateTime: DateTime.ParseExact(items.First + ":00.000", "yyyy-MM-ddTHH:mm:ss.fff", null, System.Globalization.DateTimeStyles.AssumeLocal).AddHours(-1), // Note the OpenMeteo forecast is for the "preceding hour"
                 DirectWatts: (float)items.Second,
                 DiffuseWatts: (float?)items.Third,
                 CloudCoverPercent: items.Fourth)
