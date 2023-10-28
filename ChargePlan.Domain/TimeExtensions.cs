@@ -1,4 +1,5 @@
 using System.ComponentModel.Design;
+using ChargePlan.Domain.Exceptions;
 
 namespace ChargePlan.Domain;
 
@@ -12,7 +13,11 @@ public static class TimeExtensions
     /// <summary>
     /// Calculate average power to have produced this amount of energy over this duration.
     /// </summary>
-    public static float Power(this TimeSpan ts, float Energy) => Energy / (float)ts.TotalHours;
+    public static float Power(this TimeSpan ts, float Energy)
+    {
+        if (ts == TimeSpan.Zero) throw new InvalidStateException($"Cannot convert energy {Energy} to power over zero measure of time");
+        return Energy / (float)ts.TotalHours;
+    }
 
     /// <summary>
     /// Represent a datetime as a fractional number of hours since mindate.

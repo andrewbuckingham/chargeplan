@@ -42,6 +42,7 @@ public record Calculator(IPlant PlantTemplate)
         DateTimeOffset endAt = baseloadDemandProfile.Until - step;
 
         if (startAt < baseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
+        if (step <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeStep), timeStep, "Timestep must be positive");
 
         var demandSplines = Enumerable.Empty<(IInterpolation Interpolation, IDemandProfile Profile)>()
             .Append((Interpolation: baseloadDemandProfile.AsSpline(interpolationFactory.InterpolateBaseload), Profile: baseloadDemandProfile))
@@ -74,7 +75,11 @@ public record Calculator(IPlant PlantTemplate)
             float generationEnergy = Math.Max(0.0f, (float)generationSpline.Integrate(from, to));
             float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
+            if (float.IsFinite(generationEnergy) == false) generationEnergy = 0.0f;
+
             plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step);
+            
+            plant.ThrowIfInvalid();
 
             cost += (plant.LastIntegration.GridCharged + plant.LastIntegration.Shortfall) * unitPrice;
             cost -= (plant.LastIntegration.GridExport) * exportPrice;
@@ -93,9 +98,19 @@ public record Calculator(IPlant PlantTemplate)
 
         var overchargeAndUnderchargePeriods = CalculateOverchargePeriods(debugResults, timeStep);
 
+        decimal roundedCost;
+        try
+        {
+            roundedCost = Math.Round((decimal)cost, 2);
+        }
+        catch (OverflowException oe)
+        {
+            throw new InvalidStateException($"Calculation step resulted in invalid cost of {cost}", oe);
+        }
+
         return new Evaluation(
             chargePowerLimit,
-            Math.Round((decimal)cost, 2),
+            roundedCost,
             debugResults,
             overchargeAndUnderchargePeriods.Item1,
             overchargeAndUnderchargePeriods.Item2);

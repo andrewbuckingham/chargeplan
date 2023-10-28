@@ -36,6 +36,8 @@ public record Shading(IEnumerable<(float Altitude, float Azimuth)> Points)
             startX = endX; startY = endY;
             endPoint = polygon[i++];
             endX = endPoint.Azimuth; endY = endPoint.Altitude;
+
+            //if ((startY - endY) == 0.0f) throw new InvalidOperationException($"Cannot calculate Sun position shading because start and end points are the same. {String.Join(" ", Points.Select(f=>$"({f.Altitude},{f.Azimuth})"))}");
             //
             inside ^= (endY > pointY ^ startY > pointY) /* ? pointY inside [startY;endY] segment ? */
             && /* if so, test if it is under the segment */

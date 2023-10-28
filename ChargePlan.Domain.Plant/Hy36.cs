@@ -20,6 +20,11 @@ public record Hy36(
     {
         float wasted = 0.0f;
 
+        if (float.IsFinite(solarEnergy) == false) throw new ArgumentOutOfRangeException(nameof(solarEnergy), solarEnergy, "Must be finite");
+        if (float.IsFinite(chargeEnergy) == false) throw new ArgumentOutOfRangeException(nameof(chargeEnergy), chargeEnergy, "Must be finite");
+        if (float.IsFinite(demandEnergy) == false) throw new ArgumentOutOfRangeException(nameof(demandEnergy), demandEnergy, "Must be finite");
+        if (period <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(period), period, "Must be positive");
+
         // ----
         // Set some limits for energy being processed.
 
