@@ -94,9 +94,13 @@ public class UserTemplateService
         return _days.UpsertAsync(_user.Id, template);
     }
 
-    public async Task<DayTemplate> PutTomorrowsDemand(DayTemplate template)
+    public Task<DayTemplate> PutTomorrowsDemand(DayTemplate template) => PutRelativeDayDemand(template, 1);
+
+    public Task<DayTemplate> PutTodaysDemand(DayTemplate template) => PutRelativeDayDemand(template, 0);
+
+    private async Task<DayTemplate> PutRelativeDayDemand(DayTemplate template, int daysAhead)
     {
-        DayOfWeek tomorrow = DateTime.Today.AddDays(1).DayOfWeek;
+        DayOfWeek tomorrow = DateTime.Today.AddDays(daysAhead).DayOfWeek;
         template = template with { DayOfWeek = tomorrow };
 
         var days = await _days.GetAsync(_user.Id) ?? new(new(), new());
