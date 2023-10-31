@@ -93,4 +93,21 @@ public class UserTemplateService
     {
         return _days.UpsertAsync(_user.Id, template);
     }
+
+    public async Task<DayTemplate> PutTomorrowsDemand(DayTemplate template)
+    {
+        DayOfWeek tomorrow = DateTime.Today.AddDays(1).DayOfWeek;
+        template = template with { DayOfWeek = tomorrow };
+
+        var days = await _days.GetAsync(_user.Id) ?? new(new(), new());
+
+        days = days with { DayTemplates = days.DayTemplates.Where(f => f.DayOfWeek != tomorrow)
+            .Append(template)
+            .OrderBy(f => f.DayOfWeek)
+            .ToList() };
+
+        await _days.UpsertAsync(_user.Id, days);
+
+        return template;
+    }
 }

@@ -66,4 +66,8 @@ public class UserTemplateFunctions
     [Function(nameof(PutMyDayTemplates))]
     public Task<HttpResponseData> PutMyDayTemplates([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "builder/templates/days/me")] HttpRequestData req)
         => req.UpdateWithService<ChargePlanTemplatedParameters>(_logger, nameof(PutMyDayTemplates), _service.PutDayTemplates);
+
+    [Function(nameof(PutMyDayTemplateTomorrowDemand))]
+    public Task<HttpResponseData> PutMyDayTemplateTomorrowDemand([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "builder/templates/days/me/tomorrow")] HttpRequestData req)
+        => req.UpdateWithService<DayTemplate>(_logger, nameof(PutMyDayTemplateTomorrowDemand), _service.PutTomorrowsDemand);
 }
