@@ -1,4 +1,5 @@
 using ChargePlan.Builder.Templates;
+using ChargePlan.Domain.Exceptions;
 using ChargePlan.Service.Entities;
 using ChargePlan.Service.Facades;
 using ChargePlan.Service.Infrastructure;
@@ -92,5 +93,37 @@ public class UserTemplateService
     public Task<ChargePlanTemplatedParameters> PutDayTemplates(ChargePlanTemplatedParameters template)
     {
         return _days.UpsertAsync(_user.Id, template);
+    }
+
+    public Task<DayTemplate> GetTomorrowsDemand() => GetRelativeDayDemand(1);
+    public Task<DayTemplate> GetTodaysDemand() => GetRelativeDayDemand(0);
+    public Task<DayTemplate> PutTomorrowsDemand(DayTemplate template) => PutRelativeDayDemand(template, 1);
+    public Task<DayTemplate> PutTodaysDemand(DayTemplate template) => PutRelativeDayDemand(template, 0);
+
+    private async Task<DayTemplate> PutRelativeDayDemand(DayTemplate template, int daysAhead)
+    {
+        DayOfWeek when = DateTime.Today.AddDays(daysAhead).DayOfWeek;
+        template = template with { DayOfWeek = when };
+
+        var days = await _days.GetAsync(_user.Id) ?? new(new(), new());
+
+        days = days with { DayTemplates = days.DayTemplates.Where(f => f.DayOfWeek != when)
+            .Append(template)
+            .OrderBy(f => f.DayOfWeek)
+            .ToList() };
+
+        await _days.UpsertAsync(_user.Id, days);
+
+        return template;
+    }
+
+    private async Task<DayTemplate> GetRelativeDayDemand(int daysAhead)
+    {
+        DayOfWeek when = DateTime.Today.AddDays(daysAhead).DayOfWeek;
+
+        var days = await _days.GetAsync(_user.Id) ?? new(new(), new());
+        var template = days.DayTemplates.SingleOrDefault(f=>f.DayOfWeek == when) ?? throw new NotFoundException();
+
+        return template;
     }
 }
