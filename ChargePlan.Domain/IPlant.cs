@@ -11,13 +11,19 @@ public abstract record IPlant(PlantIntegration LastIntegration, PlantState State
     /// <param name="chargeEnergy">Amount of grid charge energy available, before considering plant capacity</param>
     /// <param name="demandEnergy">House demand</param>
     /// <param name="period">Period of the integration; used for conversions between energy and power</param>
+    /// <param name="batteryDischargeOverrideKw">Artificially limit the battery discharge. Used when optimising I2R losses.</param>
     /// <returns></returns>
-    public abstract IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period);
+    public abstract IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period, float? batteryDischargeOverrideKw = null);
 
     /// <summary>
     /// The charge rate for the battery in kW at a given scalar value (1.0 represents maximum)
     /// </summary>
     public abstract float ChargeRateAtScalar(float scalarValue);
+
+    /// <summary>
+    /// The discharge rate for the battery in kW at a given scalar value (1.0 represents maximum)
+    /// </summary>
+    public abstract float DischargeRateAtScalar(float scalarValue);
 
     /// <summary>
     /// Take a charge rate (Watts/Kw) and modify it by a scalar, but capping it at the maximum charge rate.

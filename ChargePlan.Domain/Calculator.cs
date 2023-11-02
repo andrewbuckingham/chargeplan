@@ -19,6 +19,7 @@ public record Calculator(IPlant PlantTemplate)
     /// <param name="exportProfile">Unit price for export at each point over the period</param>
     /// <param name="initialState">Current battery energy level</param>
     /// <param name="chargePowerLimit">A hard set power limit for the grid charge period</param>
+    /// <param name="dishargePowerLimit">A hard set power limit for when discharging from the battery</param>
     /// <param name="specificDemandProfiles">Specific demands e.g. individual high-loads that are transient</param>
     /// <returns></returns>
     public Evaluation Calculate(
@@ -32,6 +33,7 @@ public record Calculator(IPlant PlantTemplate)
         PlantState initialState,
         TimeSpan timeStep,
         float? chargePowerLimit = null,
+        float? dischargePowerLimit = null,
         DateTimeOffset? explicitStartDate = null)
     {
         IPlant plant = PlantTemplate with { State = initialState };
@@ -75,7 +77,7 @@ public record Calculator(IPlant PlantTemplate)
             float generationEnergy = Math.Max(0.0f, (float)generationSpline.Integrate(from, to));
             float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
-            plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step);
+            plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step, dischargePowerLimit);
             
             plant.ThrowIfInvalid();
 
@@ -108,6 +110,7 @@ public record Calculator(IPlant PlantTemplate)
 
         return new Evaluation(
             chargePowerLimit,
+            dischargePowerLimit,
             roundedCost,
             debugResults,
             overchargeAndUnderchargePeriods.Item1,

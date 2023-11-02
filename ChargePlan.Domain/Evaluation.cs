@@ -3,9 +3,9 @@ namespace ChargePlan.Domain;
 /// <summary>
 /// The outcome from a Calculator having iterated the energy in/out and battery position.
 /// </summary>
-public record Evaluation(float? ChargeRateLimit, decimal TotalCost, List<IntegrationStep> DebugResults, List<OverchargePeriod> OverchargePeriods, List<UnderchargePeriod> UnderchargePeriods)
+public record Evaluation(float? ChargeRateLimit, float? DischargeRateLimit, decimal TotalCost, List<IntegrationStep> DebugResults, List<OverchargePeriod> OverchargePeriods, List<UnderchargePeriod> UnderchargePeriods)
 {
-    public override string ToString() => $"Total: £{TotalCost}, Charge rate limit: {ChargeRateLimit?.ToString() ?? "Any "}kW";
+    public override string ToString() => $"Total: £{TotalCost}, Charge rate limit: {ChargeRateLimit?.ToString() ?? "Any "}kW, Disharge rate limit: {DischargeRateLimit?.ToString() ?? "Any "}kW";
 }
 
 /// <summary>

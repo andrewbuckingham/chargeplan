@@ -14,9 +14,10 @@ public record Hy36(
     private float BatteryChargingEfficiencyScalar => 1.0f - (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f;
     private float BatteryDischargingEfficiencyScalar => 1.0f + (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f;
 
-    public override float ChargeRateAtScalar(float atScalarValue) => Math.Max(0.0f, Math.Min(1.0f, MaxChargeKilowatts * atScalarValue));
+    public override float ChargeRateAtScalar(float atScalarValue) => MaxChargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
+    public override float DischargeRateAtScalar(float atScalarValue) => MaxDischargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
 
-    public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period)
+    public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period, float? batteryDischargeOverrideKw)
     {
         float wasted = 0.0f;
 
@@ -79,7 +80,7 @@ public record Hy36(
 
         // Finally, pull energy out of battery for demand.
         // NB if this is a period of grid charging, then no drawdown from battery can be used for the demand.
-        var afterDemand = PullFrom(newState, demandEnergy, afterGrid.Added > 0.0f, period.Energy(MaxDischargeKilowatts));
+        var afterDemand = PullFrom(newState, demandEnergy, afterGrid.Added > 0.0f, period.Energy(Math.Min(MaxDischargeKilowatts, batteryDischargeOverrideKw ?? MaxDischargeKilowatts)));
         newState = afterDemand.NewState;
 
         return this with
