@@ -29,7 +29,7 @@ public abstract record IPlant(PlantIntegration LastIntegration, PlantState State
     /// Take a charge rate (Watts/Kw) and modify it by a scalar, but capping it at the maximum charge rate.
     /// </summary>
     public float? ChargeRateWithSafetyFactor(float? chargeRate, float safetyScalarValue)
-        => chargeRate == null ? null : Math.Max(chargeRate.Value * safetyScalarValue, ChargeRateAtScalar(1.0f));
+        => chargeRate == null ? null : Math.Min(chargeRate.Value * safetyScalarValue, ChargeRateAtScalar(1.0f));
 
     public void ThrowIfInvalid()
     {
