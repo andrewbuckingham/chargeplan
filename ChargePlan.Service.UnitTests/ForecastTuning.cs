@@ -19,7 +19,7 @@ public class ForecastTuning
         EtaggedEntity<ForecastHistory>? entity = new(fh, Guid.Empty.ToString());
 
         var forecastRepo = new Mock<IForecastHistoryRepository>();
-        forecastRepo.Setup(f=>f.GetAsync(It.IsAny<Guid>())).Returns(Task.FromResult(entity));
+        forecastRepo.Setup(f => f.GetAsync(It.IsAny<Guid>())).Returns(Task.FromResult(entity));
         return forecastRepo;
     }
     private static Mock<IEnergyHistoryRepository> EnergyHistoryRepo(params EnergyDatapoint[] datapoints)
@@ -29,7 +29,7 @@ public class ForecastTuning
         EtaggedEntity<EnergyHistory>? entity = new(fh, Guid.Empty.ToString());
 
         var energyRepo = new Mock<IEnergyHistoryRepository>();
-        energyRepo.Setup(f=>f.GetAsync(It.IsAny<Guid>())).Returns(Task.FromResult(entity));
+        energyRepo.Setup(f => f.GetAsync(It.IsAny<Guid>())).Returns(Task.FromResult(entity));
         return energyRepo;
     }
 
@@ -66,7 +66,7 @@ public class ForecastTuning
         var forecastRepo = ForecastHistoryRepoHelper(16, 24, 1.0f);
         var energyRepo = EnergyHistoryRepoHelper(16, 1.0f);
 
-        userId.Setup(f=>f.UserId).Returns(Guid.NewGuid());
+        userId.Setup(f => f.UserId).Returns(Guid.NewGuid());
         
         var svc = new ForecastTuningService(
             logger.Object,
@@ -94,7 +94,7 @@ public class ForecastTuning
         var forecastRepo = ForecastHistoryRepoHelper(16, 24, 0.5f);
         var energyRepo = EnergyHistoryRepoHelper(16, 1.0f);
 
-        userId.Setup(f=>f.UserId).Returns(Guid.NewGuid());
+        userId.Setup(f => f.UserId).Returns(Guid.NewGuid());
         
         var svc = new ForecastTuningService(
             logger.Object,
