@@ -41,7 +41,7 @@ public class ForecastTuningFunctions
     public Task<HttpResponseData> DetermineAndApplyLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/latestscalar")] HttpRequestData req)
         => req.CreateWithService<WeatherForecastSettings>(_logger, nameof(DetermineAndApplyLatestForecastScalar), (_) => _service.DetermineAndApplyLatestForecastScalar());
 
-    [Function(nameof(DetermineAndApplyLatestForecastScalar))]
+    [Function(nameof(DetermineAndApplyLatestForecastScalarForRange))]
     public Task<HttpResponseData> DetermineAndApplyLatestForecastScalarForRange([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/latestscalar/periods/days/{days}")] HttpRequestData req, int days)
         => req.CreateWithService<WeatherForecastSettings>(_logger, nameof(DetermineAndApplyLatestForecastScalarForRange), (_)
         => _service.DetermineAndApplyLatestForecastScalar(new ForecastTuningSettings() with { PeriodToAverageOver = TimeSpan.FromDays(days) }));
