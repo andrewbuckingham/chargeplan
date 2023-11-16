@@ -109,7 +109,7 @@ public record Algorithm(
         while (fromDate + ts < toDate)
         {
             yield return ts;
-            ts += TimeSpan.FromMinutes(15);
+            ts += AlgorithmPrecision.ShiftBy;
         }
     }
 
@@ -122,7 +122,6 @@ public record Algorithm(
             .Append(100)
             .Distinct()
             .ToArray();
-
 
         // Optimise for the charge amount first.
 
@@ -167,7 +166,9 @@ public record Algorithm(
                 ExplicitStartDate
             ))
             .ToArray()
-            .OrderBy(f => f.TotalCost).ThenBy(f => f.DischargeRateLimit);
+            .OrderBy(f => f.TotalCost)
+            .ThenBy(f => f.DischargeRateLimit)
+            ;
 
         resultWithOptimalChargeRate = results.First();
 

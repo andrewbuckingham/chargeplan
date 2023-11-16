@@ -2,7 +2,7 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Demands
 {
-    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 1.0f, 100, 0);
+    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 1.0f, 0.0f, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
         Values: new()

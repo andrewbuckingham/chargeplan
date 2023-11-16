@@ -4,7 +4,7 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Efficiency
 {
-    private static IPlant UnlimitedPlant(float efficiencyPc) => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, efficiencyPc / 100.0f, 100, 0);
+    private static IPlant UnlimitedPlant(float efficiencyPc, float i2r = 0.0f) => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, efficiencyPc / 100.0f, i2r, 100, 0);
 
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",

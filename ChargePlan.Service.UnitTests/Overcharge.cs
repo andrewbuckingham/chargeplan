@@ -1,10 +1,12 @@
+using ChargePlan.Domain.Solver;
+
 namespace ChargePlan.Service.UnitTests;
 
 public class Overcharge
 {
-    private static IPlant LimitedThroughputPlant(float throughput) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, 1.0f, 100, 0);
-    private static IPlant LimitedCapacityBattery(float capacity) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, 1.0f, 100, 0);
-    private static IPlant LimitedDischargeBattery(float throughput) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, 1.0f, 100, 0);
+    private static IPlant LimitedThroughputPlant(float throughput) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, 1.0f, 0.0f, 100, 0);
+    private static IPlant LimitedCapacityBattery(float capacity) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, 1.0f, 0.0f, 100, 0);
+    private static IPlant LimitedDischargeBattery(float throughput) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, 1.0f, 0.0f, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
         Values: new()
@@ -24,14 +26,36 @@ public class Overcharge
         }
     );
 
+    private static IntegrationStep IntegrationStep(int number, float cumulativeOvercharge) =>
+        new(DateTime.Today.AddDays(1).AddMinutes(number), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, cumulativeOvercharge, new(0.0f), new IntegrationStepDemandEnergy[] {});
+
+    [Fact]
+    public void IntegrationSteps_WhenOvercharge_IsDetected()
+    {
+        var steps = new IntegrationStep[] {
+            IntegrationStep(1, 0.0f),
+            IntegrationStep(2, 1.0f),
+            IntegrationStep(3, 2.0f),
+            IntegrationStep(4, 3.0f),
+            IntegrationStep(5, 3.0f),
+            IntegrationStep(6, 3.0f),
+            IntegrationStep(7, 3.0f),
+            IntegrationStep(8, 3.0f)            
+        };
+        var results = steps.CalculateOverchargePeriods(TimeSpan.FromMinutes(1));
+
+        Assert.True(results.Overcharge.Count == 1);
+    }
+
     [Fact]
     public void OverchargeNow_DueToCapacity_IsDetected()
     {
         var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(1.0f), Interpolations.Step())
+            // .WithPrecision(AlgorithmPrecision.Default with { IterateInPercents = 100 })
             .WithInitialBatteryEnergy(1.0f)
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
-            .AddPricing(ConstantPrice(0.0M))
+            .AddPricing(ConstantPrice(1.0M))
             .AddDemand(ConstantDemand(1.0f))
             .Build();
 
@@ -49,7 +73,7 @@ public class Overcharge
             .WithInitialBatteryEnergy(0.0f)
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
-            .AddPricing(ConstantPrice(0.0M))
+            .AddPricing(ConstantPrice(1.0M))
             .AddDemand(ConstantDemand(1.0f))
             .Build();
 
@@ -67,7 +91,7 @@ public class Overcharge
             .WithInitialBatteryEnergy(0.0f)
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
-            .AddPricing(ConstantPrice(0.0M))
+            .AddPricing(ConstantPrice(1.0M))
             .AddDemand(ConstantDemand(1.0f))
             .Build();
 
@@ -85,7 +109,7 @@ public class Overcharge
             .WithInitialBatteryEnergy(1.0f)
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
-            .AddPricing(ConstantPrice(0.0M))
+            .AddPricing(ConstantPrice(1.0M))
             .AddDemand(ConstantDemand(1.0f))
             .Build();
 

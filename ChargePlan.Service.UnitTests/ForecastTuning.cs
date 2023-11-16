@@ -16,20 +16,23 @@ public class ForecastTuning
     {
         ForecastHistory fh = new();
         fh.Values = datapoints.ToList();
-        EtaggedEntity<ForecastHistory>? entity = new(fh, Guid.Empty.ToString());
+        EtaggedEntityWithId<ForecastHistory>? entity = new(fh, Guid.Empty.ToString(), "123");
 
         var forecastRepo = new Mock<IForecastHistoryRepository>();
-        forecastRepo.Setup(f => f.GetAsync(It.IsAny<Guid>())).Returns(Task.FromResult(entity));
+        forecastRepo
+            .Setup(f => f.GetAsync(It.IsAny<Guid>(), It.IsAny<DateTimeOffset>()))
+            .ReturnsAsync(entity);
+
         return forecastRepo;
     }
     private static Mock<IEnergyHistoryRepository> EnergyHistoryRepo(params EnergyDatapoint[] datapoints)
     {
         EnergyHistory fh = new();
         fh.Values = datapoints.ToList();
-        EtaggedEntity<EnergyHistory>? entity = new(fh, Guid.Empty.ToString());
+        EtaggedEntityWithId<EnergyHistory>? entity = new(fh, Guid.Empty.ToString(), "123");
 
         var energyRepo = new Mock<IEnergyHistoryRepository>();
-        energyRepo.Setup(f => f.GetAsync(It.IsAny<Guid>())).Returns(Task.FromResult(entity));
+        energyRepo.Setup(f => f.GetAsync(It.IsAny<Guid>(), It.IsAny<DateTimeOffset>())).Returns(Task.FromResult(entity));
         return energyRepo;
     }
 
