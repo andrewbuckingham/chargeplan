@@ -81,13 +81,18 @@ public class Efficiency
     }
 
     [Theory]
-    [InlineData(0.0f, 10.0f, 0.0f)]
-    [InlineData(0.5f, 10.0f, 0.25f)]
-    [InlineData(1.0f, 10.0f, 1.0f)]
-    public void I2RLosses_Discharge_ConsidersEfficiency(float i2rScalar, float initialBatteryEnergy, float shortfallExpected)
+    [InlineData(1.0f, 0.0f, 0.0f)]
+    [InlineData(0.5f, 0.0f, 0.0f)]
+
+    [InlineData(1.0f, 0.5f, 0.5f)]
+    [InlineData(0.5f, 0.5f, 0.25f)]
+
+    [InlineData(1.0f, 1.0f, 1.0f)]
+    [InlineData(0.5f, 1.0f, 0.5f)]
+    public void I2RLosses_Discharge_ConsidersEfficiency(float demand, float i2rScalar, float shortfallExpected)
     {
         var algorithm = new AlgorithmBuilder(LimitedPlant(maxBatteryThroughput: 1.0f, efficiencyPc: 100, i2r: i2rScalar), Interpolations.Step())
-            .WithInitialBatteryEnergy(initialBatteryEnergy)
+            .WithInitialBatteryEnergy(demand * 10) // Power * Hours
             .WithPrecision(AlgorithmPrecision.Default with { TimeStep = TimeSpan.FromHours(1) })
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
@@ -96,8 +101,8 @@ public class Efficiency
                 Name: "Constant Demand",
                 Values: new()
                 {
-                    new (TimeOnly.MinValue, 1.0f), // 4hrs no demand, then 4hrs with demand.
-                    new (new(10,00), 1.0f),
+                    new (TimeOnly.MinValue, demand), // 4hrs no demand, then 4hrs with demand.
+                    new (new(10,00), demand),
                 }
             ))
             .Build();
