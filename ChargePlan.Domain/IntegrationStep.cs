@@ -14,7 +14,7 @@ public record IntegrationStep(
     IntegrationStepDemandEnergy[] DemandEnergies
 );
 
-public record IntegrationStepDemandEnergy(string Name, string Type, float Energy);
+public record IntegrationStepDemandEnergy(string Name, string Type, float Energy, float Power);
 
 public record PowerValues(float Generation);
 
@@ -39,7 +39,7 @@ public static class IntegrationStepEnumerableExtensions
             ));
 
         foreach (var pair in sourceData)
-        {            
+        {
             if (pair.HasOverchargeOccurred) accumulator = accumulator with
             {
                 Direction = Direction.Overcharge,

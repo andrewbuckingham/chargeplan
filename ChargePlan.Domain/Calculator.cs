@@ -76,7 +76,7 @@ public record Calculator(IPlant PlantTemplate)
             float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
             plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step, dischargePowerLimit);
-            
+
             plant.ThrowIfInvalid();
 
             cost += (plant.LastIntegration.GridCharged + plant.LastIntegration.Shortfall) * unitPrice;
@@ -90,7 +90,7 @@ public record Calculator(IPlant PlantTemplate)
                 now,
                 plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, plant.LastIntegration.GridExport, cost, undercharge, overcharge,
                 new(step.Power(generationEnergy)),
-                demandEnergies.Select(f => new IntegrationStepDemandEnergy(f.Profile.Name, f.Profile.Type, (float)f.Energy)).ToArray()
+                demandEnergies.Select(f => new IntegrationStepDemandEnergy(f.Profile.Name, f.Profile.Type, (float)f.Energy, step.Power((float)f.Energy))).ToArray()
             ));
         }
 
