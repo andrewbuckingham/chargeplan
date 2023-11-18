@@ -115,13 +115,22 @@ public record Algorithm(
 
     private Evaluation IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles)
     {
-        int[] percentages = Enumerable
-            .Range(0, 101) // Go between 0 and 100%
-            .Chunk(AlgorithmPrecision.IterateInPercents) // ...in steps of n%
-            .Select(f => f.First())
-            .Append(100)
-            .Distinct()
-            .ToArray();
+        int[] percentages;
+        
+        if (AlgorithmPrecision.IterateInPercents == null)
+        {
+            percentages = new[] { 100 };
+        }
+        else
+        {
+            percentages = Enumerable
+                .Range(0, 101) // Go between 0 and 100%
+                .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%
+                .Select(f => f.First())
+                .Append(100)
+                .Distinct()
+                .ToArray();
+        }
 
         // Optimise for the charge amount first.
 

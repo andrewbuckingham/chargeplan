@@ -33,7 +33,11 @@ public class Efficiency
     public void GridCharge_Discharge_ConsidersEfficiency(float efficiencyPc, float expectedCost)
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(efficiencyPc), Interpolations.Step())
-            .WithPrecision(AlgorithmPrecision.Default with { TimeStep = TimeSpan.FromHours(1) })
+            .WithPrecision(AlgorithmPrecision.Default with
+            {
+                TimeStep = TimeSpan.FromHours(1),
+                IterateInPercents = null
+            })
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f }) // 4hrs generate, 4hrs not
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -93,7 +97,11 @@ public class Efficiency
     {
         var algorithm = new AlgorithmBuilder(LimitedPlant(maxBatteryThroughput: 1.0f, efficiencyPc: 100, i2r: i2rScalar), Interpolations.Step())
             .WithInitialBatteryEnergy(demand * 10) // Power * Hours
-            .WithPrecision(AlgorithmPrecision.Default with { TimeStep = TimeSpan.FromHours(1) })
+            .WithPrecision(AlgorithmPrecision.Default with
+            {
+                TimeStep = TimeSpan.FromHours(1),
+                IterateInPercents = null
+            })
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
