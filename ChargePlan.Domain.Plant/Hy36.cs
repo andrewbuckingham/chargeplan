@@ -23,15 +23,16 @@ public record Hy36(
 {
     private float UpperBoundsKilowattHrs => (float)DepthOfDischargePercent * CapacityKilowattHrs / 100.0f;
     private float LowerBoundsKilowattHrs => (float)ReservePercent * CapacityKilowattHrs / 100.0f;
-    private float BatteryChargingEfficiencyScalar(float currentPowerKilowatts) => Math.Max(0.0f,
-        1.0f
-        - (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f
-        - BatteryI2RLossesScalar * (currentPowerKilowatts / MaxChargeKilowatts) * (currentPowerKilowatts / MaxChargeKilowatts)
+
+    private float EnergyAdjustedByChargeEfficiency(float currentPowerKilowatts, float energy) => Math.Max(0.0f,
+        energy
+        - energy * (1 - BatteryRoundRoundTripEfficiencyScalar) / 2
+        - energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxChargeKilowatts) * (currentPowerKilowatts / MaxChargeKilowatts)
         );
-    private float BatteryDischargingEfficiencyScalar(float currentPowerKilowatts) => Math.Min(2.0f,
-        1.0f
-        + (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f
-        + BatteryI2RLossesScalar * (currentPowerKilowatts / MaxDischargeKilowatts) * (currentPowerKilowatts / MaxDischargeKilowatts)
+    private float EnergyAdjustedByDischargeEfficiency(float currentPowerKilowatts, float energy) => Math.Max(0.0f,
+        energy
+        + energy * (1 - BatteryRoundRoundTripEfficiencyScalar) / 2
+        + energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxChargeKilowatts) * (currentPowerKilowatts / MaxChargeKilowatts)
         );
 
     public override float ChargeRateAtScalar(float atScalarValue) => MaxChargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
@@ -124,7 +125,7 @@ public record Hy36(
 
         float deltaForBattery = Math.Min(energy, energyDeltaLimit);
 
-        float newState = Math.Min(UpperBoundsKilowattHrs, state.BatteryEnergy + deltaForBattery * BatteryChargingEfficiencyScalar(period.Power(energy)));
+        float newState = Math.Min(UpperBoundsKilowattHrs, state.BatteryEnergy + EnergyAdjustedByChargeEfficiency(period.Power(energy), deltaForBattery));
 
         return (
             state with { BatteryEnergy = newState },
@@ -146,7 +147,7 @@ public record Hy36(
 
         float deltaforBattery = Math.Min(energy, energyDeltaLimit);
 
-        float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - deltaforBattery * BatteryDischargingEfficiencyScalar(period.Power(energy)));
+        float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - EnergyAdjustedByDischargeEfficiency(period.Power(energy), deltaforBattery));
 
         return (
             state with { BatteryEnergy = newState },

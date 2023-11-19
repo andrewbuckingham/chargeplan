@@ -70,6 +70,7 @@ public class Overcharge
     public void OverchargeNow_DueToImminentCapacity_IsDetected()
     {
         var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(2.0f), Interpolations.Step())
+            .WithPrecision(AlgorithmPrecision.Default with { TimeStep = TimeSpan.FromHours(1) })
             .WithInitialBatteryEnergy(0.0f)
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 2.0f, 2.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))

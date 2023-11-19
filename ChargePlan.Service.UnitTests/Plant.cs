@@ -1,4 +1,5 @@
 using System.Text;
+using ChargePlan.Domain.Solver;
 
 namespace ChargePlan.Service.UnitTests;
 
@@ -74,6 +75,7 @@ public class Plant
     public void BatterySaturated_HalfCapacity_HalfCost()
     {
         var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(6.0f), Interpolations.Step())
+            .WithPrecision(AlgorithmPrecision.Default with { TimeStep = TimeSpan.FromHours(1) })
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 12).Select(f => 1.0f).Append(0.0f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))

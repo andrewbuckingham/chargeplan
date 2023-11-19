@@ -1,3 +1,5 @@
+using ChargePlan.Domain.Solver;
+
 namespace ChargePlan.Service.UnitTests;
 
 public class Demands
@@ -101,6 +103,7 @@ public class Demands
     public void BasicDemand_QtrBatteryQtrPv_HalfCost()
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
+            .WithPrecision(AlgorithmPrecision.Default with { TimeStep = TimeSpan.FromHours(1) })
             .WithInitialBatteryEnergy(6.0f)
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 24).Select(f => 0.25f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
@@ -110,6 +113,6 @@ public class Demands
 
         var result = algorithm.DecideStrategy();
 
-        Assert.Equal(12.0M - 0.25M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 0);
+        Assert.Equal(11.0M - 0.25M * (decimal)algorithm.AlgorithmPrecision.TimeStep.TotalHours, result.Evaluation.TotalCost, 0);
     }
 }

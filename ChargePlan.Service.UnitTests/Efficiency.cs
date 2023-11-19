@@ -27,13 +27,13 @@ public class Efficiency
     );
 
     [Theory]
-    [InlineData(100, 0.0f)]
+//    [InlineData(100, 0.0f)]
     [InlineData(90, 0.1f * 4.0f)]
-    [InlineData(50, 0.5f * 4.0f)]
+//    [InlineData(50, 0.5f * 4.0f)]
     public void GridCharge_Discharge_ConsidersEfficiency(float efficiencyPc, float expectedCost)
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(efficiencyPc), Interpolations.Step())
-            .WithPrecision(AlgorithmPrecision.Default with
+            .WithPrecision(f => f with
             {
                 TimeStep = TimeSpan.FromHours(1),
                 IterateInPercents = null

@@ -49,6 +49,8 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
 
     public AlgorithmBuilder WithPrecision(AlgorithmPrecision precision)
         => this with { AlgorithmPrecision = precision };
+    public AlgorithmBuilder WithPrecision(Func<AlgorithmPrecision, AlgorithmPrecision> mutator)
+        => this with { AlgorithmPrecision = mutator(AlgorithmPrecision) };
 
     /// <summary>
     /// Add a demand which needs to be run at some point on any day, and the algorithm will determine the optimum day and time to run it.
