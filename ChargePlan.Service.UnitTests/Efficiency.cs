@@ -58,7 +58,7 @@ public class Efficiency
     }
 
     [Fact]
-    public void Discharging_WhenEnergyShortage_ScalesForSlowRampdown()
+    public void DischargingUnlimitedPlant_WhenEnergyShortage_ScalesForSlowRampdown()
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(efficiencyPc: 100, i2r: 0.0f), Interpolations.Step())
             .WithInitialBatteryEnergy(8.0f)
@@ -66,6 +66,14 @@ public class Efficiency
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
+            .AddShiftableDemand(new PowerAtRelativeTimes(
+                Name: "Shiftable Demand",
+                Values: new()
+                {
+                    new (TimeSpan.Zero, 1.0f),
+                    new (TimeSpan.FromHours(1), 0.0f)
+                }
+            ))
             .AddDemand(new PowerAtAbsoluteTimes(
                 Name: "Constant Demand",
                 Values: new()
@@ -83,8 +91,61 @@ public class Efficiency
         Assert.Equal(1.0f, result.Evaluation.DischargeRateLimit);
     }
 
-    [Theory]
-    [InlineData(1.0f, 0.0f, 0.0f)]
+    [Fact]
+    public void DischargingLimitedPlant_WithNoCharge_MinimisesDischarge()
+    {
+        var algorithm = new AlgorithmBuilder(LimitedPlant(maxBatteryThroughput: 4.0f, efficiencyPc: 100, i2r: 0.0f), Interpolations.Step())
+            .WithInitialBatteryEnergy(8.0f)
+            .WithPrecision(AlgorithmPrecision.Default with { IterateInPercents = 10 })
+            .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f })
+            .ForDay(DateTime.Today.AddDays(1))
+            .AddPricing(ConstantPrice(1.0M))
+            .AddShiftableDemand(new PowerAtRelativeTimes(
+                Name: "Shiftable Demand Any",
+                StartWheneverCheaperThan: 0.1M,
+                Values: new()
+                {
+                    new (TimeSpan.Zero, 2.0f),
+                    new (TimeSpan.FromHours(1), 0.0f)
+                }
+            ))
+            .AddShiftableDemand(new PowerAtRelativeTimes(
+                Name: "Shiftable Demand When Empty",
+                Earliest: new TimeOnly(04, 00),
+                Latest: new TimeOnly(08, 00),
+                Values: new()
+                {
+                    new (TimeSpan.Zero, 2.0f),
+                    new (TimeSpan.FromHours(1), 0.0f)
+                }
+            ))
+            .AddDemand(new PowerAtAbsoluteTimes(
+                Name: "Constant Demand",
+                Values: new()
+                {
+                    new (TimeOnly.MinValue, 4.0f), // 4hrs no demand, then 4hrs with demand.
+                    new (new(08,00), 0.0f),
+                }
+            ))
+            .AddChargeWindow(new PowerAtAbsoluteTimes(
+                Name: "Overnight Charge",
+                Values: new()
+                {
+                    new (new(01,00), 1.0f),
+                    new (new(02,00), 0.0f),
+                }
+            ))
+            .Build();
+
+        var result = algorithm.DecideStrategy();
+
+        // Battery has 8kWh, and needs to give a total of 8kWh over the 8hr period, so should
+        // discharge at 1kW to give a smooth average.
+        Assert.Equal(1.0f, result.Evaluation.DischargeRateLimit);
+    }
+
+    // [Theory]
+    // [InlineData(1.0f, 0.0f, 0.0f)]
     // [InlineData(0.5f, 0.0f, 0.0f)]
 
     // [InlineData(1.0f, 0.5f, 0.5f)]

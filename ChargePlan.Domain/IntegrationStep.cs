@@ -27,7 +27,10 @@ public static class IntegrationStepEnumerableExtensions
     {
         List<OverchargePeriod> overchargePeriods = new();
         List<UnderchargePeriod> underchargePeriods = new();
-        Accumulator accumulator = new(0.0f, Direction.Indeterminate, integrationSteps.First().DateTime - timeStep);
+        Accumulator accumulator = new(
+            0.0f,
+            Direction.Indeterminate,
+            (integrationSteps.FirstOrDefault()?.DateTime ?? throw new InvalidOperationException("No elements - does timestep exceed total time?")) - timeStep);
 
         var sourceData = integrationSteps
             .Zip(integrationSteps.Skip(1).Append(null))

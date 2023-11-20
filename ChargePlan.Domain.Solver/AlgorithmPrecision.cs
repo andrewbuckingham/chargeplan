@@ -8,5 +8,10 @@ namespace ChargePlan.Domain.Solver;
 /// <param name="ShiftBy">How much to shift the shiftable demands by</param>
 public record AlgorithmPrecision(TimeSpan TimeStep, int? IterateInPercents, TimeSpan ShiftBy)
 {
-    public static AlgorithmPrecision Default = new(TimeSpan.FromMinutes(5), 15, TimeSpan.FromMinutes(15));
+    public static AlgorithmPrecision Default = new(
+        TimeStep: TimeSpan.FromMinutes(10),
+        IterateInPercents: 10,
+//        ShiftBy: TimeSpan.FromMinutes(15)
+        ShiftBy: TimeSpan.FromMinutes(30)
+        );
 }
