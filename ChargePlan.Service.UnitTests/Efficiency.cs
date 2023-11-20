@@ -62,7 +62,7 @@ public class Efficiency
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(efficiencyPc: 100, i2r: 0.0f), Interpolations.Step())
             .WithInitialBatteryEnergy(8.0f)
-            .WithPrecision(AlgorithmPrecision.Default with { IterateInPercents = 1 })
+            .WithPrecision(AlgorithmPrecision.Default with { IterateInPercents = 1, TimeStep = TimeSpan.FromMinutes(60) })
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -71,7 +71,7 @@ public class Efficiency
                 Values: new()
                 {
                     new (TimeSpan.Zero, 1.0f),
-                    new (TimeSpan.FromHours(1), 0.0f)
+                    new (TimeSpan.FromMinutes(15), 0.0f)
                 }
             ))
             .AddDemand(new PowerAtAbsoluteTimes(
