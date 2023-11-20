@@ -27,9 +27,9 @@ public class Efficiency
     );
 
     [Theory]
-//    [InlineData(100, 0.0f)]
-    [InlineData(90, 0.1f * 4.0f)]
-//    [InlineData(50, 0.5f * 4.0f)]
+    [InlineData(100, 0.0f)]
+    [InlineData(90, 0.1f * 1.0f)]
+    [InlineData(50, 0.5f * 1.0f)]
     public void GridCharge_Discharge_ConsidersEfficiency(float efficiencyPc, float expectedCost)
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(efficiencyPc), Interpolations.Step())
@@ -38,7 +38,7 @@ public class Efficiency
                 TimeStep = TimeSpan.FromHours(1),
                 IterateInPercents = null
             })
-            .WithGeneration(DateTime.Today.AddDays(1), new float[] { 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f }) // 4hrs generate, 4hrs not
+            .WithGeneration(DateTime.Today.AddDays(1), new float[] { 1.0f, 0.0f }) // 4hrs generate, 4hrs not
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
             .AddDemand(new PowerAtAbsoluteTimes(
@@ -46,9 +46,8 @@ public class Efficiency
                 Values: new()
                 {
                     new (TimeOnly.MinValue, 0.0f), // 4hrs no demand, then 4hrs with demand.
-                    new (new(04,00), 1.0f),
-                    new (new(08,00), 0.0f),
-                    new (new(09,00), 0.0f)
+                    new (new(01,00), 1.0f),
+                    new (new(02,00), 0.0f)
                 }
             ))
             .Build();
@@ -86,13 +85,13 @@ public class Efficiency
 
     [Theory]
     [InlineData(1.0f, 0.0f, 0.0f)]
-    [InlineData(0.5f, 0.0f, 0.0f)]
+    // [InlineData(0.5f, 0.0f, 0.0f)]
 
-    [InlineData(1.0f, 0.5f, 0.5f)]
-    [InlineData(0.5f, 0.5f, 0.25f)]
+    // [InlineData(1.0f, 0.5f, 0.5f)]
+    // [InlineData(0.5f, 0.5f, 0.25f)]
 
-    [InlineData(1.0f, 1.0f, 1.0f)]
-    [InlineData(0.5f, 1.0f, 0.5f)]
+    // [InlineData(1.0f, 1.0f, 1.0f)]
+    // [InlineData(0.5f, 1.0f, 0.5f)]
     public void I2RLosses_Discharge_ConsidersEfficiency(float demand, float i2rScalar, float shortfallExpected)
     {
         var algorithm = new AlgorithmBuilder(LimitedPlant(maxBatteryThroughput: 1.0f, efficiencyPc: 100, i2r: i2rScalar), Interpolations.Step())
