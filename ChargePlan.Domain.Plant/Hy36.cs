@@ -87,7 +87,7 @@ public record Hy36(
 
         float remainingBatteryChargeThroughput = period.Energy(MaxChargeKilowatts);
 
-        PlantState newState = State;
+        PlantState newState = State with { BatteryEnergy = Math.Max(LowerBoundsKilowattHrs, Math.Min(UpperBoundsKilowattHrs, State.BatteryEnergy)) };
 
         // Solar first.
         var afterSolar = AddTo(newState, solarEnergy, remainingBatteryChargeThroughput, period);
@@ -123,9 +123,9 @@ public record Hy36(
         var minusEfficiency = (float f) => EnergyAdjustedByChargeEfficiency(period.Power(energy), f);
 
         float unusedDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit); // More power than system can cope with
-        float unusedDueToEnergyLimit = Math.Max(0, (state.BatteryEnergy + energy) - UpperBoundsKilowattHrs); // More energy than the battery can hold
+        float unusedDueToEnergyLimit = Math.Max(0, (state.BatteryEnergy + energy) - UpperBoundsKilowattHrs - unusedDueToEnergyDeltaLimit); // More energy than the battery can hold
 
-        float deltaForBattery = energy - unusedDueToEnergyDeltaLimit - unusedDueToEnergyLimit;
+        float deltaForBattery = Math.Max(0.0f, energy - unusedDueToEnergyDeltaLimit - unusedDueToEnergyLimit);
 
         float newState = Math.Min(UpperBoundsKilowattHrs, state.BatteryEnergy + minusEfficiency(deltaForBattery));
 
@@ -147,9 +147,9 @@ public record Hy36(
         var minusEfficiency = (float f) => EnergyAdjustedByDischargeEfficiency(period.Power(energy), f);
 
         float shortfallDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit);
-        float shortfallDueToEmpty = -Math.Min(0, (state.BatteryEnergy - LowerBoundsKilowattHrs) - minusEfficiency(energy));
+        float shortfallDueToEmpty = -Math.Min(0, (state.BatteryEnergy - LowerBoundsKilowattHrs) - (energy - shortfallDueToEnergyDeltaLimit));
 
-        float deltaForBattery = energy - shortfallDueToEnergyDeltaLimit - shortfallDueToEmpty;
+        float deltaForBattery = Math.Max(0.0f, energy - shortfallDueToEnergyDeltaLimit - shortfallDueToEmpty);
 
         float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - minusEfficiency(deltaForBattery));
 
