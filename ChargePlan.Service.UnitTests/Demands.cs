@@ -24,7 +24,7 @@ public class Demands
         }
     );
 
-    [Fact]
+    [Fact]  
     public void BasicDemand_GridOnly_CorrectCost()
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())

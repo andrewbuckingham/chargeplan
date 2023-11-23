@@ -27,12 +27,12 @@ public record Hy36(
     private float EnergyAdjustedByChargeEfficiency(float currentPowerKilowatts, float energy) => Math.Max(0.0f,
         energy
         - energy * (1 - BatteryRoundRoundTripEfficiencyScalar) / 2
-        - energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxChargeKilowatts) * (currentPowerKilowatts / MaxChargeKilowatts)
+        - energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxThroughputKilowatts) * (currentPowerKilowatts / MaxThroughputKilowatts)
         );
     private float EnergyAdjustedByDischargeEfficiency(float currentPowerKilowatts, float energy) => Math.Max(0.0f,
         energy
         + energy * (1 - BatteryRoundRoundTripEfficiencyScalar) / 2
-        + energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxChargeKilowatts) * (currentPowerKilowatts / MaxChargeKilowatts)
+        + energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxThroughputKilowatts) * (currentPowerKilowatts / MaxThroughputKilowatts)
         );
 
     public override float ChargeRateAtScalar(float atScalarValue) => MaxChargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
@@ -122,17 +122,31 @@ public record Hy36(
     {
         var minusEfficiency = (float f) => EnergyAdjustedByChargeEfficiency(period.Power(energy), f);
 
-        float unusedDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit); // More power than system can cope with
-        float unusedDueToEnergyLimit = Math.Max(0, (state.BatteryEnergy + energy) - UpperBoundsKilowattHrs - unusedDueToEnergyDeltaLimit); // More energy than the battery can hold
+        float unused = 0.0f;
+        float deltaForBattery = energy;
 
-        float deltaForBattery = Math.Max(0.0f, energy - unusedDueToEnergyDeltaLimit - unusedDueToEnergyLimit);
+        if (deltaForBattery > energyDeltaLimit)
+        {
+            // More power than system can cope with
+            float subtract = deltaForBattery - energyDeltaLimit;
+            deltaForBattery -= subtract;
+            unused += subtract;
+        }
+
+        if (state.BatteryEnergy + deltaForBattery > UpperBoundsKilowattHrs)
+        {
+            // More energy than the battery can hold
+            float subtract = (state.BatteryEnergy + deltaForBattery) - UpperBoundsKilowattHrs;
+            deltaForBattery -= subtract;
+            unused += subtract;
+        }
 
         float newState = Math.Min(UpperBoundsKilowattHrs, state.BatteryEnergy + minusEfficiency(deltaForBattery));
 
         return (
             state with { BatteryEnergy = newState },
             deltaForBattery,
-            unusedDueToEnergyLimit + unusedDueToEnergyDeltaLimit
+            unused
             );
     }
 
@@ -146,17 +160,29 @@ public record Hy36(
 
         var minusEfficiency = (float f) => EnergyAdjustedByDischargeEfficiency(period.Power(energy), f);
 
-        float shortfallDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit);
-        float shortfallDueToEmpty = -Math.Min(0, (state.BatteryEnergy - LowerBoundsKilowattHrs) - (energy - shortfallDueToEnergyDeltaLimit));
+        float shortfall = 0.0f;
+        float deltaFromBattery = energy;
 
-        float deltaForBattery = Math.Max(0.0f, energy - shortfallDueToEnergyDeltaLimit - shortfallDueToEmpty);
+        if (deltaFromBattery > energyDeltaLimit)
+        {
+            float subtract = deltaFromBattery - energyDeltaLimit;
+            deltaFromBattery -= subtract;
+            shortfall += subtract;
+        }
 
-        float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - minusEfficiency(deltaForBattery));
+        if (state.BatteryEnergy - minusEfficiency(deltaFromBattery) < LowerBoundsKilowattHrs)
+        {
+            float subtract = minusEfficiency(deltaFromBattery) - Math.Max(0.0f, state.BatteryEnergy - LowerBoundsKilowattHrs);
+            deltaFromBattery -= subtract;
+            shortfall += subtract;
+        }
+
+        float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - minusEfficiency(deltaFromBattery));
 
         return (
             state with { BatteryEnergy = newState },
-            deltaForBattery,
-            shortfallDueToEmpty + shortfallDueToEnergyDeltaLimit
+            deltaFromBattery,
+            shortfall
             );
     }
 }

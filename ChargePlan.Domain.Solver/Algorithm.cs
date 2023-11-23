@@ -181,13 +181,6 @@ public record Algorithm(
 
         resultWithOptimalChargeRate = results.First();
 
-// #if DEBUG
-//         if (resultWithOptimalChargeRate.DischargeRateLimit > 2.7)
-//         {
-//             Console.WriteLine("Wibble");
-//         }
-// #endif
-
         return resultWithOptimalChargeRate;
     }
 }

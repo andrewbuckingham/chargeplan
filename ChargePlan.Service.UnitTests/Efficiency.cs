@@ -4,8 +4,10 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Efficiency
 {
-    private static IPlant UnlimitedPlant(float efficiencyPc, float i2r = 0.0f) => new Hy36(1000.0f, 100.0f, 100.0f, 100.0f, efficiencyPc / 100.0f, i2r, 100, 0);
-    private static IPlant LimitedPlant(float maxBatteryThroughput, float efficiencyPc, float i2r = 0.0f) => new Hy36(1000.0f, maxBatteryThroughput, maxBatteryThroughput, 100.0f, efficiencyPc / 100.0f, i2r, 100, 0);
+    private static IPlant UnlimitedPlant(float efficiencyPc, float i2r = 0.0f)
+        => new Hy36(1000.0f, 100.0f, 100.0f, 100.0f, efficiencyPc / 100.0f, i2r, 100, 0);
+    private static IPlant LimitedPlant(float maxBatteryThroughput = 1000f, float efficiencyPc = 100f, float i2r = 0.0f, float throughputCapacity = 1000f)
+        => new Hy36(1000.0f, maxBatteryThroughput, maxBatteryThroughput, throughputCapacity, efficiencyPc / 100.0f, i2r, 100, 0);
 
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
@@ -46,6 +48,35 @@ public class Efficiency
                 Values: new()
                 {
                     new (TimeOnly.MinValue, 0.0f), // 4hrs no demand, then 4hrs with demand.
+                    new (new(01,00), 1.0f),
+                    new (new(02,00), 0.0f)
+                }
+            ))
+            .Build();
+
+        var result = algorithm.DecideStrategy();
+
+        Assert.Equal(expectedCost, (float)result.Evaluation.TotalCost, 2);
+    }
+
+    [Theory]
+    [InlineData(0.5f, 0.5f, 1.0f)]
+    public void GridCharge_Discharge_ConsidersI2R(float i2rScalar, float throughputCapacity, float expectedCost)
+    {
+        var algorithm = new AlgorithmBuilder(LimitedPlant(i2r: i2rScalar, throughputCapacity: throughputCapacity, maxBatteryThroughput: throughputCapacity), Interpolations.Step())
+            .WithPrecision(f => f with
+            {
+                TimeStep = TimeSpan.FromHours(1),
+                IterateInPercents = null
+            })
+            .WithGeneration(DateTime.Today.AddDays(1), new float[] { 1.0f, 0.0f })
+            .ForDay(DateTime.Today.AddDays(1))
+            .AddPricing(ConstantPrice(1.0M))
+            .AddDemand(new PowerAtAbsoluteTimes(
+                Name: "Constant Demand",
+                Values: new()
+                {
+                    new (TimeOnly.MinValue, 0.0f),
                     new (new(01,00), 1.0f),
                     new (new(02,00), 0.0f)
                 }
