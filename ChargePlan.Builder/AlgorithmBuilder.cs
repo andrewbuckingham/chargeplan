@@ -17,8 +17,11 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         DateTime? ExplicitStartDate,
         AlgorithmPrecision AlgorithmPrecision)
 {
-    public AlgorithmBuilder(IPlant plantTemplate, IInterpolationFactory interpolationFactory)
-        : this(plantTemplate, new(), new GenerationProfile(), new(), new(), new(), interpolationFactory, plantTemplate.State, new ShiftableDemand[] {}, new DemandCompleted[] {}, null, AlgorithmPrecision.Default) {}
+    public AlgorithmBuilder(IPlant plantTemplate, IInterpolationFactory interpolationFactory) : this(
+        plantTemplate, new(), new GenerationProfile(), new(), new(), new(), interpolationFactory, plantTemplate.State,
+        new ShiftableDemand[] {}, new DemandCompleted[] {}, null,
+        AlgorithmPrecision.Default// with { TimeStep = TimeSpan.FromHours(1), ShiftBy = TimeSpan.FromHours(4) }
+        ) {}
 
     /// <summary>
     /// Set how much energy is in the battery storage at the start of the period.
@@ -46,6 +49,8 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
 
     public AlgorithmBuilder WithPrecision(AlgorithmPrecision precision)
         => this with { AlgorithmPrecision = precision };
+    public AlgorithmBuilder WithPrecision(Func<AlgorithmPrecision, AlgorithmPrecision> mutator)
+        => this with { AlgorithmPrecision = mutator(AlgorithmPrecision) };
 
     /// <summary>
     /// Add a demand which needs to be run at some point on any day, and the algorithm will determine the optimum day and time to run it.

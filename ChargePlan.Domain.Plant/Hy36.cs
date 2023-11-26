@@ -1,22 +1,44 @@
 namespace ChargePlan.Domain.Plant;
 
+/// <summary>
+/// A representation of a Gen2 GivEnergy hybrid inverter
+/// </summary>
+/// <param name="CapacityKilowattHrs"></param>
+/// <param name="MaxChargeKilowatts"></param>
+/// <param name="MaxDischargeKilowatts"></param>
+/// <param name="MaxThroughputKilowatts"></param>
+/// <param name="BatteryRoundRoundTripEfficiencyScalar"></param>
+/// <param name="BatteryI2RLossesScalar">Scalar amount of the peak throughput that's lost as I2R. E.g. 1.0 would be 100% loss (i.e. impossible) at MaxDischargeKilowatts</param>
+/// <param name="DepthOfDischargePercent"></param>
+/// <param name="ReservePercent"></param>
 public record Hy36(
     float CapacityKilowattHrs,
     float MaxChargeKilowatts,
     float MaxDischargeKilowatts,
     float MaxThroughputKilowatts,
     float BatteryRoundRoundTripEfficiencyScalar,
+    float BatteryI2RLossesScalar,
     int DepthOfDischargePercent,
     int ReservePercent) : IPlant(new(0.0f, 0.0f, 0.0f, 0.0f), new(0.0f))
 {
     private float UpperBoundsKilowattHrs => (float)DepthOfDischargePercent * CapacityKilowattHrs / 100.0f;
     private float LowerBoundsKilowattHrs => (float)ReservePercent * CapacityKilowattHrs / 100.0f;
-    private float BatteryChargingEfficiencyScalar => 1.0f - (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f;
-    private float BatteryDischargingEfficiencyScalar => 1.0f + (1.0f - BatteryRoundRoundTripEfficiencyScalar) / 2.0f;
 
-    public override float ChargeRateAtScalar(float atScalarValue) => Math.Max(0.0f, Math.Min(1.0f, MaxChargeKilowatts * atScalarValue));
+    private float EnergyAdjustedByChargeEfficiency(float currentPowerKilowatts, float energy) => Math.Max(0.0f,
+        energy
+        - energy * (1 - BatteryRoundRoundTripEfficiencyScalar) / 2
+        - energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxThroughputKilowatts) * (currentPowerKilowatts / MaxThroughputKilowatts)
+        );
+    private float EnergyAdjustedByDischargeEfficiency(float currentPowerKilowatts, float energy) => Math.Max(0.0f,
+        energy
+        + energy * (1 - BatteryRoundRoundTripEfficiencyScalar) / 2
+        + energy * BatteryI2RLossesScalar * (currentPowerKilowatts / MaxThroughputKilowatts) * (currentPowerKilowatts / MaxThroughputKilowatts)
+        );
 
-    public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period)
+    public override float ChargeRateAtScalar(float atScalarValue) => MaxChargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
+    public override float DischargeRateAtScalar(float atScalarValue) => MaxDischargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
+
+    public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period, float? batteryDischargeOverrideKw)
     {
         float wasted = 0.0f;
 
@@ -65,21 +87,21 @@ public record Hy36(
 
         float remainingBatteryChargeThroughput = period.Energy(MaxChargeKilowatts);
 
-        PlantState newState = State;
+        PlantState newState = State with { BatteryEnergy = Math.Max(LowerBoundsKilowattHrs, Math.Min(UpperBoundsKilowattHrs, State.BatteryEnergy)) };
 
         // Solar first.
-        var afterSolar = AddTo(newState, solarEnergy, remainingBatteryChargeThroughput);
+        var afterSolar = AddTo(newState, solarEnergy, remainingBatteryChargeThroughput, period);
         newState = afterSolar.NewState;
         remainingBatteryChargeThroughput -= afterSolar.Added;
 
         // Grid charge second.
-        var afterGrid = AddTo(newState, chargeEnergy, remainingBatteryChargeThroughput);
+        var afterGrid = AddTo(newState, chargeEnergy, remainingBatteryChargeThroughput, period);
         newState = afterGrid.NewState;
         remainingBatteryChargeThroughput -= afterGrid.Added;
 
         // Finally, pull energy out of battery for demand.
         // NB if this is a period of grid charging, then no drawdown from battery can be used for the demand.
-        var afterDemand = PullFrom(newState, demandEnergy, afterGrid.Added > 0.0f, period.Energy(MaxDischargeKilowatts));
+        var afterDemand = PullFrom(newState, demandEnergy, afterGrid.Added > 0.0f, period.Energy(Math.Min(MaxDischargeKilowatts, batteryDischargeOverrideKw ?? MaxDischargeKilowatts)), period);
         newState = afterDemand.NewState;
 
         return this with
@@ -96,19 +118,35 @@ public record Hy36(
     /// <summary>
     /// Add some energy into the battery observing capacity limits.
     /// </summary>
-    private (PlantState NewState, float Added, float Unused) AddTo(PlantState state, float energy, float energyDeltaLimit)
+    private (PlantState NewState, float Added, float Unused) AddTo(PlantState state, float energy, float energyDeltaLimit, TimeSpan period)
     {
-        float unusedDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit); // More power than system can cope with
-        float unusedDueToEnergyLimit = Math.Max(0, (state.BatteryEnergy + energy) - UpperBoundsKilowattHrs); // More energy than the battery can hold
+        var minusEfficiency = (float f) => EnergyAdjustedByChargeEfficiency(period.Power(energy), f);
 
-        float deltaForBattery = Math.Min(energy * BatteryChargingEfficiencyScalar, energyDeltaLimit);
+        float unused = 0.0f;
+        float deltaForBattery = energy;
 
-        float newState = Math.Min(UpperBoundsKilowattHrs, state.BatteryEnergy + deltaForBattery);
+        if (deltaForBattery > energyDeltaLimit)
+        {
+            // More power than system can cope with
+            float subtract = deltaForBattery - energyDeltaLimit;
+            deltaForBattery -= subtract;
+            unused += subtract;
+        }
+
+        if (state.BatteryEnergy + deltaForBattery > UpperBoundsKilowattHrs)
+        {
+            // More energy than the battery can hold
+            float subtract = (state.BatteryEnergy + deltaForBattery) - UpperBoundsKilowattHrs;
+            deltaForBattery -= subtract;
+            unused += subtract;
+        }
+
+        float newState = Math.Min(UpperBoundsKilowattHrs, state.BatteryEnergy + minusEfficiency(deltaForBattery));
 
         return (
             state with { BatteryEnergy = newState },
             deltaForBattery,
-            unusedDueToEnergyLimit + unusedDueToEnergyDeltaLimit
+            unused
             );
     }
 
@@ -116,23 +154,35 @@ public record Hy36(
     /// Pull some energy from the battery observing where it is empty.
     /// </summary>
     /// <param name="isGridCharge">If true, this will not take from battery and return as shortfall.</param>
-    private (PlantState NewState, float Pulled, float Shortfall) PullFrom(PlantState state, float energy, bool isGridCharge, float energyDeltaLimit)
+    private (PlantState NewState, float Pulled, float Shortfall) PullFrom(PlantState state, float energy, bool isGridCharge, float energyDeltaLimit, TimeSpan period)
     {
         if (isGridCharge) return (state, 0.0f, energy);
 
-        float energyIncludingLosses = energy * BatteryDischargingEfficiencyScalar;
+        var minusEfficiency = (float f) => EnergyAdjustedByDischargeEfficiency(period.Power(energy), f);
 
-        float shortfallDueToEnergyDeltaLimit = Math.Max(0, energy - energyDeltaLimit);
-        float shortfallDueToEmpty = -Math.Min(0, (state.BatteryEnergy - LowerBoundsKilowattHrs) - energyIncludingLosses);
+        float shortfall = 0.0f;
+        float deltaFromBattery = energy;
 
-        float deltaforBattery = Math.Min(energyIncludingLosses, energyDeltaLimit);
+        if (deltaFromBattery > energyDeltaLimit)
+        {
+            float subtract = deltaFromBattery - energyDeltaLimit;
+            deltaFromBattery -= subtract;
+            shortfall += subtract;
+        }
 
-        float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - deltaforBattery);
+        if (state.BatteryEnergy - minusEfficiency(deltaFromBattery) < LowerBoundsKilowattHrs)
+        {
+            float subtract = minusEfficiency(deltaFromBattery) - Math.Max(0.0f, state.BatteryEnergy - LowerBoundsKilowattHrs);
+            deltaFromBattery -= subtract;
+            shortfall += subtract;
+        }
+
+        float newState = Math.Max(LowerBoundsKilowattHrs, state.BatteryEnergy - minusEfficiency(deltaFromBattery));
 
         return (
             state with { BatteryEnergy = newState },
-            deltaforBattery,
-            shortfallDueToEmpty + shortfallDueToEnergyDeltaLimit
+            deltaFromBattery,
+            shortfall
             );
     }
 }

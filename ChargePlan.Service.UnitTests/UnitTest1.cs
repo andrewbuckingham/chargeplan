@@ -5,7 +5,7 @@ namespace ChargePlan.Service.UnitTests;
 
 public class UnitTest1
 {
-    private static IPlant Plant() => new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 1.0f, 80, 5);
+    private static IPlant Plant() => new Hy36(5.2f, 2.8f, 2.8f, 3.6f, 1.0f, 0.0f, 80, 5);
 
     [Theory]
     [InlineData(0, Math.PI / 2, 0, Math.PI / 2)]
@@ -59,7 +59,7 @@ public class UnitTest1
             }
         );
 
-        var hugeBattery = new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 1.0f, 100, 0);
+        var hugeBattery = new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 1.0f, 0.0f, 100, 0);
 
         var algorithm = new AlgorithmBuilder(hugeBattery, Interpolations.Step())
             .WithInitialBatteryEnergy(1000.0f)

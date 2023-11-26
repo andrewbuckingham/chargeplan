@@ -109,16 +109,32 @@ public record Algorithm(
         while (fromDate + ts < toDate)
         {
             yield return ts;
-            ts += TimeSpan.FromMinutes(15);
+            ts += AlgorithmPrecision.ShiftBy;
         }
     }
 
     private Evaluation IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles)
     {
-        var chargeRates = Enumerable
-            .Range(0, 101) // Go between 0 and 100%
-            .Chunk(AlgorithmPrecision.IterateInPercents) // ...in steps of n%
-            .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent.First() / 100.0f));
+        int[] percentages;
+        
+        if (AlgorithmPrecision.IterateInPercents == null)
+        {
+            percentages = new[] { 100 };
+        }
+        else
+        {
+            percentages = Enumerable
+                .Range(0, 101) // Go between 0 and 100%
+                .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%
+                .Select(f => f.First())
+                .Append(100)
+                .Distinct()
+                .ToArray();
+        }
+
+        // Optimise for the charge amount first.
+
+        var chargeRates = percentages.Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f));
 
         var results = chargeRates.Select(chargeLimit => new Calculator(PlantTemplate).Calculate(
                 DemandProfile,
@@ -131,12 +147,39 @@ public record Algorithm(
                 InitialState,
                 AlgorithmPrecision.TimeStep,
                 chargeLimit,
+                null,
                 ExplicitStartDate
             ))
             .ToArray()
             .OrderBy(f => f.TotalCost);
 
         var resultWithOptimalChargeRate = results.First();
+
+
+        // Now optimise for the discharge rate.
+
+        var dischargeRates = percentages.Select(percent => PlantTemplate.DischargeRateAtScalar((float)percent / 100.0f));
+
+        results = dischargeRates.Select(dischargeLimit => new Calculator(PlantTemplate).Calculate(
+                DemandProfile,
+                shiftableDemandsAsProfiles,
+                GenerationProfile,
+                ChargeProfile,
+                PricingProfile,
+                ExportProfile,
+                interpolationFactory,
+                InitialState,
+                AlgorithmPrecision.TimeStep,
+                resultWithOptimalChargeRate.ChargeRateLimit,
+                dischargeLimit,
+                ExplicitStartDate
+            ))
+            .ToArray()
+            .OrderBy(f => f.TotalCost)
+            .ThenBy(f => f.DischargeRateLimit)
+            ;
+
+        resultWithOptimalChargeRate = results.First();
 
         return resultWithOptimalChargeRate;
     }

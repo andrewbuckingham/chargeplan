@@ -30,13 +30,37 @@ public interface IEtaggedRepositoryByMonth<T> : IEtaggedRepositoryWithId<T> wher
     EtaggedEntityWithId<T> Create(Guid userId, DateTimeOffset month)
         => new(new(), String.Empty, month.ToStartOfMonth().ToString("yyyy-MM-dd"));
 
-    async Task<IEnumerable<T>> GetSinceAsync(Guid userId, DateTimeOffset earliestMonth)
+    // async Task<IEnumerable<T>> GetSinceAsync(Guid userId, DateTimeOffset earliestMonth)
+    // {
+    //     List<T> list = new();
+    //     earliestMonth = earliestMonth.ToStartOfMonth();
+    //     while (earliestMonth <= DateTimeOffset.Now.ToStartOfMonth())
+    //     {
+    //         var monthData = (await this.GetAsync(userId, earliestMonth))?.Entity;
+    //         if (monthData != null) list.Add(monthData);
+
+    //         earliestMonth = earliestMonth.AddMonths(1);
+    //     }
+
+    //     return list;
+    // }
+}
+
+public static class IEtaggedRepositoryByMonthExtensions
+{
+    // public static Task<EtaggedEntityWithId<T>?> GetAsync<T>(this IEtaggedRepositoryByMonth<T> repo, Guid userId, DateTimeOffset month) where T : class, new()
+    //     => repo.GetAsync(userId, month.ToStartOfMonth().ToString("yyyy-MM-dd"));
+
+    // public static EtaggedEntityWithId<T> Create<T>(this IEtaggedRepositoryByMonth<T> repo, Guid userId, DateTimeOffset month) where T : class, new()
+    //     => new(new(), String.Empty, month.ToStartOfMonth().ToString("yyyy-MM-dd"));
+
+    public static async Task<IEnumerable<T>> GetSinceAsync<T>(this IEtaggedRepositoryByMonth<T> repo, Guid userId, DateTimeOffset earliestMonth) where T : class, new()
     {
         List<T> list = new();
         earliestMonth = earliestMonth.ToStartOfMonth();
         while (earliestMonth <= DateTimeOffset.Now.ToStartOfMonth())
         {
-            var monthData = (await GetAsync(userId, earliestMonth))?.Entity;
+            var monthData = (await repo.GetAsync(userId, earliestMonth))?.Entity;
             if (monthData != null) list.Add(monthData);
 
             earliestMonth = earliestMonth.AddMonths(1);

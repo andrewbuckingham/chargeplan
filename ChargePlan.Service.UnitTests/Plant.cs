@@ -1,12 +1,13 @@
 using System.Text;
+using ChargePlan.Domain.Solver;
 
 namespace ChargePlan.Service.UnitTests;
 
 public class Plant
 {
-    private static IPlant LimitedThroughputPlant(float throughput, float chargingEfficiency = 1.0f) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, chargingEfficiency, 100, 0);
-    private static IPlant LimitedCapacityBattery(float capacity, float chargingEfficiency = 1.0f) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, chargingEfficiency, 100, 0);
-    private static IPlant LimitedDischargeBattery(float throughput, float chargingEfficiency = 1.0f) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, chargingEfficiency, 100, 0);
+    private static IPlant LimitedThroughputPlant(float throughput, float chargingEfficiency = 1.0f, float i2r = 0.0f) => new Hy36(1000.0f, 1000.0f, 1000.0f, throughput, chargingEfficiency, i2r, 100, 0);
+    private static IPlant LimitedCapacityBattery(float capacity, float chargingEfficiency = 1.0f, float i2r = 0.0f) => new Hy36(capacity, 1000.0f, 1000.0f, 1000.0f, chargingEfficiency, i2r, 100, 0);
+    private static IPlant LimitedDischargeBattery(float throughput, float chargingEfficiency = 1.0f, float i2r = 0.0f) => new Hy36(1000.0f, 1000.0f, throughput, 1000.0f, chargingEfficiency, i2r, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
         Values: new()
@@ -74,6 +75,7 @@ public class Plant
     public void BatterySaturated_HalfCapacity_HalfCost()
     {
         var algorithm = new AlgorithmBuilder(LimitedCapacityBattery(6.0f), Interpolations.Step())
+            .WithPrecision(AlgorithmPrecision.Default with { TimeStep = TimeSpan.FromHours(1) })
             .WithGeneration(DateTime.Today.AddDays(1), Enumerable.Range(0, 12).Select(f => 1.0f).Append(0.0f).ToArray())
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
