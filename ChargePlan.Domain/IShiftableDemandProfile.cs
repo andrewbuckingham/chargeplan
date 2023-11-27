@@ -48,7 +48,7 @@ public interface IShiftableDemandProfile
             cost += (NextDayMustSaveAtLeast ?? decimal.Zero) * days;
         }
 
-        return cost;
+        return decimal.Round(cost, 2, MidpointRounding.ToNegativeInfinity);
     }
 
     ShiftableDemandPriority Priority { get; }
