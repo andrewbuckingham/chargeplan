@@ -21,7 +21,7 @@ public record Algorithm(
         DateTimeOffset fromDate = (ExplicitStartDate ?? new DateTimeOffset(DemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
         DateTimeOffset toDate = DemandProfile.Until;
 
-        IChargeProfile chargeProfile /*TODO*/ = CreateChargeProfileOptions(fromDate, toDate).Last();
+        IChargeProfile chargeProfile /*TODO*/ = CreateOptimalChargeProfiles(fromDate, toDate).Last();
 
         // First decision is based just on the main demand profile.
         Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>(), chargeProfile);
@@ -189,7 +189,7 @@ public record Algorithm(
         return resultWithOptimalChargeRate;
     }
 
-    public IEnumerable<IChargeProfile> CreateChargeProfileOptions(DateTimeOffset fromDate, DateTimeOffset toDate)
+    public IEnumerable<IChargeProfile> CreateOptimalChargeProfiles(DateTimeOffset fromDate, DateTimeOffset toDate)
     {
         TimeSpan stepAvg = TimeSpan.FromMinutes(1);
         TimeSpan stepOutput = TimeSpan.FromMinutes(10);
@@ -204,7 +204,7 @@ public record Algorithm(
             DateTimeOffset start = day;
             DateTimeOffset end = day.AddDays(1);
 
-            var forDay = CreateOptimalChargeProfiles(pricing, start, end, 2.8f /*TODO*/, 4.0f /*TODO*/, stepAvg, stepOutput);
+            var forDay = CreateOptimalChargeProfiles(start, end, pricing, 2.8f /*TODO*/, 4.0f /*TODO*/, stepAvg, stepOutput);
             chargeValues.AddRange(forDay.Last().Profile.Values);
 
             day = day.AddDays(1);
@@ -213,7 +213,7 @@ public record Algorithm(
         yield return new SynthesisedChargeProfile(chargeValues);
     }
 
-    public IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfiles(IInterpolation pricing, DateTimeOffset start, DateTimeOffset end, float chargePower, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput, int maxOptions = 8)
+    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfiles(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float chargePower, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput, int maxOptions = 8)
     {
         // Good starting point is the average price.
         double thresholdPrice = pricing.Average(start, end, stepAnalyse);
