@@ -21,39 +21,27 @@ public record Algorithm(
         DateTimeOffset fromDate = (ExplicitStartDate ?? new DateTimeOffset(DemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
         DateTimeOffset toDate = DemandProfile.Until;
 
-        IChargeProfile chargeProfile /*TODO*/ = CreateOptimalChargeProfiles(fromDate, toDate).Last();
-
-        // First decision is based just on the main demand profile.
-        Evaluation evaluation = IterateChargeRates(Enumerable.Empty<IDemandProfile>(), chargeProfile);
+        // Establish baseline based just on the main demand profile.
+        IChargeProfile chargeProfile = CreateOptimalChargeProfiles(fromDate, toDate).Last();
+        Evaluation evaluation = new Calculator(PlantTemplate).Calculate(
+                DemandProfile,
+                Array.Empty<IDemandProfile>(),
+                GenerationProfile,
+                chargeProfile,
+                PricingProfile,
+                ExportProfile,
+                InterpolationFactory,
+                InitialState,
+                AlgorithmPrecision.TimeStep,
+                PlantTemplate.ChargeRateAtScalar(100),
+                null,
+                ExplicitStartDate
+            );
 
         // Iterate through options for shiftable demand.
         // For each day, fit the highest priority and largest demand in first, and then iteratively the smaller ones.
         // Skip any which have already been completed recently.
-        var orderedShiftableDemands = ShiftableDemands
-            .Where(demand => CompletedDemands.Contains(demand.AsDemandHash()) == false)
-            .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MaxValue)
-            .ThenBy(demand => demand.Priority)
-            .ThenByDescending(demand => demand
-                .AsDemandProfile(fromDate.LocalDateTime)
-                .AsSpline(InterpolationFactory.InterpolateShiftableDemand)
-                .Integrate(fromDate.AsTotalHours(), toDate.AsTotalHours()))
-            .ToArray();
-
-        var shiftByTimespans = CreateTrialTimespans(fromDate, toDate);
-        var shiftableDemandsAsTrialProfiles = orderedShiftableDemands
-            .Select(shiftableDemand =>
-            (
-                ShiftableDemand: shiftableDemand,
-                Trials: shiftByTimespans
-                    .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.LocalDateTime.Add(ts)))) // Apply the profile at each trial hour
-                    .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
-                    .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
-                    .Where(f => f.Demand.Starting.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
-                    .Where(f => shiftableDemand.WithinDayRange == null || (f.Demand.Starting >= shiftableDemand.WithinDayRange?.From && f.Demand.Until <= shiftableDemand.WithinDayRange?.To))
-                    .ToArray()
-            ))
-            .Where(f => f.Trials.Any()) // Exclude demands that have missed this window totally i.e. likely have already happened
-            .ToArray();
+        var shiftableDemandsAsTrialProfiles = CreateShiftableDemandTrials(fromDate, toDate);
 
         var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTimeOffset StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
         foreach (var s in shiftableDemandsAsTrialProfiles)
@@ -106,6 +94,46 @@ public record Algorithm(
             Array.Empty<DemandCompleted>()
         );
     }
+
+    /// <summary>
+    /// Take all the shiftable demands and create trial runs of them at different times of the day, according to their rules.
+    /// </summary>
+    private IEnumerable<ShiftableDemandProfileTrials> CreateShiftableDemandTrials(DateTimeOffset fromDate, DateTimeOffset toDate)
+    {
+        var orderedShiftableDemands = ShiftableDemands
+            .Where(demand => CompletedDemands.Contains(demand.AsDemandHash()) == false)
+            .OrderBy(demand => demand.WithinDayRange?.From ?? DateTime.MaxValue)
+            .ThenBy(demand => demand.Priority)
+            .ThenByDescending(demand => demand
+                .AsDemandProfile(fromDate.LocalDateTime)
+                .AsSpline(InterpolationFactory.InterpolateShiftableDemand)
+                .Integrate(fromDate.AsTotalHours(), toDate.AsTotalHours()))
+            .ToArray();
+
+        var shiftByTimespans = CreateTrialTimespans(fromDate, toDate);
+        var shiftableDemandsAsTrialProfiles = orderedShiftableDemands
+            .Select(shiftableDemand =>
+            (
+                ShiftableDemand: shiftableDemand,
+                Trials: shiftByTimespans
+                    .Select(ts => (StartAt: fromDate.Add(ts), Demand: shiftableDemand.AsDemandProfile(fromDate.LocalDateTime.Add(ts)))) // Apply the profile at each trial hour
+                    .Where(f => f.Demand.Until < toDate) // Don't allow to overrun main calculation period
+                    .Where(f => f.Demand.Starting.TimeOfDay >= shiftableDemand.Earliest.ToTimeSpan())
+                    .Where(f => f.Demand.Starting.TimeOfDay <= shiftableDemand.Latest.ToTimeSpan())
+                    .Where(f => shiftableDemand.WithinDayRange == null || (f.Demand.Starting >= shiftableDemand.WithinDayRange?.From && f.Demand.Until <= shiftableDemand.WithinDayRange?.To))
+                    .ToArray()
+            ))
+            .Where(f => f.Trials.Any()) // Exclude demands that have missed this window totally i.e. likely have already happened
+            .Select(f => new ShiftableDemandProfileTrials(f.ShiftableDemand, f.Trials))
+            .ToArray();
+
+        return shiftableDemandsAsTrialProfiles;
+    }
+
+    private record ShiftableDemandProfileTrials(
+        IShiftableDemandProfile ShiftableDemand,
+        (DateTimeOffset StartAt, IDemandProfile Demand)[] Trials
+    );
 
     private IEnumerable<TimeSpan> CreateTrialTimespans(DateTimeOffset fromDate, DateTimeOffset toDate)
     {
