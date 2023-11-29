@@ -66,12 +66,21 @@ public record Algorithm(
                 {
                     var thisCalculator = calculator with
                     {
-                        ChargeProfile = CreateOptimalChargeProfile(fromDate, toDate, f.ThisAndOtherDemands),
+                        ChargeProfile = CreateOptimalChargeProfile(fromDate, toDate, f.ThisAndOtherDemands), // This is a best-guess but ignores the battery limit. It's a good upper starting point.
                         SpecificDemandProfiles = f.ThisAndOtherDemands
                     };
 
-                    var result = thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, null, null, ExplicitStartDate);
-                    return (Trial: f, Evaluation: result);
+                    var previousResult = thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, null, null, ExplicitStartDate);
+                    var result = previousResult;
+                    float chargeLimit = this.PlantTemplate.ChargeRateAtScalar(1.0f);
+                    while (result.TotalCost <= previousResult.TotalCost)
+                    {
+                        previousResult = result;
+                        chargeLimit *= 0.75f;
+                        result = thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate);
+                    }
+
+                    return (Trial: f, Evaluation: previousResult);
                 })
                 .ToArray();
             
