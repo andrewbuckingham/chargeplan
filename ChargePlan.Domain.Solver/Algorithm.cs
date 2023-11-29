@@ -170,82 +170,6 @@ public record Algorithm(
         }
     }
 
-#region Legacy
-    // private IEnumerable<float> CreateChargeRateOptions() => AlgorithmPrecision.IterateInPercents == null
-    //     ? new[] { PlantTemplate.ChargeRateAtScalar(1.0f) }
-    //     : Enumerable
-    //         .Range(0, 101) // Go between 0 and 100%
-    //         .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%
-    //         .Select(f => f.First())
-    //         .Append(100)
-    //         .Distinct()
-    //         .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f))
-    //         .ToArray();
-
-    // private Evaluation IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles, IChargeProfile chargeProfile)
-    // {
-    //     int[] percentages;
-        
-    //     if (AlgorithmPrecision.IterateInPercents == null)
-    //     {
-    //         percentages = new[] { 100 };
-    //     }
-    //     else
-    //     {
-    //         percentages = Enumerable
-    //             .Range(0, 101) // Go between 0 and 100%
-    //             .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%
-    //             .Select(f => f.First())
-    //             .Append(100)
-    //             .Distinct()
-    //             .ToArray();
-    //     }
-
-    //     var calculator = CreateCalculator(chargeProfile, shiftableDemandsAsProfiles);
-
-    //     // Optimise for the charge amount first.
-
-    //     var chargeRates = percentages.Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f));
-
-    //     var results = chargeRates.Select(chargeLimit => calculator.Calculate(
-    //             InitialState,
-    //             AlgorithmPrecision.TimeStep,
-    //             chargeLimit,
-    //             null,
-    //             ExplicitStartDate
-    //         ))
-    //         .ToArray()
-    //         .OrderBy(f => f.TotalCost);
-
-    //     var resultWithOptimalChargeRate = results.First();
-
-
-    //     // Now optimise for the discharge rate.
-
-    //     var dischargeRates = percentages.Select(percent => PlantTemplate.DischargeRateAtScalar((float)percent / 100.0f));
-
-    //     results = dischargeRates.Select(dischargeLimit => calculator.Calculate(
-    //             InitialState,
-    //             AlgorithmPrecision.TimeStep,
-    //             resultWithOptimalChargeRate.ChargeRateLimit,
-    //             dischargeLimit,
-    //             ExplicitStartDate
-    //         ))
-    //         .ToArray()
-    //         .OrderBy(f => f.TotalCost)
-    //         .ThenBy(f => f.DischargeRateLimit)
-    //         ;
-
-    //     resultWithOptimalChargeRate = results.First();
-
-    //     return resultWithOptimalChargeRate;
-    // }
-
-    /// <summary>
-    /// For a series of known demands, find the optimal charge period that will accumulate the required amount of kwh energy.
-    /// </summary>
-#endregion
-
     public IChargeProfile CreateOptimalChargeProfile(DateTimeOffset fromDate, DateTimeOffset toDate, IEnumerable<IDemandProfile> knownShiftableDemands)
     {
         TimeSpan stepAvg = TimeSpan.FromMinutes(1);
@@ -266,16 +190,9 @@ public record Algorithm(
 
             // Calculate charge times based on the pricing profile to achieve the desired kWh.
             // Initially, assume maximum charge rate.
-            var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput)
-                // .Where(f => f.kWhExcess >= 0.0f)
-                .Last()
-                .Profile;
-
-            // Now trim any excess charging by modifying the charge power rate.
-            optimal = ModifyOptimalChargeProfilesUsingChargeRate(start, end, optimal, kWhRequired)
-                // .Where(f => f.kWhExcess >= 0.0f)
-                .Last()
-                .Profile;
+            // Then trim any excess charging by modifying the charge power rate.
+            var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput).Last().Profile;
+            optimal = ModifyOptimalChargeProfilesUsingChargeRate(start, end, optimal, kWhRequired).Last().Profile;
 
             chargeValues.AddRange(optimal.Values);
 
