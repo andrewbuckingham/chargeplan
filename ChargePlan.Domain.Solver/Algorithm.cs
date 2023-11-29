@@ -22,54 +22,67 @@ public record Algorithm(
         DateTimeOffset toDate = DemandProfile.Until;
 
         // Establish baseline based just on the main demand profile.
-        IChargeProfile chargeProfile = CreateOptimalChargeProfiles(fromDate, toDate).Last();
-        Evaluation evaluation = new Calculator(PlantTemplate).Calculate(
-                DemandProfile,
-                Array.Empty<IDemandProfile>(),
-                GenerationProfile,
-                chargeProfile,
-                PricingProfile,
-                ExportProfile,
-                InterpolationFactory,
-                InitialState,
-                AlgorithmPrecision.TimeStep,
-                PlantTemplate.ChargeRateAtScalar(100),
-                null,
-                ExplicitStartDate
-            );
+        Calculator calculator = CreateCalculator(
+            CreateOptimalChargeProfile(fromDate, toDate, Array.Empty<IDemandProfile>()),
+            Array.Empty<IDemandProfile>());
+
+        Evaluation evaluation = calculator.Calculate(
+            InitialState,
+            AlgorithmPrecision.TimeStep,
+            PlantTemplate.ChargeRateAtScalar(100),
+            null,
+            ExplicitStartDate
+        );
 
         // Iterate through options for shiftable demand.
         // For each day, fit the highest priority and largest demand in first, and then iteratively the smaller ones.
         // Skip any which have already been completed recently.
-        var shiftableDemandsAsTrialProfiles = CreateShiftableDemandTrials(fromDate, toDate);
 
-        var completedShiftableDemandOptimisations = new List<(IShiftableDemandProfile ShiftableDemand, DateTimeOffset StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
-        foreach (var s in shiftableDemandsAsTrialProfiles)
+        // Take each shiftable demand and offset it by periods of time, to create "trials" for each demand.
+        var pendingTrials = CreateShiftableDemandTrials(fromDate, toDate);
+
+        var optimalTrials = new List<(IShiftableDemandProfile ShiftableDemand, DateTimeOffset StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
+        foreach (var s in pendingTrials)
         {
             // Take the previously-decided shiftable demands...
-            var completedDemands = completedShiftableDemandOptimisations.Select(f => f.DemandProfile);
+            var completedDemands = optimalTrials.Select(f => f.DemandProfile);
 
             // ...and append this shiftable demand to the end of that list, for each of its trials.
             // Ignore trials which are too soon.
-            var trialResults = s.Trials
-                .Where(f => !completedShiftableDemandOptimisations.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt.LocalDateTime, f.StartAt.LocalDateTime)))
-                .Select(t => ((
-                    s.ShiftableDemand,
-                    t.StartAt,
-                    t.Demand,
-                    Evaluation: IterateChargeRates(completedDemands.Append(t.Demand), chargeProfile))))
+            var validTrials = s.Trials
+                .Where(f => !optimalTrials.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt.LocalDateTime, f.StartAt.LocalDateTime)))
+                .Select(t => (
+                    OriginalProfile: s.ShiftableDemand,
+                    StartAt: t.StartAt,
+                    ThisDemand: t.Demand,
+                    ThisAndOtherDemands: completedDemands.Append(t.Demand)
+                ))
+                .ToArray();
+
+            var trialResults = validTrials
+                .Select(f =>
+                {
+                    var thisCalculator = calculator with
+                    {
+                        ChargeProfile = CreateOptimalChargeProfile(fromDate, toDate, f.ThisAndOtherDemands),
+                        SpecificDemandProfiles = f.ThisAndOtherDemands
+                    };
+
+                    var result = thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, null, null, ExplicitStartDate);
+                    return (Trial: f, Evaluation: result);
+                })
                 .ToArray();
             
             // Order by the lowest effective cost and where it's being started as soon as possible.
             var byLowestCost = trialResults
-                .Select(f => ((
-                    f.ShiftableDemand,
-                    f.StartAt,
-                    f.Demand,
+                .Select(f => (
+                    f.Trial.OriginalProfile,
+                    f.Trial.StartAt,
+                    f.Trial.ThisDemand,
                     f.Evaluation,
                     ActualAddedCost: f.Evaluation.TotalCost - evaluation.TotalCost,
-                    EffectiveAddedCost: f.ShiftableDemand.EffectiveCost(fromDate, f.StartAt, f.Evaluation.TotalCost - evaluation.TotalCost)
-                )))
+                    EffectiveAddedCost: f.Trial.OriginalProfile.EffectiveCost(fromDate, f.Trial.StartAt, f.Evaluation.TotalCost - evaluation.TotalCost)
+                ))
                 .OrderBy(f => f.EffectiveAddedCost) // Order by the lowest total cost trial (applying threshold)...
                 .ThenBy(f => f.StartAt)
                 .ToArray();
@@ -79,7 +92,7 @@ public record Algorithm(
             if (optimal != default)
             {
                 // We now have the optimal version of this shiftable demand. Add it to the completed results.
-                completedShiftableDemandOptimisations.Add((optimal.ShiftableDemand, optimal.StartAt, optimal.Evaluation.TotalCost - evaluation.TotalCost, optimal.Demand));
+                optimalTrials.Add((optimal.OriginalProfile, optimal.StartAt, optimal.Evaluation.TotalCost - evaluation.TotalCost, optimal.ThisDemand));
 
                 // Copy this latest evaluation as being the latest.
                 evaluation = optimal.Evaluation;
@@ -88,12 +101,23 @@ public record Algorithm(
 
         return new Recommendations(
             evaluation,
-            completedShiftableDemandOptimisations
+            optimalTrials
                 .OrderBy(f => f.StartAt)
                 .Select(f => new ShiftableDemandRecommendation(f.ShiftableDemand.Name, f.ShiftableDemand.Type, f.StartAt, f.AddedCost, f.ShiftableDemand.AsDemandHash())),
             Array.Empty<DemandCompleted>()
         );
     }
+
+    private Calculator CreateCalculator(IChargeProfile chargeProfile, IEnumerable<IDemandProfile> shiftableDemands) => new Calculator(
+        PlantTemplate,
+        DemandProfile,
+        shiftableDemands,
+        GenerationProfile,
+        chargeProfile,
+        PricingProfile,
+        ExportProfile,
+        InterpolationFactory
+    );
 
     /// <summary>
     /// Take all the shiftable demands and create trial runs of them at different times of the day, according to their rules.
@@ -146,78 +170,83 @@ public record Algorithm(
         }
     }
 
-    private Evaluation IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles, IChargeProfile chargeProfile)
-    {
-        int[] percentages;
+#region Legacy
+    // private IEnumerable<float> CreateChargeRateOptions() => AlgorithmPrecision.IterateInPercents == null
+    //     ? new[] { PlantTemplate.ChargeRateAtScalar(1.0f) }
+    //     : Enumerable
+    //         .Range(0, 101) // Go between 0 and 100%
+    //         .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%
+    //         .Select(f => f.First())
+    //         .Append(100)
+    //         .Distinct()
+    //         .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f))
+    //         .ToArray();
+
+    // private Evaluation IterateChargeRates(IEnumerable<IDemandProfile> shiftableDemandsAsProfiles, IChargeProfile chargeProfile)
+    // {
+    //     int[] percentages;
         
-        if (AlgorithmPrecision.IterateInPercents == null)
-        {
-            percentages = new[] { 100 };
-        }
-        else
-        {
-            percentages = Enumerable
-                .Range(0, 101) // Go between 0 and 100%
-                .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%
-                .Select(f => f.First())
-                .Append(100)
-                .Distinct()
-                .ToArray();
-        }
+    //     if (AlgorithmPrecision.IterateInPercents == null)
+    //     {
+    //         percentages = new[] { 100 };
+    //     }
+    //     else
+    //     {
+    //         percentages = Enumerable
+    //             .Range(0, 101) // Go between 0 and 100%
+    //             .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%
+    //             .Select(f => f.First())
+    //             .Append(100)
+    //             .Distinct()
+    //             .ToArray();
+    //     }
 
-        // Optimise for the charge amount first.
+    //     var calculator = CreateCalculator(chargeProfile, shiftableDemandsAsProfiles);
 
-        var chargeRates = percentages.Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f));
+    //     // Optimise for the charge amount first.
 
-        var results = chargeRates.Select(chargeLimit => new Calculator(PlantTemplate).Calculate(
-                DemandProfile,
-                shiftableDemandsAsProfiles,
-                GenerationProfile,
-                chargeProfile,
-                PricingProfile,
-                ExportProfile,
-                InterpolationFactory,
-                InitialState,
-                AlgorithmPrecision.TimeStep,
-                chargeLimit,
-                null,
-                ExplicitStartDate
-            ))
-            .ToArray()
-            .OrderBy(f => f.TotalCost);
+    //     var chargeRates = percentages.Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f));
 
-        var resultWithOptimalChargeRate = results.First();
+    //     var results = chargeRates.Select(chargeLimit => calculator.Calculate(
+    //             InitialState,
+    //             AlgorithmPrecision.TimeStep,
+    //             chargeLimit,
+    //             null,
+    //             ExplicitStartDate
+    //         ))
+    //         .ToArray()
+    //         .OrderBy(f => f.TotalCost);
+
+    //     var resultWithOptimalChargeRate = results.First();
 
 
-        // Now optimise for the discharge rate.
+    //     // Now optimise for the discharge rate.
 
-        var dischargeRates = percentages.Select(percent => PlantTemplate.DischargeRateAtScalar((float)percent / 100.0f));
+    //     var dischargeRates = percentages.Select(percent => PlantTemplate.DischargeRateAtScalar((float)percent / 100.0f));
 
-        results = dischargeRates.Select(dischargeLimit => new Calculator(PlantTemplate).Calculate(
-                DemandProfile,
-                shiftableDemandsAsProfiles,
-                GenerationProfile,
-                chargeProfile,
-                PricingProfile,
-                ExportProfile,
-                InterpolationFactory,
-                InitialState,
-                AlgorithmPrecision.TimeStep,
-                resultWithOptimalChargeRate.ChargeRateLimit,
-                dischargeLimit,
-                ExplicitStartDate
-            ))
-            .ToArray()
-            .OrderBy(f => f.TotalCost)
-            .ThenBy(f => f.DischargeRateLimit)
-            ;
+    //     results = dischargeRates.Select(dischargeLimit => calculator.Calculate(
+    //             InitialState,
+    //             AlgorithmPrecision.TimeStep,
+    //             resultWithOptimalChargeRate.ChargeRateLimit,
+    //             dischargeLimit,
+    //             ExplicitStartDate
+    //         ))
+    //         .ToArray()
+    //         .OrderBy(f => f.TotalCost)
+    //         .ThenBy(f => f.DischargeRateLimit)
+    //         ;
 
-        resultWithOptimalChargeRate = results.First();
+    //     resultWithOptimalChargeRate = results.First();
 
-        return resultWithOptimalChargeRate;
-    }
+    //     return resultWithOptimalChargeRate;
+    // }
 
-    public IEnumerable<IChargeProfile> CreateOptimalChargeProfiles(DateTimeOffset fromDate, DateTimeOffset toDate)
+    /// <summary>
+    /// For a series of known demands, find the optimal charge period that will accumulate the required amount of kwh energy.
+    /// </summary>
+#endregion
+
+    public IChargeProfile CreateOptimalChargeProfile(DateTimeOffset fromDate, DateTimeOffset toDate, IEnumerable<IDemandProfile> knownShiftableDemands)
     {
         TimeSpan stepAvg = TimeSpan.FromMinutes(1);
         TimeSpan stepOutput = TimeSpan.FromMinutes(10);
@@ -232,19 +261,37 @@ public record Algorithm(
             DateTimeOffset start = day;
             DateTimeOffset end = day.AddDays(1);
 
-            var forDay = CreateOptimalChargeProfiles(start, end, pricing, 2.8f /*TODO*/, 4.0f /*TODO*/, stepAvg, stepOutput);
-            chargeValues.AddRange(forDay.Last().Profile.Values);
+            // Disregarding any charge profiles that have been decided up until now; how much energy is required for this time period.
+            float kWhRequired = CreateCalculator(SynthesisedChargeProfile.Empty(), knownShiftableDemands).DemandEnergyBetween(start, end);
+
+            // Calculate charge times based on the pricing profile to achieve the desired kWh.
+            // Initially, assume maximum charge rate.
+            var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput)
+                // .Where(f => f.kWhExcess >= 0.0f)
+                .Last()
+                .Profile;
+
+            // Now trim any excess charging by modifying the charge power rate.
+            optimal = ModifyOptimalChargeProfilesUsingChargeRate(start, end, optimal, kWhRequired)
+                // .Where(f => f.kWhExcess >= 0.0f)
+                .Last()
+                .Profile;
+
+            chargeValues.AddRange(optimal.Values);
 
             day = day.AddDays(1);
         }
 
-        yield return new SynthesisedChargeProfile(chargeValues);
+        return new SynthesisedChargeProfile(chargeValues);
     }
 
-    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfiles(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float chargePower, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput, int maxOptions = 8)
+    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfilesFromPricing(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput, int maxOptions = 8)
     {
         // Good starting point is the average price.
         double thresholdPrice = pricing.Average(start, end, stepAnalyse);
+
+        // This method always uses peak charge rate.
+        float chargePower = PlantTemplate.ChargeRateAtScalar(1.0f);
 
         // Next time around the loop, we'll adjust the threshold up or down by half of the current value.
         double nextPriceAdjustmentAbs = thresholdPrice / 2;
@@ -254,11 +301,12 @@ public record Algorithm(
         {
             // Create a charge profile which charges when the price is less than the threshold.
             List<ChargeValue> chargeValues = new();
-            while (start < end)
+            DateTimeOffset instant = start;
+            while (instant < end)
             {
-                bool shouldPower = pricing.Interpolate(start) < thresholdPrice;
-                chargeValues.Add(new ChargeValue(start.DateTime, shouldPower ? chargePower : 0.0f));
-                start += stepOutput;
+                bool shouldPower = pricing.Interpolate(instant) < thresholdPrice;
+                chargeValues.Add(new ChargeValue(instant.DateTime, shouldPower ? chargePower : 0.0f));
+                instant += stepOutput;
             }
 
             // Assess how much energy would be charged into the battery from that trial charging profile.
@@ -266,14 +314,44 @@ public record Algorithm(
             double kWhYielded = trial.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end);
             var result = (kWhYielded - kWhRequired, trial);
 
-            // Next time around the loop, modify the trial price up/down depending if there was too little/much energy acquired.
-            double nextTrialPriceAdjustmentDirection = kWhYielded - kWhRequired > 0.0 ? 1.0 : -1.0;
-            thresholdPrice += nextPriceAdjustmentAbs * nextTrialPriceAdjustmentDirection;
+            // Next time around the loop, modify the trial price up/down depending if there was too much/little energy acquired.
+            double nextAdjustmentDirection = kWhYielded - kWhRequired > 0.0 ? -1.0 : 1.0;
+            thresholdPrice += nextPriceAdjustmentAbs * nextAdjustmentDirection;
 
             // Use a finer pricing threshold next time.
             nextPriceAdjustmentAbs /= 2;
 
             yield return result;
+        }
+    }
+
+    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> ModifyOptimalChargeProfilesUsingChargeRate(DateTimeOffset start, DateTimeOffset end, IChargeProfile chargeProfile, float kWhRequired, int maxOptions = 8)
+    {
+        // Good starting point is half-power.
+        float chargeRateScalar = 0.5f;
+
+        // Next time around the loop, we'll adjust the threshold up or down by half of the current value.
+        float nextScalarAdjustmentAbs = chargeRateScalar / 2.0f;
+
+        // Iterate
+        for (int option = 0; option < maxOptions; option++)
+        {
+            // Because we were already supplied with a starting point, yield this one first.
+            double kWhYielded = chargeProfile.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end);
+            var result = (kWhYielded - kWhRequired, chargeProfile);
+            yield return result;
+
+            // Next time around the loop, modify the charge power up/down depending if there was too little/much energy acquired.
+            float nextAdjustmentDirection = kWhYielded - kWhRequired > 0.0 ? -1.0f : 1.0f;
+            chargeRateScalar += nextScalarAdjustmentAbs * nextAdjustmentDirection;
+
+            // Create the next one.
+            chargeProfile = new SynthesisedChargeProfile(chargeProfile.Values
+                .Select(f => f with { Power = f.Power > 0.0f ? PlantTemplate.ChargeRateAtScalar(chargeRateScalar) : 0.0f } )
+                .ToList());
+
+            // Use a finer pricing threshold next time.
+            nextScalarAdjustmentAbs /= 2;
         }
     }
 }
