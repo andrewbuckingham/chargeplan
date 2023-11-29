@@ -144,7 +144,7 @@ public record Calculator
         }
 
         return new Evaluation(
-            chargePowerLimit,
+            debugResults.Select(f => f.PowerValues.GridCharged).Where(f => f > 0.0f).FirstOrDefault(),
             dischargePowerLimit,
             roundedCost,
             debugResults,
