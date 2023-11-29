@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace ChargePlan.Domain.Solver;
 
 public record Algorithm(
@@ -193,8 +195,8 @@ public record Algorithm(
             // Then trim any excess charging by modifying the charge power rate.
             var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput)
                 .ToArray()
-                .OrderByDescending(f => f.kWhExcess > 0.0f)
-                .ThenBy(f => Math.Abs(f.kWhExcess))
+                .OrderByDescending(f => f.kWhExcess > 0.0f) // Prefer being slightly over...
+                .ThenBy(f => Math.Abs(f.kWhExcess)) // But other than that, just look for whatever's closest.
                 .First()
                 .Profile;
 
