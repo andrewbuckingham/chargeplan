@@ -70,17 +70,19 @@ public record Algorithm(
                         SpecificDemandProfiles = f.ThisAndOtherDemands
                     };
 
-                    var previousResult = thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, null, null, ExplicitStartDate);
-                    var result = previousResult;
-                    float chargeLimit = this.PlantTemplate.ChargeRateAtScalar(1.0f);
-                    while (result.TotalCost <= previousResult.TotalCost)
-                    {
-                        previousResult = result;
-                        chargeLimit *= 0.75f;
-                        result = thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate);
-                    }
+                    var optimal = CreateChargeRateOptions()
+                        .Select(chargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate))
+                        .ToArray()
+                        .OrderBy(f => f.TotalCost)
+                        .First();
 
-                    return (Trial: f, Evaluation: previousResult);
+                    optimal = CreateChargeRateOptions()
+                        .Select(dischargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, optimal.ChargeRateLimit, dischargeLimit, ExplicitStartDate))
+                        .ToArray()
+                        .OrderBy(f => f.TotalCost)
+                        .First();
+
+                    return (Trial: f, Evaluation: optimal);
                 })
                 .ToArray();
             
@@ -129,6 +131,17 @@ public record Algorithm(
         ExportProfile,
         InterpolationFactory
     );
+
+    private IEnumerable<float> CreateChargeRateOptions() => AlgorithmPrecision.IterateInPercents == null	
+        ? new[] { PlantTemplate.ChargeRateAtScalar(1.0f) }	
+        : Enumerable	
+            .Range(0, 101) // Go between 0 and 100%	
+            .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%	
+            .Select(f => f.First())	
+            .Append(100)	
+            .Distinct()	
+            .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f))	
+            .ToArray();	
 
     /// <summary>
     /// Take all the shiftable demands and create trial runs of them at different times of the day, according to their rules.
