@@ -4,7 +4,7 @@ namespace ChargePlan.Service.UnitTests;
 
 public class Demands
 {
-    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 1000.0f, 1000.0f, 1000.0f, 1.0f, 0.0f, 100, 0);
+    private static IPlant UnlimitedPlant() => new Hy36(1000.0f, 0.0f, 2.0f, 1000.0f, 1.0f, 0.0f, 100, 0);
     private static PowerAtAbsoluteTimes ConstantDemand(float kw) => new PowerAtAbsoluteTimes(
         Name: "Constant Demand",
         Values: new()
@@ -28,6 +28,7 @@ public class Demands
     public void BasicDemand_GridOnly_CorrectCost()
     {
         var algorithm = new AlgorithmBuilder(UnlimitedPlant(), Interpolations.Step())
+            .WithPrecision(f => f with { TimeStep = TimeSpan.FromHours(1) })
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
             .AddDemand(ConstantDemand(1.0f))

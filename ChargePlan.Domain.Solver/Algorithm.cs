@@ -31,7 +31,7 @@ public record Algorithm(
         Evaluation evaluation = calculator.Calculate(
             InitialState,
             AlgorithmPrecision.TimeStep,
-            PlantTemplate.ChargeRateAtScalar(100),
+            null,
             null,
             ExplicitStartDate
         );
@@ -261,6 +261,12 @@ public record Algorithm(
                 chargeValues.Add(new ChargeValue(instant.DateTime, shouldPower ? chargePower : 0.0f));
                 instant += stepOutput;
             }
+
+            chargeValues = chargeValues.Take(1).Concat(chargeValues
+                .Zip(chargeValues.Skip(1))
+                .Where(f => f.First.Power != f.Second.Power)
+                .Select(f => f.First))
+                .ToList();
 
             // Assess how much energy would be charged into the battery from that trial charging profile.
             IChargeProfile trial = new SynthesisedChargeProfile(chargeValues);

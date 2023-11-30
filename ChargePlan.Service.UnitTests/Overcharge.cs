@@ -27,7 +27,7 @@ public class Overcharge
     );
 
     private static IntegrationStep IntegrationStep(int number, float cumulativeOvercharge) =>
-        new(DateTime.Today.AddDays(1).AddMinutes(number), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, cumulativeOvercharge, new(0.0f), new IntegrationStepDemandEnergy[] {});
+        new(DateTime.Today.AddDays(1).AddMinutes(number), 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, cumulativeOvercharge, new(0.0f, 0.0f), new IntegrationStepDemandEnergy[] {});
 
     [Fact]
     public void IntegrationSteps_WhenOvercharge_IsDetected()
