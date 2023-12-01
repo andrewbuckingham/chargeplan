@@ -27,12 +27,12 @@ public record Calculator
     /// <summary>
     /// All the demand profiles (baseload and specific) as demand splines, for convenience of calculating energies.
     /// </summary>
-    private Lazy<(IInterpolation Interpolation, IDemandProfile Profile)[]> DemandSplines { get; init; }
+    private (IInterpolation Interpolation, IDemandProfile Profile)[] DemandSplines { get; init; }
 
-    private Lazy<IInterpolation> GenerationSpline { get; init; }
-    private Lazy<IInterpolation> ChargeSpline { get; init; }
-    private Lazy<IInterpolation> PricingSpline { get; init; }
-    private Lazy<IInterpolation> ExportSpline { get; init; }
+    private IInterpolation GenerationSpline { get; init; }
+    private IInterpolation ChargeSpline { get; init; }
+    private IInterpolation PricingSpline { get; init; }
+    private IInterpolation ExportSpline { get; init; }
     
     public Calculator(
         IPlant PlantTemplate,
@@ -54,15 +54,15 @@ public record Calculator
         this.ExportProfile = ExportProfile;
         this.InterpolationFactory = InterpolationFactory;
 
-        DemandSplines = new(() => Enumerable.Empty<(IInterpolation Interpolation, IDemandProfile Profile)>()
+        DemandSplines = Enumerable.Empty<(IInterpolation Interpolation, IDemandProfile Profile)>()
             .Append((Interpolation: BaseloadDemandProfile.AsSpline(InterpolationFactory.InterpolateBaseload), Profile: BaseloadDemandProfile))
             .Concat(SpecificDemandProfiles.Select(demandProfile => (Interpolation: demandProfile.AsSpline(InterpolationFactory.InterpolateShiftableDemand), Profile: demandProfile)))
-            .ToArray());
+            .ToArray();
 
-        GenerationSpline = new(() => GenerationProfile.AsSplineOrZero(InterpolationFactory.InterpolateGeneration));
-        ChargeSpline = new(() => ChargeProfile.AsSplineOrZero(InterpolationFactory.InterpolateCharging));
-        PricingSpline = new(() => PricingProfile.AsSpline(InterpolationFactory.InterpolatePricing));
-        ExportSpline = new(() => ExportProfile.AsSplineOrZero(InterpolationFactory.InterpolateExport));
+        GenerationSpline = GenerationProfile.AsSplineOrZero(InterpolationFactory.InterpolateGeneration);
+        ChargeSpline = ChargeProfile.AsSplineOrZero(InterpolationFactory.InterpolateCharging);
+        PricingSpline = PricingProfile.AsSpline(InterpolationFactory.InterpolatePricing);
+        ExportSpline = ExportProfile.AsSplineOrZero(InterpolationFactory.InterpolateExport);
     }
 
     /// <summary>
@@ -104,13 +104,15 @@ public record Calculator
             double from = (now).AsTotalHours();
             double to = (now + step).AsTotalHours();
 
-            var demandEnergies = DemandSplines.Value.Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2)).ToArray();
+            if (DemandSplines.Length != SpecificDemandProfiles.Count() + 1) throw new InvalidOperationException("Spline count does not match supplied demand profiles!");
 
-            float unitPrice = Math.Max(0.0f, (float)PricingSpline.Value.Interpolate(from));
-            float exportPrice = Math.Max(0.0f, (float)ExportSpline.Value.Interpolate(from));
+            var demandEnergies = DemandSplines.Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2)).ToArray();
+
+            float unitPrice = Math.Max(0.0f, (float)PricingSpline.Interpolate(from));
+            float exportPrice = Math.Max(0.0f, (float)ExportSpline.Interpolate(from));
             float demandEnergy = (float)demandEnergies.Select(f => f.Energy).Sum();
-            float generationEnergy = Math.Max(0.0f, (float)GenerationSpline.Value.Integrate(from, to));
-            float chargeEnergy = (float)Math.Max(0.0f, Math.Min(ChargeSpline.Value.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
+            float generationEnergy = Math.Max(0.0f, (float)GenerationSpline.Integrate(from, to));
+            float chargeEnergy = (float)Math.Max(0.0f, Math.Min(ChargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
             plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step, dischargePowerLimit);
 
@@ -153,7 +155,7 @@ public record Calculator
     }
 
     public float DemandEnergyBetween(DateTimeOffset from, DateTimeOffset to)
-        => (float)DemandSplines.Value
+        => (float)DemandSplines
             .Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2))
             .Select(f => f.Energy)
             .Sum();

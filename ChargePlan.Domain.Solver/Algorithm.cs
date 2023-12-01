@@ -78,7 +78,7 @@ public record Algorithm(
                     //     .First();
 
                     var optimal = CreateChargeRateOptions()
-                        .Select(dischargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, /*optimal.ChargeRateLimit*/ null, dischargeLimit, ExplicitStartDate))
+                        .Select(dischargeLimit => thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, /*optimal.ChargeRateLimit*/ null, dischargeLimit, ExplicitStartDate))
                         .ToArray()
                         .OrderBy(f => f.TotalCost)
                         .First();
