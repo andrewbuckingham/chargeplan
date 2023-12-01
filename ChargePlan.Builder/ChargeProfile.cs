@@ -4,6 +4,8 @@ namespace ChargePlan.Builder;
 
 public class ChargeProfile : IChargeProfile
 {
+    public static ChargeProfile Empty() => new();
+
     public List<ChargeValue> Values { get; init; } = new();
 
     public IInterpolation AsSpline(Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> splineCreator)

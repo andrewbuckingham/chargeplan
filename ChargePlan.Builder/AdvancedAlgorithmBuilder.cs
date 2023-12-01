@@ -18,7 +18,7 @@ namespace ChargePlan.Builder;
 public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
     DemandProfile DemandProfile,
     IGenerationProfile GenerationProfile,
-    ChargeProfile ChargeProfile,
+    ChargeProfile? FixedChargeProfile,
     PricingProfile PricingProfile,
     ExportProfile ExportProfile,
     IInterpolationFactory InterpolationFactory,
@@ -29,7 +29,7 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
     AlgorithmPrecision AlgorithmPrecision) : AlgorithmBuilder(PlantTemplate,
         DemandProfile,
         GenerationProfile,
-        ChargeProfile,
+        FixedChargeProfile,
         PricingProfile,
         ExportProfile,
         InterpolationFactory,
@@ -39,7 +39,7 @@ public record AdvancedAlgorithmBuilder(IPlant PlantTemplate,
         ExplicitStartDate,
         AlgorithmPrecision)
 {
-    public AdvancedAlgorithmBuilder AddChargeWindow(PowerAtAbsoluteTimes template, DateTime day) => this with { ChargeProfile = ChargeProfile.Add(template.AsChargeProfile(day.Date)) };
+    public AdvancedAlgorithmBuilder AddChargeWindow(PowerAtAbsoluteTimes template, DateTime day) => this with { FixedChargeProfile = (FixedChargeProfile ?? new()).Add(template.AsChargeProfile(day.Date)) };
     public AdvancedAlgorithmBuilder AddDemand(PowerAtAbsoluteTimes template, DateTime day) => this with { DemandProfile = DemandProfile.Add(template.AsDemandProfile(day.Date)) };
     public AdvancedAlgorithmBuilder AddPricing(PriceAtAbsoluteTimes template, DateTime day) => this with { PricingProfile = PricingProfile.Add(template.AsPricingProfile(day.Date)) };
     public AdvancedAlgorithmBuilder AddExportPricing(PriceAtAbsoluteTimes template, DateTime day) => this with { ExportProfile = ExportProfile.Add(template.AsExportProfile(day.Date)) };

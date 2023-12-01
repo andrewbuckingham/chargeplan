@@ -7,7 +7,7 @@ namespace ChargePlan.Builder;
 public record AlgorithmBuilder(IPlant PlantTemplate,
         DemandProfile DemandProfile,
         IGenerationProfile GenerationProfile,
-        ChargeProfile ChargeProfile,
+        ChargeProfile? FixedChargeProfile,
         PricingProfile PricingProfile,
         ExportProfile ExportProfile,
         IInterpolationFactory InterpolationFactory,
@@ -47,6 +47,12 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     public AlgorithmBuilder WithGeneration(IGenerationProfile generationProfile)
         => this with { GenerationProfile = generationProfile };
 
+    /// <summary>
+    /// Explicitly no grid charge periods.
+    /// </summary>
+    public AlgorithmBuilder WithoutChargeWindows()
+        => this with { FixedChargeProfile = ChargeProfile.Empty() };
+
     public AlgorithmBuilder WithPrecision(AlgorithmPrecision precision)
         => this with { AlgorithmPrecision = precision };
     public AlgorithmBuilder WithPrecision(Func<AlgorithmPrecision, AlgorithmPrecision> mutator)
@@ -79,5 +85,5 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, FixedChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
 }

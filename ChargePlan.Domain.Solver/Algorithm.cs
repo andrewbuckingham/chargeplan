@@ -6,6 +6,7 @@ public record Algorithm(
     IPlant PlantTemplate,
     IDemandProfile DemandProfile,
     IGenerationProfile GenerationProfile,
+    IChargeProfile? FixedChargeProfile,
     IPricingProfile PricingProfile,
     IExportProfile ExportProfile,
     IInterpolationFactory InterpolationFactory,
@@ -25,7 +26,7 @@ public record Algorithm(
 
         // Establish baseline based just on the main demand profile.
         Calculator calculator = CreateCalculator(
-            CreateOptimalChargeProfile(fromDate, toDate, Array.Empty<IDemandProfile>()),
+            GetOrCreateChargeProfile(() => (fromDate, toDate, Array.Empty<IDemandProfile>())),
             Array.Empty<IDemandProfile>());
 
         Evaluation evaluation = calculator.Calculate(
@@ -66,7 +67,7 @@ public record Algorithm(
                 {
                     var thisCalculator = calculator with
                     {
-                        ChargeProfile = CreateOptimalChargeProfile(fromDate, toDate, f.ThisAndOtherDemands), // This is a best-guess but ignores the battery limit. It's a good upper starting point.
+                        ChargeProfile = GetOrCreateChargeProfile(() => (fromDate, toDate, f.ThisAndOtherDemands)), // This is a best-guess but ignores the battery limit. It's a good upper starting point.
                         SpecificDemandProfiles = f.ThisAndOtherDemands
                     };
 
@@ -131,6 +132,14 @@ public record Algorithm(
         ExportProfile,
         InterpolationFactory
     );
+
+    private IChargeProfile GetOrCreateChargeProfile(Func<(DateTimeOffset fromDate, DateTimeOffset toDate, IEnumerable<IDemandProfile> knownShiftableDemands)> paramsIfOptimalRequired)
+    {
+        if (FixedChargeProfile != null) return FixedChargeProfile;
+
+        var (fromDate, toDate, knownShiftableDemands) = paramsIfOptimalRequired();
+        return CreateOptimalChargeProfile(fromDate, toDate, knownShiftableDemands);
+    }
 
     private IEnumerable<float> CreateChargeRateOptions() => AlgorithmPrecision.IterateInPercents == null	
         ? new[] { PlantTemplate.ChargeRateAtScalar(1.0f) }	
