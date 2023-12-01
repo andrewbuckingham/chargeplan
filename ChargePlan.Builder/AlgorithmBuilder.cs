@@ -18,7 +18,7 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         AlgorithmPrecision AlgorithmPrecision)
 {
     public AlgorithmBuilder(IPlant plantTemplate, IInterpolationFactory interpolationFactory) : this(
-        plantTemplate, new(), new GenerationProfile(), new(), new(), new(), interpolationFactory, plantTemplate.State,
+        plantTemplate, new(), new GenerationProfile(), ChargeProfile.Empty(), new(), new(), interpolationFactory, plantTemplate.State,
         new ShiftableDemand[] {}, new DemandCompleted[] {}, null,
         AlgorithmPrecision.Default// with { TimeStep = TimeSpan.FromHours(1), ShiftBy = TimeSpan.FromHours(4) }
         ) {}
@@ -52,6 +52,20 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     /// </summary>
     public AlgorithmBuilder WithoutChargeWindows()
         => this with { FixedChargeProfile = ChargeProfile.Empty() };
+
+    /// <summary>
+    /// Dynamically create the charge windows based on the loads.
+    public AlgorithmBuilder WithDynamicChargeWindows(Func<DynamicChargeWindowCalculations, DynamicChargeWindowCalculations> mutator)
+        => this with
+        {
+            FixedChargeProfile = null,
+            AlgorithmPrecision = this.AlgorithmPrecision with
+            {
+                AutoChargeWindow = mutator(this.AlgorithmPrecision.AutoChargeWindow)
+            }
+        };
+    public AlgorithmBuilder WithDynamicChargeWindows()
+        => this with { FixedChargeProfile = null };
 
     public AlgorithmBuilder WithPrecision(AlgorithmPrecision precision)
         => this with { AlgorithmPrecision = precision };

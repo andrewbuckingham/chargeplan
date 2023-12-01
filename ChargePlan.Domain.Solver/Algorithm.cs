@@ -71,14 +71,14 @@ public record Algorithm(
                         SpecificDemandProfiles = f.ThisAndOtherDemands
                     };
 
-                    var optimal = CreateChargeRateOptions()
-                        .Select(chargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate))
-                        .ToArray()
-                        .OrderBy(f => f.TotalCost)
-                        .First();
+                    // var optimal = CreateChargeRateOptions()
+                    //     .Select(chargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate))
+                    //     .ToArray()
+                    //     .OrderBy(f => f.TotalCost)
+                    //     .First();
 
-                    optimal = CreateChargeRateOptions()
-                        .Select(dischargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, optimal.ChargeRateLimit, dischargeLimit, ExplicitStartDate))
+                    var optimal = CreateChargeRateOptions()
+                        .Select(dischargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, /*optimal.ChargeRateLimit*/ null, dischargeLimit, ExplicitStartDate))
                         .ToArray()
                         .OrderBy(f => f.TotalCost)
                         .First();
@@ -133,11 +133,11 @@ public record Algorithm(
         InterpolationFactory
     );
 
-    private IChargeProfile GetOrCreateChargeProfile(Func<(DateTimeOffset fromDate, DateTimeOffset toDate, IEnumerable<IDemandProfile> knownShiftableDemands)> paramsIfOptimalRequired)
+    private IChargeProfile GetOrCreateChargeProfile(Func<(DateTimeOffset fromDate, DateTimeOffset toDate, IEnumerable<IDemandProfile> knownShiftableDemands)> paramsIfCreationRequired)
     {
         if (FixedChargeProfile != null) return FixedChargeProfile;
 
-        var (fromDate, toDate, knownShiftableDemands) = paramsIfOptimalRequired();
+        var (fromDate, toDate, knownShiftableDemands) = paramsIfCreationRequired();
         return CreateOptimalChargeProfile(fromDate, toDate, knownShiftableDemands);
     }
 
@@ -224,14 +224,14 @@ public record Algorithm(
             // Calculate charge times based on the pricing profile to achieve the desired kWh.
             // Initially, assume maximum charge rate.
             // Then trim any excess charging by modifying the charge power rate.
-            var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput)
+            var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput, AlgorithmPrecision.AutoChargeWindow.MaxPricingIterations)
                 .ToArray()
                 .OrderByDescending(f => f.kWhExcess > 0.0f) // Prefer being slightly over...
                 .ThenBy(f => Math.Abs(f.kWhExcess)) // But other than that, just look for whatever's closest.
                 .First()
                 .Profile;
 
-            optimal = ModifyOptimalChargeProfilesUsingChargeRate(start, end, optimal, kWhRequired)
+            optimal = ModifyOptimalChargeProfilesUsingChargeRate(start, end, optimal, kWhRequired, AlgorithmPrecision.AutoChargeWindow.MaxRateIterations)
                 .ToArray()
                 .OrderByDescending(f => f.kWhExcess > 0.0f)
                 .ThenBy(f => Math.Abs(f.kWhExcess))
@@ -246,7 +246,7 @@ public record Algorithm(
         return new SynthesisedChargeProfile(chargeValues);
     }
 
-    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfilesFromPricing(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput, int maxOptions = 8)
+    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfilesFromPricing(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput, int maxIterations)
     {
         // Good starting point is the average price.
         double thresholdPrice = pricing.Average(start, end, stepAnalyse);
@@ -259,7 +259,7 @@ public record Algorithm(
         double previousAdjustmentDirection = -1.0;
 
         // Iterate
-        for (int option = 0; option < maxOptions; option++)
+        for (int option = 0; option < maxIterations; option++)
         {
             // Create a charge profile which charges when the price is less than the threshold.
             List<ChargeValue> chargeValues = new();
@@ -299,7 +299,7 @@ public record Algorithm(
         }
     }
 
-    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> ModifyOptimalChargeProfilesUsingChargeRate(DateTimeOffset start, DateTimeOffset end, IChargeProfile chargeProfile, float kWhRequired, int maxOptions = 8)
+    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> ModifyOptimalChargeProfilesUsingChargeRate(DateTimeOffset start, DateTimeOffset end, IChargeProfile chargeProfile, float kWhRequired, int maxIterations)
     {
         // Good starting point is full-power.
         float chargeRateScalar = 1.0f;
@@ -309,7 +309,7 @@ public record Algorithm(
         double previousAdjustmentDirection = -1.0;
 
         // Iterate
-        for (int option = 0; option < maxOptions; option++)
+        for (int option = 0; option < maxIterations; option++)
         {
             // Because we were already supplied with a starting point, yield this one first.
             double kWhYielded = chargeProfile.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end);

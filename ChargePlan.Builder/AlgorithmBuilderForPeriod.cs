@@ -18,7 +18,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         AlgorithmPrecision AlgorithmPrecision,
         params DateTime[] Days)
 {
-    public AlgorithmBuilderForPeriod AddChargeWindow(PowerAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { FixedChargeProfile = (builder.FixedChargeProfile ?? new()).Add(template.AsChargeProfile(day.Date)) });
+    public AlgorithmBuilderForPeriod AddChargeWindow(PowerAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { FixedChargeProfile = (builder.FixedChargeProfile ?? throw new InvalidOperationException("Already chosen to use dynamic charge windows")).Add(template.AsChargeProfile(day.Date)) });
     public AlgorithmBuilderForPeriod AddDemand(PowerAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { DemandProfile = builder.DemandProfile.Add(template.AsDemandProfile(day.Date)) });
     public AlgorithmBuilderForPeriod AddPricing(PriceAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { PricingProfile = builder.PricingProfile.Add(template.AsPricingProfile(day.Date)) });
     public AlgorithmBuilderForPeriod AddExportPricing(PriceAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { ExportProfile = builder.ExportProfile.Add(template.AsExportProfile(day.Date)) });

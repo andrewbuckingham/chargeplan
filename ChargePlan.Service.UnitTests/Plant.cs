@@ -100,7 +100,12 @@ public class Plant
         decimal perHourOvernight = 0.1M;
         decimal perHourDaytime = 1.0M;
         
-        var algorithm = new AlgorithmBuilder(LimitedThroughputPlant(1.0f), Interpolations.Step())
+        var algorithm = new AlgorithmBuilder(LimitedThroughputPlant(10.0f), Interpolations.Step())
+            .WithPrecision(f => f with
+            {
+                TimeStep = TimeSpan.FromMinutes(30),
+                ShiftBy = TimeSpan.FromMinutes(30)
+            })
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.1f, 0.1f, 0.1f, 0.1f }) // Tiny bit of daytime generation, sohuld be ignored
             .AddShiftableDemandAnyDay(hugeShiftableDemand with { Name = "Demand 1" }, priority: ShiftableDemandPriority.Essential)
             .AddShiftableDemandAnyDay(hugeShiftableDemand with { Name = "Demand 2" }, priority: ShiftableDemandPriority.Essential)
