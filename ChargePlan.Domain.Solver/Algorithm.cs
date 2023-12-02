@@ -71,14 +71,14 @@ public record Algorithm(
                         SpecificDemandProfiles = f.ThisAndOtherDemands
                     };
 
-                    // var optimal = CreateChargeRateOptions()
-                    //     .Select(chargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate))
-                    //     .ToArray()
-                    //     .OrderBy(f => f.TotalCost)
-                    //     .First();
-
                     var optimal = CreateChargeRateOptions()
-                        .Select(dischargeLimit => thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, /*optimal.ChargeRateLimit*/ null, dischargeLimit, ExplicitStartDate))
+                        .Select(chargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate))
+                        .ToArray()
+                        .OrderBy(f => f.TotalCost)
+                        .First();
+
+                    optimal = CreateChargeRateOptions()
+                        .Select(dischargeLimit => thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, optimal.ChargeRateLimit, dischargeLimit, ExplicitStartDate))
                         .ToArray()
                         .OrderBy(f => f.TotalCost)
                         .First();
