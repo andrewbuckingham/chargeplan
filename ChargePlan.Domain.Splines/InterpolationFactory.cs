@@ -48,13 +48,6 @@ public record InterpolationFactory(
         return result;
     };
 
-    // private Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> From(InterpolationType type) => type switch
-    // {
-    //     InterpolationType.CubicSpline => (x,y) => InterpolationFactoryCache.Cache.GetOrAdd(MathNetCacheKey.From(x, y, type), k => CreateCubicSpline(x, y)),
-    //     InterpolationType.Step => (x,y) => InterpolationFactoryCache.Cache.GetOrAdd(MathNetCacheKey.From(x, y, type), k => CreateStepInterpolation(x, y)),
-    //     _ => throw new InvalidOperationException()
-    // };
-
     public IInterpolation InterpolateBaseload(IEnumerable<double> xValues, IEnumerable<double> yValues) => From(Baseload)(xValues, yValues);
     public IInterpolation InterpolateShiftableDemand(IEnumerable<double> xValues, IEnumerable<double> yValues) => From(ShiftableDemand)(xValues, yValues);
     public IInterpolation InterpolateGeneration(IEnumerable<double> xValues, IEnumerable<double> yValues) => From(Generation)(xValues, yValues);
