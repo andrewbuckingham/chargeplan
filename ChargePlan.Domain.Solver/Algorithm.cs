@@ -274,7 +274,7 @@ public record Algorithm(
             chargeValues = chargeValues.Take(1).Concat(chargeValues
                 .Zip(chargeValues.Skip(1))
                 .Where(f => f.First.Power != f.Second.Power)
-                .Select(f => f.First))
+                .Select(f => f.Second))
                 .ToList();
 
             // Assess how much energy would be charged into the battery from that trial charging profile.
