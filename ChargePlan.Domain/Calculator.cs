@@ -69,6 +69,11 @@ public record Calculator(
         float cost = 0.0f;
 
         DateTimeOffset now = startAt.ToClosestHour();
+        var demandSplines = DemandSplines();
+        var pricingSpline = PricingSpline();
+        var exportSpline = ExportSpline();
+        var generationSpline = GenerationSpline();
+        var chargeSpline = ChargeSpline();
 
         List<IntegrationStep> debugResults = new();
 
@@ -77,15 +82,15 @@ public record Calculator(
             double from = (now).AsTotalHours();
             double to = (now + step).AsTotalHours();
 
-            if (DemandSplines().Length != SpecificDemandProfiles.Count() + 1) throw new InvalidOperationException("Spline count does not match supplied demand profiles!");
+            if (demandSplines.Length != SpecificDemandProfiles.Count() + 1) throw new InvalidOperationException("Spline count does not match supplied demand profiles!");
 
-            var demandEnergies = DemandSplines().Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2)).ToArray();
+            var demandEnergies = demandSplines.Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2)).ToArray();
 
-            float unitPrice = Math.Max(0.0f, (float)PricingSpline().Interpolate(from));
-            float exportPrice = Math.Max(0.0f, (float)ExportSpline().Interpolate(from));
+            float unitPrice = Math.Max(0.0f, (float)pricingSpline.Interpolate(from));
+            float exportPrice = Math.Max(0.0f, (float)exportSpline.Interpolate(from));
             float demandEnergy = (float)demandEnergies.Select(f => f.Energy).Sum();
-            float generationEnergy = Math.Max(0.0f, (float)GenerationSpline().Integrate(from, to));
-            float chargeEnergy = (float)Math.Max(0.0f, Math.Min(ChargeSpline().Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
+            float generationEnergy = Math.Max(0.0f, (float)generationSpline.Integrate(from, to));
+            float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
             plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step, dischargePowerLimit);
 

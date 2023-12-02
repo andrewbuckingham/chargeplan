@@ -1,6 +1,9 @@
 using ChargePlan.Domain;
-
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 namespace ChargePlan.Domain.Splines;
 
 public enum InterpolationType
@@ -8,6 +11,11 @@ public enum InterpolationType
     Undefined = 0,
     CubicSpline,
     Step,
+}
+
+file static class InterpolationFactoryCache
+{
+    public static readonly ConcurrentDictionary<MathNetCacheKey, IInterpolation> Cache = new();
 }
 
 public record InterpolationFactory(
@@ -25,12 +33,27 @@ public record InterpolationFactory(
     private IInterpolation CreateStepInterpolation(IEnumerable<double> xValues, IEnumerable<double> yValues)
         => new MathNetWrapper(MathNet.Numerics.Interpolation.StepInterpolation.Interpolate(xValues, yValues));
 
-    private Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> From(InterpolationType type) => type switch
+    private Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> From(InterpolationType type) => (x, y) =>
     {
-        InterpolationType.CubicSpline => CreateCubicSpline,
-        InterpolationType.Step => CreateStepInterpolation,
-        _ => throw new InvalidOperationException()
+        var key = MathNetCacheKey.From(x, y, type);
+        bool isHit = InterpolationFactoryCache.Cache.ContainsKey(key);
+
+        var result = InterpolationFactoryCache.Cache.GetOrAdd(key, k => type switch
+        {
+            InterpolationType.CubicSpline => CreateCubicSpline(x, y),
+            InterpolationType.Step => CreateStepInterpolation(x, y),
+            _ => throw new InvalidOperationException()
+        });
+
+        return result;
     };
+
+    // private Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> From(InterpolationType type) => type switch
+    // {
+    //     InterpolationType.CubicSpline => (x,y) => InterpolationFactoryCache.Cache.GetOrAdd(MathNetCacheKey.From(x, y, type), k => CreateCubicSpline(x, y)),
+    //     InterpolationType.Step => (x,y) => InterpolationFactoryCache.Cache.GetOrAdd(MathNetCacheKey.From(x, y, type), k => CreateStepInterpolation(x, y)),
+    //     _ => throw new InvalidOperationException()
+    // };
 
     public IInterpolation InterpolateBaseload(IEnumerable<double> xValues, IEnumerable<double> yValues) => From(Baseload)(xValues, yValues);
     public IInterpolation InterpolateShiftableDemand(IEnumerable<double> xValues, IEnumerable<double> yValues) => From(ShiftableDemand)(xValues, yValues);
@@ -44,4 +67,18 @@ file record MathNetWrapper(MathNet.Numerics.Interpolation.IInterpolation Wrapped
 {
     public double Integrate(double a, double b) => Wrapped.Integrate(a, b);
     public double Interpolate(double t) => Wrapped.Interpolate(t);
+}
+
+file record MathNetCacheKey(int hashCode, InterpolationType type)
+{
+    public static MathNetCacheKey From(IEnumerable<double> xValues, IEnumerable<double> yValues, InterpolationType type)
+    {
+        unchecked
+        {
+            return new(
+                xValues.Concat(yValues).Aggregate(23, (acc, value) => acc * 31 + value.GetHashCode()),
+                type
+            );
+        }
+    }
 }
