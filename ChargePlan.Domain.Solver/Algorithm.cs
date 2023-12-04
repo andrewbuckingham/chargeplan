@@ -76,7 +76,7 @@ public record Algorithm(
                         goal: 0.0, // Zero cost, ideally
                         startValue: 1.0, // Start at full charge rate
                         createModel: chargeRate => PlantTemplate.ChargeRateAtScalar((float)chargeRate),
-                        executeModel: model => (double)calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, model, null, ExplicitStartDate).TotalCost
+                        executeModel: model => (double)thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, model, null, ExplicitStartDate).TotalCost
                     ).Take(8);
 
                     float chargeRate = chargeRateAttempts
@@ -89,7 +89,7 @@ public record Algorithm(
                         goal: 0.0, // Zero cost, ideally
                         startValue: 1.0, // Start at full charge rate
                         createModel: dischargeRate => PlantTemplate.DischargeRateAtScalar((float)dischargeRate),
-                        executeModel: model => (double)calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeRate, model, ExplicitStartDate).TotalCost
+                        executeModel: model => (double)thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeRate, model, ExplicitStartDate).TotalCost
                     ).Take(8);
 
                     float dischargeRate = dischargeRateAttempts
@@ -98,7 +98,7 @@ public record Algorithm(
                         .Last()
                         .Model;
 
-                    var optimal = calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeRate, dischargeRate, ExplicitStartDate);
+                    var optimal = thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeRate, dischargeRate, ExplicitStartDate);
 
                     return (Trial: f, Evaluation: optimal);
                 })
