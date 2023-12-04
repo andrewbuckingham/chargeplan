@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using ChargePlan.Domain.Solver.GoalSeeking;
 
 namespace ChargePlan.Domain.Solver;
 
@@ -71,17 +72,33 @@ public record Algorithm(
                         SpecificDemandProfiles = f.ThisAndOtherDemands
                     };
 
-                    var optimal = CreateChargeRateOptions()
-                        .Select(chargeLimit => calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeLimit, null, ExplicitStartDate))
-                        .ToArray()
-                        .OrderBy(f => f.TotalCost)
-                        .First();
+                    var chargeRateAttempts = new BinaryDivisionSeeker().Iterations(
+                        goal: 0.0, // Zero cost, ideally
+                        startValue: 1.0, // Start at full charge rate
+                        createModel: chargeRate => PlantTemplate.ChargeRateAtScalar((float)chargeRate),
+                        executeModel: model => (double)calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, model, null, ExplicitStartDate).TotalCost
+                    ).Take(8);
 
-                    optimal = CreateChargeRateOptions()
-                        .Select(dischargeLimit => thisCalculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, optimal.ChargeRateLimit, dischargeLimit, ExplicitStartDate))
-                        .ToArray()
-                        .OrderBy(f => f.TotalCost)
-                        .First();
+                    float chargeRate = chargeRateAttempts
+                        .OrderByDescending(f => f.DeltaToGoal)
+                        .ThenByDescending(f => f.Model)
+                        .Last()
+                        .Model;
+
+                    var dischargeRateAttempts = new BinaryDivisionSeeker().Iterations(
+                        goal: 0.0, // Zero cost, ideally
+                        startValue: 1.0, // Start at full charge rate
+                        createModel: dischargeRate => PlantTemplate.DischargeRateAtScalar((float)dischargeRate),
+                        executeModel: model => (double)calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeRate, model, ExplicitStartDate).TotalCost
+                    ).Take(8);
+
+                    float dischargeRate = dischargeRateAttempts
+                        .OrderByDescending(f => f.DeltaToGoal)
+                        .ThenByDescending(f => f.Model)
+                        .Last()
+                        .Model;
+
+                    var optimal = calculator.Calculate(InitialState, AlgorithmPrecision.TimeStep, chargeRate, dischargeRate, ExplicitStartDate);
 
                     return (Trial: f, Evaluation: optimal);
                 })
@@ -224,14 +241,16 @@ public record Algorithm(
             // Calculate charge times based on the pricing profile to achieve the desired kWh.
             // Initially, assume maximum charge rate.
             // Then trim any excess charging by modifying the charge power rate.
-            var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput, AlgorithmPrecision.AutoChargeWindow.MaxPricingIterations)
+            var optimal = CreateOptimalChargeProfilesFromPricing(start, end, pricing, kWhRequired, stepAvg, stepOutput)
+                .Take(AlgorithmPrecision.AutoChargeWindow.MaxPricingIterations)
                 .ToArray()
                 .OrderByDescending(f => f.kWhExcess > 0.0f) // Prefer being slightly over...
                 .ThenBy(f => Math.Abs(f.kWhExcess)) // But other than that, just look for whatever's closest.
                 .First()
                 .Profile;
 
-            optimal = ModifyOptimalChargeProfilesUsingChargeRate(start, end, optimal, kWhRequired, AlgorithmPrecision.AutoChargeWindow.MaxRateIterations)
+            optimal = ModifyOptimalChargeProfilesUsingChargeRate(start, end, optimal, kWhRequired)
+                .Take(AlgorithmPrecision.AutoChargeWindow.MaxRateIterations)
                 .ToArray()
                 .OrderByDescending(f => f.kWhExcess > 0.0f)
                 .ThenBy(f => Math.Abs(f.kWhExcess))
@@ -246,94 +265,44 @@ public record Algorithm(
         return new SynthesisedChargeProfile(chargeValues);
     }
 
-    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfilesFromPricing(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput, int maxIterations)
-    {
-        // Good starting point is the average price.
-        double thresholdPrice = pricing.Average(start, end, stepAnalyse);
-
-        // This method always uses peak charge rate.
-        float chargePower = PlantTemplate.ChargeRateAtScalar(1.0f);
-
-        // Next time around the loop, we'll adjust the threshold up or down by half of the current value.
-        double nextPriceAdjustmentAbs = thresholdPrice / 2;
-        double previousAdjustmentDirection = -1.0;
-
-        // Iterate
-        for (int option = 0; option < maxIterations; option++)
-        {
-            // Create a charge profile which charges when the price is less than the threshold.
-            List<ChargeValue> chargeValues = new();
-            DateTimeOffset instant = start;
-            while (instant < end)
+    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfilesFromPricing(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput)
+        => new BinaryDivisionSeeker(ModelValueLimiter: price => Math.Max(0.0, price)).Iterations(
+            goal: kWhRequired,
+            startValue: pricing.Average(start, end, stepAnalyse),
+            createModel: price =>
             {
-                bool shouldPower = pricing.Interpolate(instant) < thresholdPrice;
-                chargeValues.Add(new ChargeValue(instant.DateTime, shouldPower ? chargePower : 0.0f));
-                instant += stepOutput;
-            }
+                // Create a charge profile which charges when the price is less than the threshold.
+                List<ChargeValue> chargeValues = new();
+                DateTimeOffset instant = start;
+                while (instant < end)
+                {
+                    bool shouldPower = pricing.Interpolate(instant) < price;
+                    chargeValues.Add(new ChargeValue(instant.DateTime, shouldPower ? PlantTemplate.ChargeRateAtScalar(1.0f) : 0.0f));
+                    instant += stepOutput;
+                }
 
-            chargeValues = chargeValues.Take(1).Concat(chargeValues
-                .Zip(chargeValues.Skip(1))
-                .Where(f => f.First.Power != f.Second.Power)
-                .Select(f => f.Second))
-                .ToList();
+                chargeValues = chargeValues.Take(1).Concat(chargeValues
+                    .Zip(chargeValues.Skip(1))
+                    .Where(f => f.First.Power != f.Second.Power)
+                    .Select(f => f.Second))
+                    .ToList();
 
-            // Assess how much energy would be charged into the battery from that trial charging profile.
-            IChargeProfile trial = new SynthesisedChargeProfile(chargeValues);
-            double kWhYielded = trial.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end);
-            var result = (kWhYielded - kWhRequired, trial);
-            yield return result;
+                // Assess how much energy would be charged into the battery from that trial charging profile.
+                IChargeProfile trial = new SynthesisedChargeProfile(chargeValues);
 
-            // Next time around the loop, modify the trial price up/down depending if there was too much/little energy acquired.
-            double nextAdjustmentDirection = kWhYielded - kWhRequired > 0.0 ? -1.0 : 1.0;
+                return trial;
+            },
+            executeModel: model => model.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end)
+        );
 
-            // Use a finer pricing threshold next time, if we've crossed the threshold.
-            if (previousAdjustmentDirection != nextAdjustmentDirection)
-            {
-                nextPriceAdjustmentAbs /= 2;
-            }
-
-            thresholdPrice += nextPriceAdjustmentAbs * nextAdjustmentDirection;
-            thresholdPrice = Math.Max(0.0f, thresholdPrice);
-
-            previousAdjustmentDirection = nextAdjustmentDirection;
-        }
-    }
-
-    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> ModifyOptimalChargeProfilesUsingChargeRate(DateTimeOffset start, DateTimeOffset end, IChargeProfile chargeProfile, float kWhRequired, int maxIterations)
-    {
-        // Good starting point is full-power.
-        float chargeRateScalar = 1.0f;
-
-        // Next time around the loop, we'll adjust the threshold up or down by half of the current value.
-        float nextScalarAdjustmentAbs = chargeRateScalar / 2.0f;
-        double previousAdjustmentDirection = -1.0;
-
-        // Iterate
-        for (int option = 0; option < maxIterations; option++)
-        {
-            // Because we were already supplied with a starting point, yield this one first.
-            double kWhYielded = chargeProfile.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end);
-            var result = (kWhYielded - kWhRequired, chargeProfile);
-            yield return result;
-
-            // Next time around the loop, modify the charge power up/down depending if there was too little/much energy acquired.
-            float nextAdjustmentDirection = kWhYielded - kWhRequired > 0.0 ? -1.0f : 1.0f;
-
-            // Use a finer pricing threshold next time, if we've crossed the threshold.
-            if (previousAdjustmentDirection != nextAdjustmentDirection)
-            {
-                nextScalarAdjustmentAbs /= 2;
-            }
-
-            chargeRateScalar += nextScalarAdjustmentAbs * nextAdjustmentDirection;
-            chargeRateScalar = Math.Max(0.0f, Math.Min(1.0f, chargeRateScalar));
-
-            // Create the next one.
-            chargeProfile = new SynthesisedChargeProfile(chargeProfile.Values
-                .Select(f => f with { Power = f.Power > 0.0f ? PlantTemplate.ChargeRateAtScalar(chargeRateScalar) : 0.0f } )
-                .ToList());
-
-            previousAdjustmentDirection = nextAdjustmentDirection;
-        }
-    }
+    private IEnumerable<(double kWhExcess, IChargeProfile Profile)> ModifyOptimalChargeProfilesUsingChargeRate(DateTimeOffset start, DateTimeOffset end, IChargeProfile chargeProfile, float kWhRequired)
+        => new BinaryDivisionSeeker(ModelValueLimiter: chargeRate => Math.Max(0.0, Math.Min(1.0, chargeRate))).Iterations(
+            goal: kWhRequired,
+            startValue: 1.0,
+            createInitialModel: chargeRate => chargeProfile,
+            executeModel: model => model.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end),
+            reviseModel: (chargeRate, model) => new SynthesisedChargeProfile(model.Values
+                .Select(f => f with { Power = f.Power > 0.0f ? PlantTemplate.ChargeRateAtScalar((float)chargeRate) : 0.0f } )
+                .ToList())
+        );
 }
