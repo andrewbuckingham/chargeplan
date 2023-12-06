@@ -20,10 +20,20 @@ public record Algorithm(
     /// <summary>
     /// Iterate differing charge energies to arrive at the optimal given the predicted generation and demand.
     /// </summary>
-    public Recommendations DecideStrategy()
+    /// <param name="autoForceExport">If true, will automatically look for opportunities to force-export from the battery.</param>
+    public Recommendations DecideStrategy(bool autoForceExport = true)
     {
         DateTimeOffset fromDate = (ExplicitStartDate ?? new DateTimeOffset(DemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
         DateTimeOffset toDate = DemandProfile.Until;
+
+        if (autoForceExport)
+        {
+            double idealExportEnergy = new BinaryDivisionSeeker().Iterations(
+                goal: 0.0,
+                startValue: PricingProfile.AsSplineOrZero(InterpolationFactory.InterpolatePricing).Average(fromDate, toDate, TimeSpan.FromHours(1)),
+                createModel: value => 
+            );
+        }
 
         // Establish baseline based just on the main demand profile.
         Calculator calculator = CreateCalculator(
@@ -46,23 +56,24 @@ public record Algorithm(
         var pendingTrials = CreateShiftableDemandTrials(fromDate, toDate);
 
         var optimalTrials = new List<(IShiftableDemandProfile ShiftableDemand, DateTimeOffset StartAt, decimal AddedCost, IDemandProfile DemandProfile)>();
-        foreach (var s in pendingTrials)
+        foreach (var demand in pendingTrials)
         {
             // Take the previously-decided shiftable demands...
             var completedDemands = optimalTrials.Select(f => f.DemandProfile);
 
             // ...and append this shiftable demand to the end of that list, for each of its trials.
             // Ignore trials which are too soon.
-            var validTrials = s.Trials
-                .Where(f => !optimalTrials.Any(g => s.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt.LocalDateTime, f.StartAt.LocalDateTime)))
+            var validTrials = demand.Trials
+                .Where(f => !optimalTrials.Any(g => demand.ShiftableDemand.IsTooSoonToRepeat(g.ShiftableDemand, g.StartAt.LocalDateTime, f.StartAt.LocalDateTime)))
                 .Select(t => (
-                    OriginalProfile: s.ShiftableDemand,
+                    OriginalProfile: demand.ShiftableDemand,
                     StartAt: t.StartAt,
                     ThisDemand: t.Demand,
                     ThisAndOtherDemands: completedDemands.Append(t.Demand)
                 ))
                 .ToArray();
 
+            // For each trial of this shiftable demand, evaluate the energy and also the ideal charge rates.
             var trialResults = validTrials
                 .Select(f =>
                 {
@@ -209,7 +220,7 @@ public record Algorithm(
         }
     }
 
-    public IChargeProfile CreateOptimalChargeProfile(DateTimeOffset fromDate, DateTimeOffset toDate, IEnumerable<IDemandProfile> knownShiftableDemands)
+    private IChargeProfile CreateOptimalChargeProfile(DateTimeOffset fromDate, DateTimeOffset toDate, IEnumerable<IDemandProfile> knownShiftableDemands)
     {
         TimeSpan stepAvg = TimeSpan.FromMinutes(1);
         TimeSpan stepOutput = TimeSpan.FromMinutes(10);
@@ -225,7 +236,7 @@ public record Algorithm(
             DateTimeOffset end = day.AddDays(1);
 
             // Disregarding any charge profiles that have been decided up until now; how much energy is required for this time period.
-            float kWhRequired = CreateCalculator(SynthesisedChargeProfile.Empty(), knownShiftableDemands).DemandEnergyBetween(start, end);
+            float kWhRequired = CreateCalculator(SynthesisedPowerProfile.Empty(), knownShiftableDemands).DemandEnergyBetween(start, end);
 
             // Calculate charge times based on the pricing profile to achieve the desired kWh.
             // Initially, assume maximum charge rate.
@@ -251,7 +262,7 @@ public record Algorithm(
             day = day.AddDays(1);
         }
 
-        return new SynthesisedChargeProfile(chargeValues);
+        return new SynthesisedPowerProfile(chargeValues);
     }
 
     private IEnumerable<(double kWhExcess, IChargeProfile Profile)> CreateOptimalChargeProfilesFromPricing(DateTimeOffset start, DateTimeOffset end, IInterpolation pricing, float kWhRequired, TimeSpan stepAnalyse, TimeSpan stepOutput)
@@ -277,7 +288,7 @@ public record Algorithm(
                     .ToList();
 
                 // Assess how much energy would be charged into the battery from that trial charging profile.
-                IChargeProfile trial = new SynthesisedChargeProfile(chargeValues);
+                IChargeProfile trial = new SynthesisedPowerProfile(chargeValues);
 
                 return trial;
             },
@@ -290,7 +301,7 @@ public record Algorithm(
             startValue: 1.0,
             createInitialModel: chargeRate => chargeProfile,
             executeModel: model => model.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end),
-            reviseModel: (chargeRate, model) => new SynthesisedChargeProfile(model.Values
+            reviseModel: (chargeRate, model) => new SynthesisedPowerProfile(model.Values
                 .Select(f => f with { Power = f.Power > 0.0f ? PlantTemplate.ChargeRateAtScalar((float)chargeRate) : 0.0f } )
                 .ToList())
         );
