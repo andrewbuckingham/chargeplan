@@ -7,7 +7,7 @@ namespace ChargePlan.Builder;
 public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         DemandProfile DemandProfile,
         IGenerationProfile GenerationProfile,
-        ChargeProfile ChargeProfile,
+        ChargeProfile? FixedChargeProfile,
         PricingProfile PricingProfile,
         ExportProfile ExportProfile,
         IInterpolationFactory InterpolationFactory,
@@ -18,7 +18,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         AlgorithmPrecision AlgorithmPrecision,
         params DateTime[] Days)
 {
-    public AlgorithmBuilderForPeriod AddChargeWindow(PowerAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { ChargeProfile = builder.ChargeProfile.Add(template.AsChargeProfile(day.Date)) });
+    public AlgorithmBuilderForPeriod AddChargeWindow(PowerAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { FixedChargeProfile = (builder.FixedChargeProfile ?? throw new InvalidOperationException("Already chosen to use dynamic charge windows")).Add(template.AsChargeProfile(day.Date)) });
     public AlgorithmBuilderForPeriod AddDemand(PowerAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { DemandProfile = builder.DemandProfile.Add(template.AsDemandProfile(day.Date)) });
     public AlgorithmBuilderForPeriod AddPricing(PriceAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { PricingProfile = builder.PricingProfile.Add(template.AsPricingProfile(day.Date)) });
     public AlgorithmBuilderForPeriod AddExportPricing(PriceAtAbsoluteTimes template) => AddForEachDay((builder, day) => builder with { ExportProfile = builder.ExportProfile.Add(template.AsExportProfile(day.Date)) });
@@ -43,7 +43,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, FixedChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
 
     private AlgorithmBuilderForPeriod AddForEachDay(Func<AlgorithmBuilderForPeriod, DateTime, AlgorithmBuilderForPeriod> action)
     {
@@ -59,7 +59,7 @@ public record AlgorithmBuilderForPeriod(IPlant PlantTemplate,
         PlantTemplate,
         DemandProfile,
         GenerationProfile,
-        ChargeProfile,
+        FixedChargeProfile,
         PricingProfile,
         ExportProfile,
         InterpolationFactory,

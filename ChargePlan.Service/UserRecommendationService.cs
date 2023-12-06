@@ -45,7 +45,6 @@ public class UserRecommendationService
         var input = await _repos.Days.GetAsync(_user.Id) ?? throw new InvalidStateException("Must defined day templates first");
         var allShiftable = await _repos.Shiftable.GetAsyncOrEmpty(_user.Id);
         var allDemands = await _repos.Demand.GetAsyncOrEmpty(_user.Id);
-        var allCharge = await _repos.Charge.GetAsyncOrEmpty(_user.Id);
         var allPricing = await _repos.Pricing.GetAsyncOrEmpty(_user.Id);
         var allExport = await _repos.Export.GetAsyncOrEmpty(_user.Id);
         var completedDemands = await _repos.CompletedDemands.GetAsyncOrEmpty(_user.Id);
@@ -67,6 +66,7 @@ public class UserRecommendationService
         var mainBuilder = new AlgorithmBuilder(plant, _interpolationFactory)
             .WithInitialBatteryEnergy(parameters.InitialBatteryEnergy)
             .WithGeneration(generation)
+            .WithDynamicChargeWindows()
             .ExcludingCompletedDemands(completedDemands.Entity);
 
         foreach (var shiftable in input.ShiftableDemandsAnyDay.Where(f => f.Disabled == false))
@@ -93,14 +93,12 @@ public class UserRecommendationService
         foreach (var day in days)
         {
             var demand = allDemands.OnlyOne(f => f.Name, day.Template.DemandName);
-            var charge = allCharge.OnlyOne(f => f.Name, day.Template.ChargeName);
             var pricing = allPricing.OnlyOne(f => f.Name, day.Template.PricingName);
             var export = allExport.OnlyOne(f => f.Name, day.Template.ExportName);
 
             dayBuilder = dayBuilder
                 .ForDay(day.Date)
                 .AddDemand(demand)
-                .AddChargeWindow(charge)
                 .AddPricing(pricing)
                 .AddExportPricing(export);
 

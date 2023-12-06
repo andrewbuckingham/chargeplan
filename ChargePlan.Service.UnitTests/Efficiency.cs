@@ -127,7 +127,7 @@ public class Efficiency
     {
         var algorithm = new AlgorithmBuilder(LimitedPlant(maxBatteryThroughput: 4.0f, efficiencyPc: 100, i2r: 0.0f), Interpolations.Step())
             .WithInitialBatteryEnergy(8.0f)
-            .WithPrecision(AlgorithmPrecision.Default with { IterateInPercents = 10 })
+            .WithPrecision(f => f with { IterateInPercents = 1, TimeStep = TimeSpan.FromHours(1) })
             .WithGeneration(DateTime.Today.AddDays(1), new float[] { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f })
             .ForDay(DateTime.Today.AddDays(1))
             .AddPricing(ConstantPrice(1.0M))
@@ -154,7 +154,7 @@ public class Efficiency
                 Name: "Constant Demand",
                 Values: new()
                 {
-                    new (TimeOnly.MinValue, 4.0f), // 4hrs no demand, then 4hrs with demand.
+                    new (TimeOnly.MinValue, 4.0f),
                     new (new(08,00), 0.0f),
                 }
             ))

@@ -3,31 +3,51 @@ using ChargePlan.Domain.Exceptions;
 
 namespace ChargePlan.Domain;
 
-public record Calculator(IPlant PlantTemplate)
+/// <summary>
+/// 
+/// </summary>
+/// <param name="PlantTemplate"></param>
+/// <param name="BaseloadDemandProfile">House demand baseload. Also defines the time bounds of the calculation. For specific loads (e.g. washing machines) use the shiftableLoadDemandProfiles instead.</param>
+/// <param name="GenerationProfile">Generation profile based on global and celestial parameters</param>
+/// <param name="ChargeProfile">Fixed charging from grid</param>
+/// <param name="PricingProfile">Unit price at each point over the period</param>
+/// <param name="ExportProfile">Unit price for export at each point over the period</param>
+/// <param name="SpecificDemandProfiles">Specific demands e.g. individual high-loads that are transient</param>
+public record Calculator(
+        IPlant PlantTemplate,
+        IDemandProfile BaseloadDemandProfile,
+        IEnumerable<IDemandProfile> SpecificDemandProfiles,
+        IGenerationProfile GenerationProfile,
+        IChargeProfile ChargeProfile,
+        IPricingProfile PricingProfile,
+        IExportProfile ExportProfile,
+        IInterpolationFactory InterpolationFactory
+    )
 {
+    /// <summary>
+    /// All the demand profiles (baseload and specific) as demand splines, for convenience of calculating energies.
+    /// </summary>
+    private (IInterpolation Interpolation, IDemandProfile Profile)[] DemandSplines()
+        => Enumerable.Empty<(IInterpolation Interpolation, IDemandProfile Profile)>()
+            .Append((Interpolation: BaseloadDemandProfile.AsSpline(InterpolationFactory.InterpolateBaseload), Profile: BaseloadDemandProfile))
+            .Concat(SpecificDemandProfiles.Select(demandProfile => (Interpolation: demandProfile.AsSpline(InterpolationFactory.InterpolateShiftableDemand), Profile: demandProfile)))
+            .ToArray();
+
+    private IInterpolation GenerationSpline() => GenerationProfile.AsSplineOrZero(InterpolationFactory.InterpolateGeneration);
+    private IInterpolation ChargeSpline() => ChargeProfile.AsSplineOrZero(InterpolationFactory.InterpolateCharging);
+    private IInterpolation PricingSpline() => PricingProfile.AsSpline(InterpolationFactory.InterpolatePricing);
+    private IInterpolation ExportSpline() => ExportProfile.AsSplineOrZero(InterpolationFactory.InterpolateExport);
+
     /// <summary>
     /// Calculate the end position in battery charge, and accumulated costs,
     /// for a test set of parameters.
     /// The starting point will be the Starting point in the baseload demand profile, or DateTime.Now, whichever is latest.
     /// </summary>
-    /// <param name="baseloadDemandProfile">House demand baseload. Also defines the time bounds of the calculation. For specific loads (e.g. washing machines) use the shiftableLoadDemandProfiles instead.</param>
-    /// <param name="generationProfile">Generation profile based on global and celestial parameters</param>
-    /// <param name="chargeProfile">Fixed charging from grid</param>
-    /// <param name="pricingProfile">Unit price at each point over the period</param>
-    /// <param name="exportProfile">Unit price for export at each point over the period</param>
     /// <param name="initialState">Current battery energy level</param>
     /// <param name="chargePowerLimit">A hard set power limit for the grid charge period</param>
     /// <param name="dishargePowerLimit">A hard set power limit for when discharging from the battery</param>
-    /// <param name="specificDemandProfiles">Specific demands e.g. individual high-loads that are transient</param>
     /// <returns></returns>
     public Evaluation Calculate(
-        IDemandProfile baseloadDemandProfile,
-        IEnumerable<IDemandProfile> specificDemandProfiles,
-        IGenerationProfile generationProfile,
-        IChargeProfile chargeProfile,
-        IPricingProfile pricingProfile,
-        IExportProfile exportProfile,
-        IInterpolationFactory interpolationFactory,
         PlantState initialState,
         TimeSpan timeStep,
         float? chargePowerLimit = null,
@@ -38,27 +58,22 @@ public record Calculator(IPlant PlantTemplate)
 
         TimeSpan step = timeStep;
 
-        DateTimeOffset startAt = (explicitStartDate ?? new DateTimeOffset(baseloadDemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
-        DateTimeOffset endAt = baseloadDemandProfile.Until - step;
+        DateTimeOffset startAt = (explicitStartDate ?? new DateTimeOffset(BaseloadDemandProfile.Starting).OrAtEarliest(DateTimeOffset.Now)).ToClosestHour();
+        DateTimeOffset endAt = BaseloadDemandProfile.Until - step;
 
-        if (startAt < baseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
+        if (startAt < BaseloadDemandProfile.Starting) throw new InvalidStateException("Cannot start before baseload demand timescale");
         if (step <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeStep), timeStep, "Timestep must be positive");
-
-        var demandSplines = Enumerable.Empty<(IInterpolation Interpolation, IDemandProfile Profile)>()
-            .Append((Interpolation: baseloadDemandProfile.AsSpline(interpolationFactory.InterpolateBaseload), Profile: baseloadDemandProfile))
-            .Concat(specificDemandProfiles.Select(demandProfile => (Interpolation: demandProfile.AsSpline(interpolationFactory.InterpolateShiftableDemand), Profile: demandProfile)))
-            .ToArray();
-
-        var generationSpline = generationProfile.AsSplineOrZero(interpolationFactory.InterpolateGeneration);
-        var chargeSpline = chargeProfile.AsSplineOrZero(interpolationFactory.InterpolateCharging);
-        var pricingSpline = pricingProfile.AsSpline(interpolationFactory.InterpolatePricing);
-        var exportSpline = exportProfile.AsSplineOrZero(interpolationFactory.InterpolateExport);
 
         float overcharge = 0.0f;
         float undercharge = 0.0f;
         float cost = 0.0f;
 
         DateTimeOffset now = startAt.ToClosestHour();
+        var demandSplines = DemandSplines();
+        var pricingSpline = PricingSpline();
+        var exportSpline = ExportSpline();
+        var generationSpline = GenerationSpline();
+        var chargeSpline = ChargeSpline();
 
         List<IntegrationStep> debugResults = new();
 
@@ -66,6 +81,8 @@ public record Calculator(IPlant PlantTemplate)
         {
             double from = (now).AsTotalHours();
             double to = (now + step).AsTotalHours();
+
+            if (demandSplines.Length != SpecificDemandProfiles.Count() + 1) throw new InvalidOperationException("Spline count does not match supplied demand profiles!");
 
             var demandEnergies = demandSplines.Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2)).ToArray();
 
@@ -89,7 +106,7 @@ public record Calculator(IPlant PlantTemplate)
             debugResults.Add(new(
                 now,
                 plant.State.BatteryEnergy, demandEnergy, generationEnergy, chargeEnergy, plant.LastIntegration.GridExport, cost, undercharge, overcharge,
-                new(step.Power(generationEnergy)),
+                new(step.Power(generationEnergy), step.Power(chargeEnergy)),
                 demandEnergies.Select(f => new IntegrationStepDemandEnergy(f.Profile.Name, f.Profile.Type, (float)f.Energy, step.Power((float)f.Energy))).ToArray()
             ));
         }
@@ -107,11 +124,17 @@ public record Calculator(IPlant PlantTemplate)
         }
 
         return new Evaluation(
-            chargePowerLimit,
+            debugResults.Select(f => f.PowerValues.GridCharged).Where(f => f > 0.0f).FirstOrDefault(),
             dischargePowerLimit,
             roundedCost,
             debugResults,
             overchargeAndUnderchargePeriods.Item1,
             overchargeAndUnderchargePeriods.Item2);
     }
+
+    public float DemandEnergyBetween(DateTimeOffset from, DateTimeOffset to)
+        => (float)DemandSplines()
+            .Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2))
+            .Select(f => f.Energy)
+            .Sum();
 }

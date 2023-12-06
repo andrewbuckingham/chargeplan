@@ -7,7 +7,7 @@ namespace ChargePlan.Builder;
 public record AlgorithmBuilder(IPlant PlantTemplate,
         DemandProfile DemandProfile,
         IGenerationProfile GenerationProfile,
-        ChargeProfile ChargeProfile,
+        ChargeProfile? FixedChargeProfile,
         PricingProfile PricingProfile,
         ExportProfile ExportProfile,
         IInterpolationFactory InterpolationFactory,
@@ -18,7 +18,7 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         AlgorithmPrecision AlgorithmPrecision)
 {
     public AlgorithmBuilder(IPlant plantTemplate, IInterpolationFactory interpolationFactory) : this(
-        plantTemplate, new(), new GenerationProfile(), new(), new(), new(), interpolationFactory, plantTemplate.State,
+        plantTemplate, new(), new GenerationProfile(), ChargeProfile.Empty(), new(), new(), interpolationFactory, plantTemplate.State,
         new ShiftableDemand[] {}, new DemandCompleted[] {}, null,
         AlgorithmPrecision.Default// with { TimeStep = TimeSpan.FromHours(1), ShiftBy = TimeSpan.FromHours(4) }
         ) {}
@@ -46,6 +46,26 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
         => this with { GenerationProfile = new GenerationProfile() { Values = kwhFigures.Select(f => new GenerationValue(f.DateTime, f.Power)).ToList() } };
     public AlgorithmBuilder WithGeneration(IGenerationProfile generationProfile)
         => this with { GenerationProfile = generationProfile };
+
+    /// <summary>
+    /// Explicitly no grid charge periods.
+    /// </summary>
+    public AlgorithmBuilder WithoutChargeWindows()
+        => this with { FixedChargeProfile = ChargeProfile.Empty() };
+
+    /// <summary>
+    /// Dynamically create the charge windows based on the loads.
+    public AlgorithmBuilder WithDynamicChargeWindows(Func<DynamicChargeWindowCalculations, DynamicChargeWindowCalculations> mutator)
+        => this with
+        {
+            FixedChargeProfile = null,
+            AlgorithmPrecision = this.AlgorithmPrecision with
+            {
+                AutoChargeWindow = mutator(this.AlgorithmPrecision.AutoChargeWindow)
+            }
+        };
+    public AlgorithmBuilder WithDynamicChargeWindows()
+        => this with { FixedChargeProfile = null };
 
     public AlgorithmBuilder WithPrecision(AlgorithmPrecision precision)
         => this with { AlgorithmPrecision = precision };
@@ -79,5 +99,5 @@ public record AlgorithmBuilder(IPlant PlantTemplate,
     /// Any further builder instructions will be for the supplied days. Existing ones are preserved.
     /// </summary>
     public AlgorithmBuilderForPeriod ForEachDay(params DateTime[] days)
-        => new(PlantTemplate, DemandProfile, GenerationProfile, ChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
+        => new(PlantTemplate, DemandProfile, GenerationProfile, FixedChargeProfile, PricingProfile, ExportProfile, InterpolationFactory, InitialState, ShiftableDemands, CompletedDemands, ExplicitStartDate, AlgorithmPrecision, days);
 }
