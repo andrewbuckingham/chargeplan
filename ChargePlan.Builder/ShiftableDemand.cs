@@ -2,9 +2,9 @@ using ChargePlan.Domain;
 
 namespace ChargePlan.Builder;
 
-public class ShiftableDemand : IShiftableDemandProfile
+public record ShiftableDemand : IShiftableDemandProfile
 {
-    public List<ShiftableDemandValue> Values = new();
+    public IEnumerable<ShiftableDemandValue> Values { get; init; } = Enumerable.Empty<ShiftableDemandValue>();
 
     public string Name { get; set; } = String.Empty;
     public string Type { get; set; } = String.Empty;

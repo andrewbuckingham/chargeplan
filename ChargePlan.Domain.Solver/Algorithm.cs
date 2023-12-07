@@ -28,11 +28,11 @@ public record Algorithm(
 
         if (autoForceExport)
         {
-            double idealExportEnergy = new BinaryDivisionSeeker().Iterations(
-                goal: 0.0,
-                startValue: PricingProfile.AsSplineOrZero(InterpolationFactory.InterpolatePricing).Average(fromDate, toDate, TimeSpan.FromHours(1)),
-                createModel: value => 
-            );
+            // double idealExportEnergy = new BinaryDivisionSeeker().Iterations(
+            //     goal: 0.0,
+            //     startValue: PricingProfile.AsSplineOrZero(InterpolationFactory.InterpolatePricing).Average(fromDate, toDate, TimeSpan.FromHours(1)),
+            //     createModel: value => 
+            // );
         }
 
         // Establish baseline based just on the main demand profile.
@@ -269,29 +269,7 @@ public record Algorithm(
         => new BinaryDivisionSeeker(ModelValueLimiter: price => Math.Max(0.0, price)).Iterations(
             goal: kWhRequired,
             startValue: pricing.Average(start, end, stepAnalyse),
-            createModel: price =>
-            {
-                // Create a charge profile which charges when the price is less than the threshold.
-                List<ChargeValue> chargeValues = new();
-                DateTimeOffset instant = start;
-                while (instant < end)
-                {
-                    bool shouldPower = pricing.Interpolate(instant) < price;
-                    chargeValues.Add(new ChargeValue(instant.DateTime, shouldPower ? PlantTemplate.ChargeRateAtScalar(1.0f) : 0.0f));
-                    instant += stepOutput;
-                }
-
-                chargeValues = chargeValues.Take(1).Concat(chargeValues
-                    .Zip(chargeValues.Skip(1))
-                    .Where(f => f.First.Power != f.Second.Power)
-                    .Select(f => f.Second))
-                    .ToList();
-
-                // Assess how much energy would be charged into the battery from that trial charging profile.
-                IChargeProfile trial = new SynthesisedPowerProfile(chargeValues);
-
-                return trial;
-            },
+            createModel: price => pricing.ToChargeProfile(price, start, end, PlantTemplate.ChargeRateAtScalar(1.0f)),
             executeModel: model => model.AsSplineOrZero(InterpolationFactory.InterpolateCharging).Integrate(start, end)
         );
 
