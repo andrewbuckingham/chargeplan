@@ -28,11 +28,31 @@ public record Algorithm(
 
         if (autoForceExport)
         {
-            // double idealExportEnergy = new BinaryDivisionSeeker().Iterations(
-            //     goal: 0.0,
-            //     startValue: PricingProfile.AsSplineOrZero(InterpolationFactory.InterpolatePricing).Average(fromDate, toDate, TimeSpan.FromHours(1)),
-            //     createModel: value => 
-            // );
+            // Unfortunately this is 2 different variables:
+            // > Force export demand amount, based on trials of the export price;
+            // > Import amount, based on trials of varying import profile.
+
+            IInterpolation exportSpline = ExportProfile.AsSplineOrZero(InterpolationFactory.InterpolateExport);
+
+            var result = new BinaryDivisionSeeker().Iterations(
+                goal: 9999.0f, // Lots of money
+                startValue: exportSpline.Average(fromDate, toDate, TimeSpan.FromHours(1)), // Midpoint of export price
+                createModel: exportPrice =>
+                {
+                    var forceExportDemandProfile = exportSpline.ToForceExportProfile(whenPriceIsAbove: exportPrice, fromDate, toDate, PlantTemplate.DischargeRateAtScalar(1.0f));
+                    var calculator = CreateCalculator(
+                        GetOrCreateChargeProfile(() => (fromDate, toDate, new[] { forceExportDemandProfile })),
+                        new[] { forceExportDemandProfile });
+
+                    return calculator;
+                },
+                executeModel: model => (double)model.Calculate(InitialState, AlgorithmPrecision.TimeStep, null, null, ExplicitStartDate).TotalCost
+            )
+                .Take(AlgorithmPrecision.AutoChargeWindow.MaxPricingIterations)
+                .ToArray()
+                .OrderByDescending(f => f.DeltaToGoal);
+
+            Debug.WriteLine("wibble");
         }
 
         // Establish baseline based just on the main demand profile.
