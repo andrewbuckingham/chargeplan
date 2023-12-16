@@ -1,6 +1,6 @@
 namespace ChargePlan.Domain.Solver.GoalSeeking;
 
-internal interface IGoalSeeker
+public interface IGoalSeeker
 {
     /// <summary>
     /// Goal seek by adjusting a model to arrive at a goal.
@@ -14,10 +14,7 @@ internal interface IGoalSeeker
     /// <param name="executeModel">Execute the model and produce the score for the run</param>
     /// <returns></returns>
     public IEnumerable<(double DeltaToGoal, TModel Model)> Iterations<TModel>(
-        double goal,
-        double startValue,
-        Func<double, TModel> createModel,
-        Func<TModel, double> executeModel
+        StatelessSeekerParameters<TModel> parameters
         );
 
     /// <summary>
@@ -33,10 +30,6 @@ internal interface IGoalSeeker
     /// <param name="reviseModel">Revise a model based on the current value, using the new parameter</param>
     /// <returns></returns>
     public IEnumerable<(double DeltaToGoal, TModel Model)> Iterations<TModel>(
-        double goal,
-        double startValue,
-        Func<double, TModel> createInitialModel,
-        Func<TModel, double> executeModel,
-        Func<double, TModel, TModel> reviseModel
+        StatefulSeekerParameters<TModel> parameters
         );
 }

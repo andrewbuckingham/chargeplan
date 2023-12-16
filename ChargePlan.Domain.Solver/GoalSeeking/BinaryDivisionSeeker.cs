@@ -17,12 +17,11 @@ internal record BinaryDivisionSeeker(
         double startValue,
         Func<double, TModel> createModel,
         Func<TModel, double> executeModel)
-        => Iterations(
+        => Iterations(new StatelessSeekerParameters<TModel>(
             goal,
             startValue,
             createModel,
-            executeModel,
-            (value, existing) => createModel(value));
+            executeModel));
 
     public IEnumerable<(double DeltaToGoal, TModel Model)> Iterations<TModel>(
         double goal,
@@ -30,10 +29,20 @@ internal record BinaryDivisionSeeker(
         Func<double, TModel> createInitialModel,
         Func<TModel, double> executeModel,
         Func<double, TModel, TModel> reviseModel
-        )
+        ) => Iterations(new StatefulSeekerParameters<TModel>(
+            goal,
+            startValue,
+            createInitialModel,
+            executeModel,
+            reviseModel));
+
+    public IEnumerable<(double DeltaToGoal, TModel Model)> Iterations<TModel>(StatelessSeekerParameters<TModel> parameters)
+        => Iterations(parameters.AsStateful());
+
+    public IEnumerable<(double DeltaToGoal, TModel Model)> Iterations<TModel>(StatefulSeekerParameters<TModel> parameters)
     {
         // Model starts from this point.
-        double paramValue = startValue;
+        double paramValue = parameters.startValue;
 
         // Next time around the loop, we'll adjust the threshold up or down by half of the current value.
         double nextAdjustmentAbs = paramValue / 2.0f;
@@ -44,14 +53,14 @@ internal record BinaryDivisionSeeker(
         double? previousDelta = null;
 
         // Create model for current param value.
-        TModel model = createInitialModel(paramValue);
+        TModel model = parameters.createInitialModel(paramValue);
 
         // Iterate
         for (int option = 0; option < MaxIterations; option++)
         {           
             // Find out how close the current model is to the goal
-            double yielded = executeModel(model);
-            double delta = yielded - goal;
+            double yielded = parameters.executeModel(model);
+            double delta = yielded - parameters.goal;
             var result = (delta, model);
             yield return result;
 
@@ -83,7 +92,7 @@ internal record BinaryDivisionSeeker(
             previousDelta = delta;
 
             // Prepare the next model.
-            model = reviseModel(paramValue, model);
+            model = parameters.reviseModel(paramValue, model);
         }
     }
 }

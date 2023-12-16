@@ -38,7 +38,7 @@ public record Hy36(
     public override float ChargeRateAtScalar(float atScalarValue) => MaxChargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
     public override float DischargeRateAtScalar(float atScalarValue) => MaxDischargeKilowatts * Math.Max(0.0f, Math.Min(1.0f, atScalarValue));
 
-    public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, TimeSpan period, float? batteryDischargeOverrideKw)
+    public override IPlant IntegratedBy(float solarEnergy, float chargeEnergy, float demandEnergy, float forceExportEnergy, TimeSpan period, float? batteryDischargeOverrideKw)
     {
         float wasted = 0.0f;
 
@@ -99,19 +99,23 @@ public record Hy36(
         newState = afterGrid.NewState;
         remainingBatteryChargeThroughput -= afterGrid.Added;
 
-        // Finally, pull energy out of battery for demand.
+        // Pull energy out of battery for demand.
         // NB if this is a period of grid charging, then no drawdown from battery can be used for the demand.
         var afterDemand = PullFrom(newState, demandEnergy, afterGrid.Added > 0.0f, period.Energy(Math.Min(MaxDischargeKilowatts, batteryDischargeOverrideKw ?? MaxDischargeKilowatts)), period);
         newState = afterDemand.NewState;
+
+        // Force export as a final step.
+        var afterForceExport = PullFrom(newState, forceExportEnergy, afterGrid.Added > 0.0f, period.Energy(Math.Min(MaxDischargeKilowatts, batteryDischargeOverrideKw ?? MaxDischargeKilowatts)), period);
+        newState = afterForceExport.NewState;
 
         return this with
         {
             State = newState,
             LastIntegration = new(
-                afterGrid.Added,
-                afterSolar.Unused, // Any leftover solar, which is still within the Plant throughput capacity, is Export.
-                afterDemand.Shortfall,
-                wasted)
+                GridCharged: afterGrid.Added,
+                GridExport: afterSolar.Unused + afterForceExport.Pulled, // Any leftover solar, which is still within the Plant throughput capacity, is Export.
+                Shortfall: afterDemand.Shortfall,
+                Wasted: wasted)
         };
     }
 
@@ -181,8 +185,8 @@ public record Hy36(
 
         return (
             state with { BatteryEnergy = newState },
-            deltaFromBattery,
-            shortfall
+            Pulled: Math.Max(0.0f, deltaFromBattery),
+            Shortfall: shortfall
             );
     }
 }

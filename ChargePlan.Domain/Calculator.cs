@@ -24,6 +24,8 @@ public record Calculator(
         IInterpolationFactory InterpolationFactory
     )
 {
+    public const string ForceExportDemandName = "Force Export";
+
     /// <summary>
     /// All the demand profiles (baseload and specific) as demand splines, for convenience of calculating energies.
     /// </summary>
@@ -82,17 +84,29 @@ public record Calculator(
             double from = (now).AsTotalHours();
             double to = (now + step).AsTotalHours();
 
-            if (demandSplines.Length != SpecificDemandProfiles.Count() + 1) throw new InvalidOperationException("Spline count does not match supplied demand profiles!");
+            var demandEnergies = demandSplines
+                .Where(f => f.Profile.Name != Calculator.ForceExportDemandName)
+                .Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2))
+                .ToArray();
 
-            var demandEnergies = demandSplines.Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2)).ToArray();
+            var forceExportDemandEnergies = demandSplines
+                .Where(f => f.Profile.Name == Calculator.ForceExportDemandName)
+                .Select(f => (Energy: Math.Max(0.0f, f.Interpolation.Integrate(from, to)), Profile: f.Item2))
+                .ToArray();
 
             float unitPrice = Math.Max(0.0f, (float)pricingSpline.Interpolate(from));
             float exportPrice = Math.Max(0.0f, (float)exportSpline.Interpolate(from));
             float demandEnergy = (float)demandEnergies.Select(f => f.Energy).Sum();
+            float exportEnergy = (float)forceExportDemandEnergies.Select(f => f.Energy).Sum();
             float generationEnergy = Math.Max(0.0f, (float)generationSpline.Integrate(from, to));
             float chargeEnergy = (float)Math.Max(0.0f, Math.Min(chargeSpline.Integrate(from, to), step.Energy(chargePowerLimit ?? float.MaxValue)));
 
-            plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, step, dischargePowerLimit);
+            if (exportEnergy != 0.0f)
+            {
+                Console.WriteLine("wefwef");
+            }
+
+            plant = plant.IntegratedBy(generationEnergy, chargeEnergy, demandEnergy, exportEnergy, step, dischargePowerLimit);
 
             plant.ThrowIfInvalid();
 

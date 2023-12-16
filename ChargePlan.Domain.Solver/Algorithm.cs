@@ -35,7 +35,7 @@ public record Algorithm(
             IInterpolation exportSpline = ExportProfile.AsSplineOrZero(InterpolationFactory.InterpolateExport);
 
             var result = new BinaryDivisionSeeker().Iterations(
-                goal: 9999.0f, // Lots of money
+                goal: -9999.0f, // Lots of export i.e. negative cost
                 startValue: exportSpline.Average(fromDate, toDate, TimeSpan.FromHours(1)), // Midpoint of export price
                 createModel: exportPrice =>
                 {

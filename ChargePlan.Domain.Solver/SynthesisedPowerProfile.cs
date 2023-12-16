@@ -65,7 +65,7 @@ public static class ChargeProfileThresholdExtensions
             .Select(f => f.Second))
             .ToList();
 
-        IDemandProfile profile = new SynthesisedDemandProfile(chargeValues, start.LocalDateTime, end.LocalDateTime, "Force Export", "Force Export");
+        IDemandProfile profile = new SynthesisedDemandProfile(chargeValues, start.LocalDateTime, end.LocalDateTime, Calculator.ForceExportDemandName, Calculator.ForceExportDemandName);
 
         return profile;
     }

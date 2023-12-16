@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using ChargePlan.Domain.Solver.GoalSeeking;
 using ChargePlan.Domain.Splines;
 
 namespace ChargePlan.Service.UnitTests;
@@ -118,5 +120,32 @@ public class UnitTest1
         {
             Assert.InRange(check.Interpolated, check.Nearest * 0.99, check.Nearest * 1.01);
         }
+    }
+
+    [Fact]
+    public void GoalSeek_OneDeep_Works()
+    {
+        var seeker = new GoalSeekingBuilder()
+            .Seek(new StatelessSeekerParameters<double>(4, 1, f => f, f => f * f).AsStateful()) // Tries to find a value to solve n^2 = 4
+            .Run();
+
+        var some = seeker.Take(32).ToArray();
+
+        Assert.Equal(0, some.Last().DeltaToGoal, 2);
+    }
+
+    [Fact]
+    public void GoalSeek_TwoDeep_Works()
+    {
+        var seeker = new GoalSeekingBuilder()
+            .Seek(new StatelessSeekerParameters<double>(4, 1, f => f, f => f * f).AsStateful()) // Tries to find a value to solve n^2 = 4
+            .ForEachSeek(
+                m => new StatelessSeekerParameters<float>(m / 0.5, 0.5f, f => (float)f, f => f * 0.5f).AsStateful(),
+                f => f.TakeWhile(g => Math.Abs(g.DeltaToGoal) > 0.1))
+            .Run();
+
+        var some = seeker.Take(32).ToArray();
+
+        Assert.Equal(0, some.Last().Model2.DeltaToGoal, 2);
     }
 }
