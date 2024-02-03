@@ -1,7 +1,7 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS installer-env
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS installer-env
 
 # Build requires 3.1 SDK
-COPY --from=mcr.microsoft.com/dotnet/sdk:7.0 /usr/share/dotnet /usr/share/dotnet
+COPY --from=mcr.microsoft.com/dotnet/sdk:8.0 /usr/share/dotnet /usr/share/dotnet
 
 COPY . /src/dotnet-function-app
 RUN cd /src/dotnet-function-app && \
@@ -9,7 +9,8 @@ RUN cd /src/dotnet-function-app && \
     dotnet publish ./ChargePlan.Api/*.csproj --output /home/site/wwwroot
 
 #FROM mcr.microsoft.com/azure-functions/dotnet-isolated:4-dotnet-isolated7.0
-FROM mohsinonxrm/azure-functions-dotnet:4-isolated7.0-arm64v8
+#FROM mohsinonxrm/azure-functions-dotnet:4-isolated7.0-arm64v8
+FROM mohsinonxrm/azure-functions-dotnet:4-isolated8.0-arm64v8
 
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
     TZ=Europe/London \
