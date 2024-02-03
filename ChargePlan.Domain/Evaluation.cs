@@ -6,6 +6,7 @@ namespace ChargePlan.Domain;
 public record Evaluation(float? ChargeRateLimit, float? DischargeRateLimit, decimal TotalCost, List<IntegrationStep> DebugResults, List<OverchargePeriod> OverchargePeriods, List<UnderchargePeriod> UnderchargePeriods)
 {
     public override string ToString() => $"Total: £{TotalCost}, Charge rate limit: {ChargeRateLimit?.ToString() ?? "Any "}kW, Disharge rate limit: {DischargeRateLimit?.ToString() ?? "Any "}kW";
+    public IntegrationStep? DebugResultNow => DebugResults.FirstOrDefault(f => f.DateTime.UtcDateTime >= DateTimeOffset.UtcNow);
 }
 
 /// <summary>

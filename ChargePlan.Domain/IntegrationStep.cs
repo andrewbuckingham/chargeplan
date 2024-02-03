@@ -16,7 +16,7 @@ public record IntegrationStep(
 
 public record IntegrationStepDemandEnergy(string Name, string Type, float Energy, float Power);
 
-public record PowerValues(float Generation, float GridCharged);
+public record PowerValues(float Generation, float GridCharged, float Demand);
 
 public static class IntegrationStepEnumerableExtensions
 {
