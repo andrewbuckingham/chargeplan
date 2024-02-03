@@ -158,17 +158,6 @@ public record Algorithm(
         return CreateOptimalChargeProfile(fromDate, toDate, knownShiftableDemands);
     }
 
-    private IEnumerable<float> CreateChargeRateOptions() => AlgorithmPrecision.IterateInPercents == null	
-        ? new[] { PlantTemplate.ChargeRateAtScalar(1.0f) }	
-        : Enumerable	
-            .Range(0, 101) // Go between 0 and 100%	
-            .Chunk(AlgorithmPrecision.IterateInPercents ?? 100) // ...in steps of n%	
-            .Select(f => f.First())	
-            .Append(100)	
-            .Distinct()	
-            .Select(percent => PlantTemplate.ChargeRateAtScalar((float)percent / 100.0f))	
-            .ToArray();	
-
     /// <summary>
     /// Take all the shiftable demands and create trial runs of them at different times of the day, according to their rules.
     /// </summary>
