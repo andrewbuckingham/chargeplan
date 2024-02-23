@@ -56,14 +56,8 @@ public class ForecastTuningService
     {
         var plantSpec = await _repos.Plant.GetAsync(userId) ?? new();
 
-        var forecastSpline = (await new WeatherBuilder(
-                plantSpec.ArraySpecification.ArrayElevationDegrees,
-                plantSpec.ArraySpecification.ArrayAzimuthDegrees,
-                plantSpec.ArraySpecification.LatDegrees,
-                plantSpec.ArraySpecification.LongDegrees)
-            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea, absolutePeakWatts: plantSpec.ArraySpecification.AbsolutePeakWatts)
+        var forecastSpline = (await plantSpec.WeatherBuilder()
             .WithDniSource(_dniWeatherProvider)
-            .AddShading(plantSpec.ArrayShading)
             .BuildAsync())
             .AsSpline(_interpolationFactory.InterpolateGeneration);
 
@@ -141,6 +135,7 @@ public class ForecastTuningService
     public async Task<WeatherForecastSettings> DetermineLatestForecastScalar(ForecastTuningSettings? settings = null)
     {
         settings ??= new();
+        var plantSpec = await _repos.Plant.GetAsync(_user.Id) ?? new();
 
         DateTimeOffset earliestDateToConsider = DateTimeOffset.Now - settings.PeriodToAverageOver;
 
@@ -158,27 +153,35 @@ public class ForecastTuningService
                 .ToList()
         };
 
+        // Need to exclude any points where the sun was shaded. Re-use the WeatherBuilder with a dummy DNI,
+        // as a shorthand for determining where shaded.
+        var shadingSpline = (await plantSpec.WeatherBuilder()
+            .WithDniSource(new DummyDniProvider(earliestDateToConsider))
+            .BuildAsync())
+            .AsSpline(_interpolationFactory.InterpolateCharging);
+
         var now = DateTimeOffset.Now.ToClosestHour();
 
         var forecasts = forecastHistory
             .GetHourlyForecastsForHorizon(settings.ForecastLengthToOptimiseFor)
-            .Where(f=>f.ForHour > now - settings.PeriodToAverageOver)
-            .ToDictionary(f=>f.ForHour);
+            .Where(f => f.ForHour > now - settings.PeriodToAverageOver)
+            .ToDictionary(f => f.ForHour);
         
         var actuals = energyHistory.Values
-            .Where(f=>f.InHour > now - settings.PeriodToAverageOver)
-            .Where(f=>f.InHour < now.AddHours(-1) && f.Energy >= settings.IgnoreEnergiesBelow) // Most recent data could be partial so ignore. Likewise small values.
-            .ToDictionary(f=>f.InHour);
+            .Where(f => f.InHour > now - settings.PeriodToAverageOver)
+            .Where(f => f.InHour < now.AddHours(-1) && f.Energy >= settings.IgnoreEnergiesBelow) // Most recent data could be partial so ignore. Likewise small values.
+            .Where(f => shadingSpline.Interpolate(f.InHour) <= 0.0f)
+            .ToDictionary(f => f.InHour);
 
         // Match forecast and actuals.
         var joined = forecasts
-            .Join(actuals, f=>f.Key, f=>f.Key, (forecast,actual) => (DateTime: forecast.Key, Forecast: forecast.Value, Actual: actual.Value))
+            .Join(actuals, f => f.Key, f => f.Key, (forecast,actual) => (DateTime: forecast.Key, Forecast: forecast.Value, Actual: actual.Value))
             .ToArray();
 
         if (joined.Count() < 8) throw new InvalidStateException($"Too few datapoints for determining forecast scalar. Found {joined.Count()} but need at least 8.");
 
-        float totalForecasted = joined.Sum(f=>f.Forecast.Energy);
-        float totalActual = joined.Sum(f=>f.Actual.Energy);
+        float totalForecasted = joined.Sum(f => f.Forecast.Energy);
+        float totalActual = joined.Sum(f => f.Actual.Energy);
 
         if (totalForecasted < 1.0f) throw new InvalidStateException("Total forecasted energy is too small for determining forecast scalar.");
         if (totalActual < 1.0f) throw new InvalidStateException("Total actual energy is too small for determining forecast scalar.");
@@ -197,5 +200,43 @@ public class ForecastTuningService
         await _repos.Plant.UpsertAsync(_user.Id, plant);
 
         return weather;
+    }
+}
+
+public static class PlantExtensions
+{
+    public static WeatherBuilder WeatherBuilder(this UserPlantParameters plantSpec)
+        => new WeatherBuilder(
+                plantSpec.ArraySpecification.ArrayElevationDegrees,
+                plantSpec.ArraySpecification.ArrayAzimuthDegrees,
+                plantSpec.ArraySpecification.LatDegrees,
+                plantSpec.ArraySpecification.LongDegrees)
+            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea, absolutePeakWatts: plantSpec.ArraySpecification.AbsolutePeakWatts)
+            .AddShading(plantSpec.ArrayShading);
+}
+
+/// <summary>
+/// Dummy DNI which has zero diffuse Watts, so that the shading can easily be determined.
+/// </summary>
+file class DummyDniProvider : IDirectNormalIrradianceProvider
+{
+    private readonly DateTimeOffset _startDate;
+    public DummyDniProvider(DateTimeOffset earliestDateToConsider)
+    {
+        _startDate = earliestDateToConsider;
+    }
+
+    public Task<IEnumerable<DniValue>> GetDniForecastAsync()
+    {
+        IEnumerable<DniValue> Values()
+        {
+            DateTimeOffset date = _startDate;
+            while (date < DateTimeOffset.UtcNow)
+            {
+                yield return new DniValue(date, 1000.0f, 0.0f, 0);
+                date += TimeSpan.FromHours(1);
+            }
+        }
+        return Task.FromResult(Values());
     }
 }
