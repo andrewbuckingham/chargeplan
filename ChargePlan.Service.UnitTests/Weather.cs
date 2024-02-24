@@ -101,6 +101,11 @@ public class Weather
 
     [Theory]
     [InlineData(9, 126, true)]
+    [InlineData(11, 126, false)]
+    [InlineData(11, 130, true)]
+    [InlineData(13, 130, false)]
+    [InlineData(14, 134, true)]
+    [InlineData(17, 134, false)]
     public void OurPlant_Shading_IsCorrect(int alt, int az, bool shouldBeShaded)
     {
         var plant = MyPlantHack.UserPlantParameters();
@@ -114,17 +119,15 @@ public class Weather
 file static class MyPlantHack
 {
     private const string _myPlantHack = "{\"arraySpecification\":{\"arrayArea\":13.7,\"absolutePeakWatts\":2900,\"arrayElevationDegrees\":45,\"arrayAzimuthDegrees\":0,\"latDegrees\":54.5,\"longDegrees\":-1.55},\"weatherForecastSettings\":{\"sunlightScalar\":0.5358996,\"overcastScalar\":0.5358996},\"algorithmSettings\":{\"chargeRateLimitScalar\":1.2},\"arrayShading\":[{\"points\":[{\"item1\":90,\"item2\":0},{\"item1\":90,\"item2\":60},{\"item1\":90,\"item2\":70},{\"item1\":90,\"item2\":80},{\"item1\":30,\"item2\":90},{\"item1\":10,\"item2\":100},{\"item1\":15,\"item2\":110},{\"item1\":17,\"item2\":120},{\"item1\":5,\"item2\":130},{\"item1\":14,\"item2\":140},{\"item1\":18,\"item2\":150},{\"item1\":20,\"item2\":160},{\"item1\":20,\"item2\":170},{\"item1\":20,\"item2\":180},{\"item1\":20,\"item2\":190},{\"item1\":5,\"item2\":200},{\"item1\":14,\"item2\":210},{\"item1\":20,\"item2\":220},{\"item1\":15,\"item2\":230},{\"item1\":15,\"item2\":240},{\"item1\":19,\"item2\":250},{\"item1\":5,\"item2\":260},{\"item1\":27,\"item2\":270},{\"item1\":90,\"item2\":280},{\"item1\":90,\"item2\":290},{\"item1\":90,\"item2\":300},{\"item1\":90,\"item2\":310},{\"item1\":-90,\"item2\":310},{\"item1\":-90,\"item2\":0}]}],\"plantType\":\"Hy36\"}";
-    public static UserPlantParameters UserPlantParameters(){
-        Debug.WriteLine(_myPlantHack);
-        string thing = Regex.Unescape(_myPlantHack);
-        UserPlantParameters result = JsonSerializer.Deserialize<UserPlantParameters>(thing,
-            new JsonSerializerOptions()
-            {
-                AllowTrailingCommas = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                PropertyNameCaseInsensitive = true,
-                IncludeFields = true
-            })!;
-        return result;
-    }
+    private static JsonSerializerOptions _jsonOptions = new()
+    {
+        AllowTrailingCommas = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        IncludeFields = true
+    };
+
+    public static UserPlantParameters UserPlantParameters()
+        => JsonSerializer.Deserialize<UserPlantParameters>(_myPlantHack, _jsonOptions)
+        ?? throw new InvalidOperationException("Couldn't deserialise UserPlantParameters");
 }
