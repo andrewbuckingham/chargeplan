@@ -6,6 +6,7 @@ using ChargePlan.Domain.Solver;
 using ChargePlan.Service.Entities;
 using ChargePlan.Service.Entities.ForecastTuning;
 using ChargePlan.Service.Facades;
+using ChargePlan.Service.Helpers;
 using ChargePlan.Service.Infrastructure;
 using ChargePlan.Weather;
 using Microsoft.Extensions.Logging;
@@ -56,7 +57,7 @@ public class ForecastTuningService
     {
         var plantSpec = await _repos.Plant.GetAsync(userId) ?? new();
 
-        var forecastSpline = (await plantSpec.WeatherBuilder()
+        var forecastSpline = (await plantSpec.AsWeatherBuilder()
             .WithDniSource(_dniWeatherProvider)
             .BuildAsync())
             .AsSpline(_interpolationFactory.InterpolateGeneration);
@@ -155,7 +156,7 @@ public class ForecastTuningService
 
         // Need to exclude any points where the sun was shaded. Re-use the WeatherBuilder with a dummy DNI,
         // as a shorthand for determining where shaded.
-        var shadingSpline = (await plantSpec.WeatherBuilder()
+        var shadingSpline = (await plantSpec.AsWeatherBuilder()
             .WithDniSource(new DummyDniProvider(earliestDateToConsider))
             .BuildAsync())
             .AsSpline(_interpolationFactory.InterpolateCharging);
@@ -200,43 +201,5 @@ public class ForecastTuningService
         await _repos.Plant.UpsertAsync(_user.Id, plant);
 
         return weather;
-    }
-}
-
-public static class PlantExtensions
-{
-    public static WeatherBuilder WeatherBuilder(this UserPlantParameters plantSpec)
-        => new WeatherBuilder(
-                plantSpec.ArraySpecification.ArrayElevationDegrees,
-                plantSpec.ArraySpecification.ArrayAzimuthDegrees,
-                plantSpec.ArraySpecification.LatDegrees,
-                plantSpec.ArraySpecification.LongDegrees)
-            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea, absolutePeakWatts: plantSpec.ArraySpecification.AbsolutePeakWatts)
-            .AddShading(plantSpec.ArrayShading);
-}
-
-/// <summary>
-/// Dummy DNI which has zero diffuse Watts, so that the shading can easily be determined.
-/// </summary>
-file class DummyDniProvider : IDirectNormalIrradianceProvider
-{
-    private readonly DateTimeOffset _startDate;
-    public DummyDniProvider(DateTimeOffset earliestDateToConsider)
-    {
-        _startDate = earliestDateToConsider;
-    }
-
-    public Task<IEnumerable<DniValue>> GetDniForecastAsync()
-    {
-        IEnumerable<DniValue> Values()
-        {
-            DateTimeOffset date = _startDate;
-            while (date < DateTimeOffset.UtcNow)
-            {
-                yield return new DniValue(date, 1000.0f, 0.0f, 0);
-                date += TimeSpan.FromHours(1);
-            }
-        }
-        return Task.FromResult(Values());
     }
 }
