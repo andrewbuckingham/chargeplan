@@ -31,6 +31,10 @@ public class UserProfileFunctions
     public Task<HttpResponseData> PutMyPlant([HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "user/me/plant")] HttpRequestData req)
         => req.UpdateWithService<UserPlantParameters>(_logger, nameof(PutMyPlant), _service.PutPlantParameters);
 
+    [Function(nameof(GetMyPlantArrayShadingSimulationShaded))]
+    public Task<HttpResponseData> GetMyPlantArrayShadingSimulationShaded([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/plant/arrayshading/simulation/shaded")] HttpRequestData req)
+        => req.GetFromService(_logger, nameof(GetMyPlantArrayShadingSimulationShaded), _service.GetPlantArrayShadingSimulationShaded);
+
     [Function(nameof(PostCompletedDemandAsHash))]
     public Task<HttpResponseData> PostCompletedDemandAsHash([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/demands/completed/hashes")] HttpRequestData req)
         => req.CreateWithService<DemandCompleted, IEnumerable<DemandCompleted>>(_logger, nameof(PostCompletedDemandAsHash), _service.PostCompletedDemandAsHash);

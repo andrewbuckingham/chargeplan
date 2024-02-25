@@ -1,3 +1,4 @@
+using System.Runtime.Intrinsics.X86;
 using System.Text.Json;
 using ChargePlan.Domain.Exceptions;
 using ChargePlan.Domain.Solver;
@@ -156,4 +157,27 @@ public class UserProfileService
                 throw new NotFoundException();
             }
         });
+
+    public async Task<IEnumerable<(float Altitude, float Azimuth)>> GetPlantArrayShadingSimulationShaded()
+    {
+        var plant = await _plant.GetAsync(_user.Id) ?? throw new NotFoundException($"No plant information exists for this user");
+        var shading = plant.ArrayShading ?? throw new NotFoundException("No array shading information exists in this plant");
+
+        List<(float Altitude, float Azimuth)> shaded = new();
+        foreach (var polygon in shading)
+        {
+            for (int alt = 0; alt <= 90; alt++)
+            {
+                for (int az = 0; az < 360; az++)
+                {
+                    bool isShaded = polygon.IsSunPositionShaded((alt, az));
+                    if (isShaded)
+                    {
+                        shaded.Add((alt, az));
+                    }
+                }
+            }
+        }
+        return shaded;
+    }
 }

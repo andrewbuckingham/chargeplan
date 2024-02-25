@@ -104,8 +104,10 @@ public class Weather
     [InlineData(11, 126, false)]
     [InlineData(11, 130, true)]
     [InlineData(13, 130, false)]
-    [InlineData(14, 134, true)]
+    [InlineData(14, 134, true)] 
     [InlineData(17, 134, false)]
+    [InlineData(14, 138, true)] 
+    [InlineData(17, 138, false)]
     public void OurPlant_Shading_IsCorrect(int alt, int az, bool shouldBeShaded)
     {
         var plant = MyPlantHack.UserPlantParameters();
