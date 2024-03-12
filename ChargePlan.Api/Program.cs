@@ -14,8 +14,14 @@ using ChargePlan.Weather.OpenMeteo;
 using ChargePlan.Domain.Plant;
 using ChargePlan.Infrastructure.AzureBlob.User;
 
+var host2 = new HostBuilder()
+    .ConfigureFunctionsWebApplication()
+    .Build();
+
+host2.Run();
+
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker =>
+    .ConfigureFunctionsWebApplication(worker =>
     {
         worker.UseMiddleware<ExceptionMiddleware>();
         worker.UseMiddleware<AuthMiddleware>();

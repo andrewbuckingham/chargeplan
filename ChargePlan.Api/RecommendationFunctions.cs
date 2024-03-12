@@ -2,6 +2,8 @@ using System.Net;
 using ChargePlan.Domain.Solver;
 using ChargePlan.Service;
 using ChargePlan.Service.Entities;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -22,14 +24,14 @@ public class RecommendationFunctions
     }
 
     [Function(nameof(PostSolverRequestAdhoc))]
-    public Task<HttpResponseData> PostSolverRequestAdhoc([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "solver/requests/adhoc")] HttpRequestData req)
+    public Task<IActionResult> PostSolverRequestAdhoc([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "solver/requests/adhoc")] HttpRequest req)
         => req.CreateWithService<ChargePlanAdhocParameters, Recommendations>(_logger, nameof(PostSolverRequestAdhoc), _adhocService.CalculateRecommendations);
 
     [Function(nameof(PostSolverRequestMe))]
-    public Task<HttpResponseData> PostSolverRequestMe([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "solver/requests/me")] HttpRequestData req)
+    public Task<IActionResult> PostSolverRequestMe([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "solver/requests/me")] HttpRequest req)
         => req.CreateWithService<UserRecommendationParameters, Recommendations>(_logger, nameof(PostSolverRequestMe), _userService.CalculateRecommendations);
 
     [Function(nameof(GetLastSolverRequestMe))]
-    public Task<HttpResponseData> GetLastSolverRequestMe([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "solver/requests/me/last")] HttpRequestData req)
+    public Task<IActionResult> GetLastSolverRequestMe([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "solver/requests/me/last")] HttpRequest req)
         => req.GetFromService<Recommendations?>(_logger, nameof(GetLastSolverRequestMe), _userService.GetLastRecommendation);
 }
