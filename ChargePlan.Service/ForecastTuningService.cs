@@ -6,6 +6,7 @@ using ChargePlan.Domain.Solver;
 using ChargePlan.Service.Entities;
 using ChargePlan.Service.Entities.ForecastTuning;
 using ChargePlan.Service.Facades;
+using ChargePlan.Service.Helpers;
 using ChargePlan.Service.Infrastructure;
 using ChargePlan.Weather;
 using Microsoft.Extensions.Logging;
@@ -56,14 +57,8 @@ public class ForecastTuningService
     {
         var plantSpec = await _repos.Plant.GetAsync(userId) ?? new();
 
-        var forecastSpline = (await new WeatherBuilder(
-                plantSpec.ArraySpecification.ArrayElevationDegrees,
-                plantSpec.ArraySpecification.ArrayAzimuthDegrees,
-                plantSpec.ArraySpecification.LatDegrees,
-                plantSpec.ArraySpecification.LongDegrees)
-            .WithArrayArea(plantSpec.ArraySpecification.ArrayArea, absolutePeakWatts: plantSpec.ArraySpecification.AbsolutePeakWatts)
+        var forecastSpline = (await plantSpec.AsWeatherBuilder()
             .WithDniSource(_dniWeatherProvider)
-            .AddShading(plantSpec.ArrayShading)
             .BuildAsync())
             .AsSpline(_interpolationFactory.InterpolateGeneration);
 
@@ -141,6 +136,7 @@ public class ForecastTuningService
     public async Task<WeatherForecastSettings> DetermineLatestForecastScalar(ForecastTuningSettings? settings = null)
     {
         settings ??= new();
+        var plantSpec = await _repos.Plant.GetAsync(_user.Id) ?? new();
 
         DateTimeOffset earliestDateToConsider = DateTimeOffset.Now - settings.PeriodToAverageOver;
 
@@ -158,27 +154,35 @@ public class ForecastTuningService
                 .ToList()
         };
 
+        // Need to exclude any points where the sun was shaded. Re-use the WeatherBuilder with a dummy DNI,
+        // as a shorthand for determining where shaded.
+        var shadingSpline = (await plantSpec.AsWeatherBuilder()
+            .WithDniSource(new DummyDniProvider(earliestDateToConsider))
+            .BuildAsync())
+            .AsSpline(_interpolationFactory.InterpolateCharging);
+
         var now = DateTimeOffset.Now.ToClosestHour();
 
         var forecasts = forecastHistory
             .GetHourlyForecastsForHorizon(settings.ForecastLengthToOptimiseFor)
-            .Where(f=>f.ForHour > now - settings.PeriodToAverageOver)
-            .ToDictionary(f=>f.ForHour);
+            .Where(f => f.ForHour > now - settings.PeriodToAverageOver)
+            .ToDictionary(f => f.ForHour);
         
         var actuals = energyHistory.Values
-            .Where(f=>f.InHour > now - settings.PeriodToAverageOver)
-            .Where(f=>f.InHour < now.AddHours(-1) && f.Energy >= settings.IgnoreEnergiesBelow) // Most recent data could be partial so ignore. Likewise small values.
-            .ToDictionary(f=>f.InHour);
+            .Where(f => f.InHour > now - settings.PeriodToAverageOver)
+            .Where(f => f.InHour < now.AddHours(-1) && f.Energy >= settings.IgnoreEnergiesBelow) // Most recent data could be partial so ignore. Likewise small values.
+            .Where(f => shadingSpline.Interpolate(f.InHour) <= 0.0f)
+            .ToDictionary(f => f.InHour);
 
         // Match forecast and actuals.
         var joined = forecasts
-            .Join(actuals, f=>f.Key, f=>f.Key, (forecast,actual) => (DateTime: forecast.Key, Forecast: forecast.Value, Actual: actual.Value))
+            .Join(actuals, f => f.Key, f => f.Key, (forecast,actual) => (DateTime: forecast.Key, Forecast: forecast.Value, Actual: actual.Value))
             .ToArray();
 
         if (joined.Count() < 8) throw new InvalidStateException($"Too few datapoints for determining forecast scalar. Found {joined.Count()} but need at least 8.");
 
-        float totalForecasted = joined.Sum(f=>f.Forecast.Energy);
-        float totalActual = joined.Sum(f=>f.Actual.Energy);
+        float totalForecasted = joined.Sum(f => f.Forecast.Energy);
+        float totalActual = joined.Sum(f => f.Actual.Energy);
 
         if (totalForecasted < 1.0f) throw new InvalidStateException("Total forecasted energy is too small for determining forecast scalar.");
         if (totalActual < 1.0f) throw new InvalidStateException("Total actual energy is too small for determining forecast scalar.");

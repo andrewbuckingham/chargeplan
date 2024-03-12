@@ -1,4 +1,9 @@
+using System.Diagnostics;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using ChargePlan.Domain.Splines;
+using ChargePlan.Service.Entities;
+using ChargePlan.Service.Helpers;
 using ChargePlan.Weather;
 
 namespace ChargePlan.Service.UnitTests;
@@ -8,7 +13,7 @@ public class Weather
     private const double _whAtLatitude = 4.2;//3.4;
 
     private DateTimeOffset _solstice = new DateTimeOffset(DateTime.Today.Year, 06, 21, 12, 00, 00, TimeSpan.Zero);
-    private IDirectNormalIrradianceProvider UnitDni() => new DummyDni(_solstice);
+    private IDirectNormalIrradianceProvider UnitDni() => new DummyDniProvider(_solstice);
     private InterpolationFactory InterpolationFactory() => new InterpolationFactory(Generation: InterpolationType.Step);
 
     // [Fact]
@@ -93,26 +98,38 @@ public class Weather
         double wattHours = spline.Integrate(_solstice.Date.AsTotalHours(), _solstice.Date.AddDays(1).AsTotalHours());
         Assert.Equal(0, wattHours);
     }
+
+    [Theory]
+    [InlineData(9, 126, true)]
+    [InlineData(11, 126, false)]
+    [InlineData(11, 130, true)]
+    [InlineData(13, 130, false)]
+    [InlineData(14, 134, true)] 
+    [InlineData(17, 134, false)]
+    [InlineData(14, 138, true)] 
+    [InlineData(17, 138, false)]
+    public void OurPlant_Shading_IsCorrect(int alt, int az, bool shouldBeShaded)
+    {
+        var plant = MyPlantHack.UserPlantParameters();
+        var shading = plant.ArrayShading;
+
+        bool isShaded = shading.Single().IsSunPositionShaded((alt, az));
+        Assert.Equal(shouldBeShaded, isShaded);
+    }
 }
 
-file record DummyDni(DateTimeOffset day) : IDirectNormalIrradianceProvider
+file static class MyPlantHack
 {
-    public async Task<IEnumerable<DniValue>> GetDniForecastAsync()
+    private const string _myPlantHack = "{\"arraySpecification\":{\"arrayArea\":13.7,\"absolutePeakWatts\":2900,\"arrayElevationDegrees\":45,\"arrayAzimuthDegrees\":0,\"latDegrees\":54.5,\"longDegrees\":-1.55},\"weatherForecastSettings\":{\"sunlightScalar\":0.5358996,\"overcastScalar\":0.5358996},\"algorithmSettings\":{\"chargeRateLimitScalar\":1.2},\"arrayShading\":[{\"points\":[{\"item1\":90,\"item2\":0},{\"item1\":90,\"item2\":60},{\"item1\":90,\"item2\":70},{\"item1\":90,\"item2\":80},{\"item1\":30,\"item2\":90},{\"item1\":10,\"item2\":100},{\"item1\":15,\"item2\":110},{\"item1\":17,\"item2\":120},{\"item1\":5,\"item2\":130},{\"item1\":14,\"item2\":140},{\"item1\":18,\"item2\":150},{\"item1\":20,\"item2\":160},{\"item1\":20,\"item2\":170},{\"item1\":20,\"item2\":180},{\"item1\":20,\"item2\":190},{\"item1\":5,\"item2\":200},{\"item1\":14,\"item2\":210},{\"item1\":20,\"item2\":220},{\"item1\":15,\"item2\":230},{\"item1\":15,\"item2\":240},{\"item1\":19,\"item2\":250},{\"item1\":5,\"item2\":260},{\"item1\":27,\"item2\":270},{\"item1\":90,\"item2\":280},{\"item1\":90,\"item2\":290},{\"item1\":90,\"item2\":300},{\"item1\":90,\"item2\":310},{\"item1\":-90,\"item2\":310},{\"item1\":-90,\"item2\":0}]}],\"plantType\":\"Hy36\"}";
+    private static JsonSerializerOptions _jsonOptions = new()
     {
-        IEnumerable<DniValue> Iterate()
-        {
-            DateTimeOffset dt = day.Date;
-            DateTimeOffset end = day.Date.AddDays(4);
+        AllowTrailingCommas = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        IncludeFields = true
+    };
 
-            while (dt < end)
-            {
-                yield return new DniValue(dt.LocalDateTime, 1000.0f, null, 0);
-                dt += TimeSpan.FromHours(0.5);
-            }
-        };
-
-        var result = Iterate().ToArray();
-
-        return result;
-    }
+    public static UserPlantParameters UserPlantParameters()
+        => JsonSerializer.Deserialize<UserPlantParameters>(_myPlantHack, _jsonOptions)
+        ?? throw new InvalidOperationException("Couldn't deserialise UserPlantParameters");
 }
