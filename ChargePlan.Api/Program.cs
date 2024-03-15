@@ -15,7 +15,7 @@ using ChargePlan.Domain.Plant;
 using ChargePlan.Infrastructure.AzureBlob.User;
 
 var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults(worker =>
+    .ConfigureFunctionsWebApplication(worker =>
     {
         worker.UseMiddleware<ExceptionMiddleware>();
         worker.UseMiddleware<AuthMiddleware>();
@@ -24,14 +24,14 @@ var host = new HostBuilder()
     {
         services
             .AddHttpClient()
-            .Configure<JsonSerializerOptions>(options =>
+            .Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
             {
-                options.AllowTrailingCommas = true;
-                options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-                options.PropertyNameCaseInsensitive = true;
-                options.IncludeFields = true;
+                options.SerializerOptions.AllowTrailingCommas = true;
+                options.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.SerializerOptions.PropertyNameCaseInsensitive = true;
+                options.SerializerOptions.IncludeFields = true;
             })
-            .AddSingleton<JsonSerializerOptions>(sp => sp.GetRequiredService<IOptions<JsonSerializerOptions>>().Value)
+            .AddSingleton<JsonSerializerOptions>(sp => sp.GetRequiredService<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>().Value.SerializerOptions)
             .AddAzureClients(configureClients =>
             {
                 configureClients.AddBlobServiceClient(Environment.GetEnvironmentVariable("AzureWebJobsStorage"));

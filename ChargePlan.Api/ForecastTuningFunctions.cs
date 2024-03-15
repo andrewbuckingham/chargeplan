@@ -1,6 +1,8 @@
 using ChargePlan.Service;
 using ChargePlan.Service.Entities;
 using ChargePlan.Service.Entities.ForecastTuning;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -25,24 +27,24 @@ public class ForecastTuningFunctions
         => _service.StoreForecastInHistory(new Guid(MyUserId));
 
     [Function(nameof(StoreEnergyHistory))]
-    public Task<HttpResponseData> StoreEnergyHistory([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/energyhistory")] HttpRequestData req)
+    public Task<IActionResult> StoreEnergyHistory([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/energyhistory")] HttpRequest req)
         => req.CreateWithService<IEnumerable<EnergyDatapoint>, IEnumerable<EnergyDatapoint>>(_logger, nameof(StoreEnergyHistory), _service.StoreEnergyInHistory);
 
     [Function(nameof(DetermineLatestForecastScalar))]
-    public Task<HttpResponseData> DetermineLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/forecast/latestscalar")] HttpRequestData req)
+    public Task<IActionResult> DetermineLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/forecast/latestscalar")] HttpRequest req)
         => req.GetFromService<WeatherForecastSettings>(_logger, nameof(DetermineLatestForecastScalar), () => _service.DetermineLatestForecastScalar());
 
     [Function(nameof(DetermineLatestForecastScalarForRange))]
-    public Task<HttpResponseData> DetermineLatestForecastScalarForRange([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/forecast/latestscalar/periods/days/{days}")] HttpRequestData req, int days)
+    public Task<IActionResult> DetermineLatestForecastScalarForRange([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "user/me/forecast/latestscalar/periods/days/{days}")] HttpRequest req, int days)
         => req.GetFromService<WeatherForecastSettings>(_logger, nameof(DetermineLatestForecastScalarForRange), ()
         => _service.DetermineLatestForecastScalar(new ForecastTuningSettings() with { PeriodToAverageOver = TimeSpan.FromDays(days) }));
 
     [Function(nameof(DetermineAndApplyLatestForecastScalar))]
-    public Task<HttpResponseData> DetermineAndApplyLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/latestscalar")] HttpRequestData req)
+    public Task<IActionResult> DetermineAndApplyLatestForecastScalar([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/latestscalar")] HttpRequest req)
         => req.CreateWithService<WeatherForecastSettings>(_logger, nameof(DetermineAndApplyLatestForecastScalar), (_) => _service.DetermineAndApplyLatestForecastScalar());
 
     [Function(nameof(DetermineAndApplyLatestForecastScalarForRange))]
-    public Task<HttpResponseData> DetermineAndApplyLatestForecastScalarForRange([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/latestscalar/periods/days/{days}")] HttpRequestData req, int days)
+    public Task<IActionResult> DetermineAndApplyLatestForecastScalarForRange([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "user/me/forecast/latestscalar/periods/days/{days}")] HttpRequest req, int days)
         => req.CreateWithService<WeatherForecastSettings>(_logger, nameof(DetermineAndApplyLatestForecastScalarForRange), (_)
         => _service.DetermineAndApplyLatestForecastScalar(new ForecastTuningSettings() with { PeriodToAverageOver = TimeSpan.FromDays(days) }));
 }
