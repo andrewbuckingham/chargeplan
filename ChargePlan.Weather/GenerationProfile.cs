@@ -2,13 +2,33 @@ using ChargePlan.Domain;
 
 namespace ChargePlan.Weather;
 
-public class GenerationProfile : IGenerationProfile
+public record GenerationProfile(IEnumerable<DniValue> DniValues, IEnumerable<DateTimeOffset> Clock, Func<DateTimeOffset, DniValue, GenerationValue> Algorithm) : IGenerationProfile
 {
-    public IEnumerable<GenerationValue> Values = Enumerable.Empty<GenerationValue>();
-
     public IInterpolation AsSpline(Func<IEnumerable<double>, IEnumerable<double>, IInterpolation> splineCreator)
-        => splineCreator(Values.Select(f => (double)f.DateTime.AsTotalHours()), Values.Select(f => (double)f.Power));
+    {
+        IInterpolation directWatts = splineCreator(DniValues.Select(f => f.DateTime.AsTotalHours()), DniValues.Select(f => (double)f.DirectWatts));
+        IInterpolation diffusewatts = splineCreator(DniValues.Select(f => f.DateTime.AsTotalHours()), DniValues.Select(f => (double)(f.DiffuseWatts ?? 0.0f)));
+        IInterpolation cloud = splineCreator(DniValues.Select(f => f.DateTime.AsTotalHours()), DniValues.Select(f => (double)(f.CloudCoverPercent ?? 0.0f)));
 
-    public override string ToString()
-        => String.Join(" | ", Values.Zip(Values.Skip(1)).Select(f => $"{(f.First.DateTime.Date != f.Second.DateTime.Date ? f.Second.DateTime : f.Second.DateTime.TimeOfDay)}h:{Math.Round(f.Second.Power, 3)}"));
+        var atEachPointInTime = Clock.Select(f =>
+        {
+            DniValue interpolatedDni = new(
+                DateTime: f,
+                DirectWatts: (float)directWatts.Interpolate(f.AsTotalHours()),
+                DiffuseWatts: (float)diffusewatts.Interpolate(f.AsTotalHours()),
+                CloudCoverPercent: (int)cloud.Interpolate(f.AsTotalHours())
+            );
+
+            var value = Algorithm(f, interpolatedDni);
+
+            return value;
+        }).ToArray();
+
+        IInterpolation final = splineCreator(
+            atEachPointInTime.Select(f => f.DateTime.AsTotalHours()),
+            atEachPointInTime.Select(f => (double)f.Power)
+            );
+
+        return final;
+    }
 }

@@ -60,6 +60,7 @@ public class UserRecommendationService
             .WithArrayArea(plantSpec.ArraySpecification.ArrayArea, absolutePeakWatts: plantSpec.ArraySpecification.AbsolutePeakWatts)
             .WithDniSource(_dniWeatherProvider)
             .WithForecastSettings(sunlightScalar: plantSpec.WeatherForecastSettings.SunlightScalar)
+            .WithTimeStep(TimeSpan.FromMinutes(10))
             .AddShading(plantSpec.ArrayShading)
             .BuildAsync();
 

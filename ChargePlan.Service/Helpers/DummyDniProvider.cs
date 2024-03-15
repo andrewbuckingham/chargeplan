@@ -18,7 +18,7 @@ public class DummyDniProvider : IDirectNormalIrradianceProvider
         IEnumerable<DniValue> Values()
         {
             DateTimeOffset date = _startDate;
-            while (date < DateTimeOffset.UtcNow)
+            while (date < _startDate.AddDays(7))
             {
                 yield return new DniValue(date, 1000.0f, 0.0f, 0);
                 date += TimeSpan.FromHours(1);
