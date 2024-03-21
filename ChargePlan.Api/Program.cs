@@ -31,6 +31,13 @@ var host = new HostBuilder()
                 options.SerializerOptions.PropertyNameCaseInsensitive = true;
                 options.SerializerOptions.IncludeFields = true;
             })
+            .Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+            {
+                options.JsonSerializerOptions.AllowTrailingCommas = true;
+                options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+                options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+                options.JsonSerializerOptions.IncludeFields = true;
+            })
             .AddSingleton<JsonSerializerOptions>(sp => sp.GetRequiredService<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>().Value.SerializerOptions)
             .AddAzureClients(configureClients =>
             {
